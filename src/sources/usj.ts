@@ -6,7 +6,10 @@ const PRODUCT_NAME = 'ユニバーサル・エクスプレス・パス 4～ト�
 const PEOPLE = 2;
 const CURRENCY = 'JPY';
 const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
-const PAGE_URL = 'https://www.usj.co.jp/tickets-and-passes/express-pass/';
+/** Store front the b2cportal API belongs to; product paths hang off it. */
+const SITE_BASE = 'https://www.usj.co.jp/web/ja/jp';
+/** Used when the product API does not hand back its own path. */
+const FALLBACK_PAGE_URL = `${SITE_BASE}/tickets-and-passes/express-pass`;
 
 /** Courtesy gap between the per-date time-slot calls. */
 const SLOT_REQUEST_GAP_MS = 150;
@@ -171,17 +174,21 @@ async function fetchTimeSlots(date: string, names: Record<string, string>): Prom
 }
 
 /**
- * The variant lookup only returns TIMED entries, so the attractions the pass
- * covers with no fixed window come from the base product instead.
+ * The base product carries two things the calendar and variant lookups do not:
+ * the attractions covered with no fixed entry window (the variant lookup only
+ * returns TIMED entries), and the store's own path for this product — the only
+ * reliable way to link to it, since the paths are Japanese slugs.
  */
-async function fetchNonTimedAttractions(names: Record<string, string>): Promise<string[]> {
+async function fetchProductInfo(
+  names: Record<string, string>,
+): Promise<{ nonTimed: string[]; pageUrl: string }> {
   const url = `${API_BASE}/products/${PRODUCT_CODE}?fields=FULL&lang=ja&curr=${CURRENCY}`;
   const res = await fetch(url, { headers: HEADERS });
   if (!res.ok) {
     throw new Error(`Product API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
 
-  const body = (await res.json()) as { attractions?: { events?: VariantEvent[] } };
+  const body = (await res.json()) as { attractions?: { events?: VariantEvent[] }; url?: string };
   const codes: string[] = [];
 
   for (const e of body.attractions?.events ?? []) {
@@ -190,7 +197,11 @@ async function fetchNonTimedAttractions(names: Record<string, string>): Promise<
     names[code] ??= e.eventName;
     codes.push(code);
   }
-  return codes.sort();
+
+  return {
+    nonTimed: codes.sort(),
+    pageUrl: body.url ? `${SITE_BASE}${body.url}` : FALLBACK_PAGE_URL,
+  };
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -223,6 +234,7 @@ export const usjSource: Source = {
     // renders as "not fetched".
     const attractionNames: Record<string, string> = {};
     let nonTimedAttractions: string[] = [];
+    let pageUrl = FALLBACK_PAGE_URL;
 
     const windowStart = latestDate ? shiftMonths(latestDate, -SLOT_WINDOW_MONTHS) : '';
     const targets = latestDate
@@ -233,9 +245,9 @@ export const usjSource: Source = {
       console.log(`[usj] time slots for ${targets.length} dates in ${windowStart} → ${latestDate}`);
 
       try {
-        nonTimedAttractions = await fetchNonTimedAttractions(attractionNames);
+        ({ nonTimed: nonTimedAttractions, pageUrl } = await fetchProductInfo(attractionNames));
       } catch (err) {
-        console.error(`[usj] non-timed attractions failed: ${err instanceof Error ? err.message : err}`);
+        console.error(`[usj] product info failed: ${err instanceof Error ? err.message : err}`);
       }
 
       for (const target of targets) {
@@ -253,7 +265,7 @@ export const usjSource: Source = {
     return {
       id: 'usj',
       label: 'USJ 官網',
-      url: PAGE_URL,
+      url: pageUrl,
       productName: PRODUCT_NAME,
       productCode: PRODUCT_CODE,
       currency: CURRENCY,
