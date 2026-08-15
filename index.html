@@ -104,6 +104,36 @@
     .date-pill .n.few { color: #f0883e; }
     .date-pill .n.none { color: #f85149; }
 
+    /* Party size — a filter over the snapshot, not a new lookup. */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .people {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .people button {
+      width: 30px; height: 28px;
+      background: none; border: none; color: #e6edf3;
+      font-size: 16px; line-height: 1; cursor: pointer; border-radius: 6px;
+    }
+    .people button:hover:not(:disabled) { background: #30363d; }
+    .people button:disabled { color: #484f58; cursor: default; }
+    .people .count {
+      min-width: 54px; text-align: center; font-size: 14px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .people-note { font-size: 11px; color: #484f58; }
+
     .slot-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -115,6 +145,8 @@
       font-variant-numeric: tabular-nums; cursor: pointer;
       transition: background 0.12s, border-color 0.12s;
     }
+    .slot-chip .left { display: block; font-size: 11px; margin-top: 3px; color: #8b949e; }
+    .slot-chip .left.few { color: #f0883e; }
     .slot-chip:hover { background: #1f6feb33; border-color: #1f6feb88; }
     .slot-chip.open { background: #1f6feb44; border-color: #79c0ff; color: #e6edf3; }
 
@@ -167,6 +199,21 @@
     // Fetcher runs every 15 min; an hour of silence means something is wrong.
     const STALE_MS = 60 * 60 * 1000;
     const STORE_PREFIX = 'usj-selected-date:';
+    const MAX_PEOPLE = 10;
+
+    /** Per-source view state: which date, and for how many people. */
+    const state = new Map();
+
+    /**
+     * A slot fits a party exactly when enough tickets are left in it — that is
+     * the same rule the store applies when it hides slots from a larger party,
+     * so the filter runs here instead of asking the store per party size.
+     * A slot whose count could not be fetched is kept rather than hidden.
+     */
+    function slotsFor(day, people) {
+      return (day && day.timeSlots ? day.timeSlots : [])
+        .filter(s => s.availableUnits == null || s.availableUnits >= people);
+    }
 
     function esc(s) {
       return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -192,10 +239,17 @@
       return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : null;
     }
 
+    /** ?people=N, shared by every source. */
+    function queryPeople() {
+      const n = Number(new URLSearchParams(location.search).get('people'));
+      return Number.isInteger(n) && n >= 1 && n <= MAX_PEOPLE ? n : null;
+    }
+
     /** Keep the URL in sync so the current view is copy-pasteable. */
-    function syncQuery(sourceId, date) {
+    function syncQuery(sourceId, date, people) {
       const q = new URLSearchParams(location.search);
       q.set(q.has(sourceId) ? sourceId : 'date', date);
+      q.set('people', String(people));
       history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
     }
 
@@ -260,57 +314,71 @@
       return (src.dates || []).filter(d => d.timeSlots);
     }
 
-    function badgeHtml(src, slot) {
-      const units = slot.availableUnits != null ? `剩餘 ${slot.availableUnits} 張 ｜ ` : '';
-      const perPerson = priceText(slot, src);
-      const total = slot.pricePerPerson != null
-        ? ` ｜ ${src.people} 人合計 ${money(slot.pricePerPerson * src.people, src.currency)}`
+    function badgeHtml(src, day, people) {
+      const units = day.availableUnits != null ? `剩餘 ${day.availableUnits} 張 ｜ ` : '';
+      const perPerson = priceText(day, src);
+      const total = day.pricePerPerson != null
+        ? ` ｜ ${people} 人合計 ${money(day.pricePerPerson * people, src.currency)}`
         : '';
-      const isLatest = slot.date === src.latestDate;
+      const isLatest = day.date === src.latestDate;
 
       return `
         <div class="label">${isLatest ? '最新開放日' : '已選日期'}</div>
         <div class="date">
-          ${fmtDate(slot.date)}
-          <span class="${dowClass(slot.dayOfWeek)}">${DAY_NAMES[slot.dayOfWeek]}</span>
+          ${fmtDate(day.date)}
+          <span class="${dowClass(day.dayOfWeek)}">${DAY_NAMES[day.dayOfWeek]}</span>
           ${isLatest ? '<span class="latest-tag">最新</span>' : ''}
         </div>
         <div class="detail">${units}${esc(perPerson)} /人${total}</div>`;
     }
 
-    function slotsHtml(src, slot) {
-      if (!slot.timeSlots || slot.timeSlots.length === 0) {
-        return '<div class="empty">此日已無可選時段</div>';
+    function slotsHtml(src, day, people, slots) {
+      if (slots.length === 0) {
+        const all = day.timeSlots ? day.timeSlots.length : 0;
+        return `<div class="empty">${all > 0
+          ? `此日的 ${all} 個時段都不足 ${people} 人`
+          : '此日已無可選時段'}</div>`;
       }
 
       const names = src.attractionNames || {};
-      const chips = slot.timeSlots.map((ts, i) =>
-        `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}</div>`
-      ).join('');
+      const chips = slots.map((ts, i) => {
+        const n = ts.availableUnits;
+        const left = n == null ? '' : `<span class="left${n <= 5 ? ' few' : ''}">剩 ${n}</span>`;
+        return `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}${left}</div>`;
+      }).join('');
       const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
 
       return `
-        <div class="section-title">可選時段 (${slot.timeSlots.length})</div>
+        <div class="section-title">可選時段 (${slots.length})</div>
         <div class="slot-grid">${chips}</div>
         <div class="slot-detail" hidden></div>
         ${nonTimed.length ? `<div class="slot-note"><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}</div>` : ''}`;
     }
 
-    /** Re-render the parts that depend on which date is selected. */
-    function showDate(card, src, date) {
-      const slot = (src.dates || []).find(d => d.date === date);
-      if (!slot) return;
+    /** Redraw everything that depends on the selected date or party size. */
+    function paint(card, src) {
+      const st = state.get(src.id);
+      const day = (src.dates || []).find(d => d.date === st.date);
+      if (!day) return;
 
-      writePref(src.id, date);
-      syncQuery(src.id, date);
+      const slots = slotsFor(day, st.people);
 
-      card.querySelectorAll('.date-pill').forEach(p => {
-        p.classList.toggle('selected', p.dataset.date === date);
+      card.querySelectorAll('.date-pill').forEach(pill => {
+        pill.classList.toggle('selected', pill.dataset.date === st.date);
+        const pillDay = (src.dates || []).find(d => d.date === pill.dataset.date);
+        const n = slotsFor(pillDay, st.people).length;
+        const cell = pill.querySelector('.n');
+        cell.textContent = `${n} 時段`;
+        cell.className = n === 0 ? 'n none' : n <= 3 ? 'n few' : 'n';
       });
-      card.querySelector('.selected-badge').innerHTML = badgeHtml(src, slot);
+
+      card.querySelector('.people .count').textContent = `${st.people} 人`;
+      card.querySelector('.people .minus').disabled = st.people <= 1;
+      card.querySelector('.people .plus').disabled = st.people >= MAX_PEOPLE;
+      card.querySelector('.selected-badge').innerHTML = badgeHtml(src, day, st.people);
 
       const body = card.querySelector('.slot-body');
-      body.innerHTML = slotsHtml(src, slot);
+      body.innerHTML = slotsHtml(src, day, st.people, slots);
 
       const detail = body.querySelector('.slot-detail');
       const names = src.attractionNames || {};
@@ -320,10 +388,10 @@
           body.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('open'));
           if (wasOpen) { detail.hidden = true; return; }
 
-          const ts = slot.timeSlots[Number(chip.dataset.i)];
+          const ts = slots[Number(chip.dataset.i)];
           chip.classList.add('open');
           detail.innerHTML = `
-            <div class="head">${esc(ts.from)}–${esc(ts.to)}</div>
+            <div class="head">${esc(ts.from)}–${esc(ts.to)}${ts.availableUnits != null ? ` ｜ 剩 ${ts.availableUnits} 張` : ''}</div>
             ${(ts.events || []).map(e => `
               <div class="ev">
                 <span>${esc(names[e.code] || e.code)}</span>
@@ -333,6 +401,25 @@
           detail.hidden = false;
         });
       });
+    }
+
+    function selectDate(card, src, date) {
+      const st = state.get(src.id);
+      if (st.date === date) return;
+      st.date = date;
+      writePref(src.id, date);
+      syncQuery(src.id, date, st.people);
+      paint(card, src);
+    }
+
+    function selectPeople(card, src, people) {
+      const st = state.get(src.id);
+      const next = Math.min(MAX_PEOPLE, Math.max(1, people));
+      if (st.people === next) return;
+      st.people = next;
+      writePref(`${src.id}:people`, String(next));
+      syncQuery(src.id, st.date, next);
+      paint(card, src);
     }
 
     function sourceCard(src) {
@@ -348,16 +435,13 @@
       const stale = src.fetchedAt && (Date.now() - new Date(src.fetchedAt).getTime() > STALE_MS);
       const dates = pickableDates(src);
 
-      const pills = dates.map(d => {
-        const n = d.timeSlots.length;
-        const cls = n === 0 ? 'n none' : n <= 3 ? 'n few' : 'n';
-        return `
+      // Slot counts are filled in by paint(), which knows the party size.
+      const pills = dates.map(d => `
           <div class="date-pill" data-date="${esc(d.date)}">
             <div class="d">${fmtShort(d.date)}</div>
             <div class="${dowWordClass(d.dayOfWeek)}">${DAY_NAMES[d.dayOfWeek]}</div>
-            <div class="${cls}">${n} 時段</div>
-          </div>`;
-      }).join('');
+            <div class="n"></div>
+          </div>`).join('');
 
       const picker = dates.length
         ? `<div class="date-strip">${pills}</div>`
@@ -370,6 +454,14 @@
           <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.productName)} ↗</a>` : esc(src.productName)}</div>
           ${stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
           ${picker}
+          <div class="controls">
+            <div class="people">
+              <button class="minus" type="button" aria-label="減少人數">−</button>
+              <span class="count"></span>
+              <button class="plus" type="button" aria-label="增加人數">+</button>
+            </div>
+            <span class="people-note">只列出還剩得下這麼多人的時段</span>
+          </div>
           <div class="selected-badge"></div>
           <div class="slot-body"></div>
           <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
@@ -391,12 +483,20 @@
 
       for (const src of sources) {
         if (src.error) continue;
-        const card = root.querySelector(`.card[data-src="${CSS.escape(src.id)}"]`);
+        // Matched by property rather than a built selector — source ids come
+        // from the data file and need no escaping this way.
+        const card = [...root.querySelectorAll('.card')].find(c => c.dataset.src === src.id);
         const dates = pickableDates(src);
         if (!card || dates.length === 0) continue;
 
         card.querySelectorAll('.date-pill').forEach(pill => {
-          pill.addEventListener('click', () => showDate(card, src, pill.dataset.date));
+          pill.addEventListener('click', () => selectDate(card, src, pill.dataset.date));
+        });
+        card.querySelector('.people .minus').addEventListener('click', () => {
+          selectPeople(card, src, state.get(src.id).people - 1);
+        });
+        card.querySelector('.people .plus').addEventListener('click', () => {
+          selectPeople(card, src, state.get(src.id).people + 1);
         });
 
         // Query string, then last choice — each only while that date is still
@@ -404,10 +504,19 @@
         // latest date is the fallback.
         const has = d => !!d && dates.some(x => x.date === d);
         const wanted = [queryDate(src.id), readPref(src.id)].find(has);
-        const initial = wanted
+        const date = wanted
           || (has(src.latestDate) ? src.latestDate : dates[dates.length - 1].date);
 
-        showDate(card, src, initial);
+        const savedPeople = Number(readPref(`${src.id}:people`));
+        const people = queryPeople()
+          || (savedPeople >= 1 && savedPeople <= MAX_PEOPLE ? savedPeople : 2);
+
+        state.set(src.id, { date, people });
+        writePref(src.id, date);
+        writePref(`${src.id}:people`, String(people));
+        syncQuery(src.id, date, people);
+
+        paint(card, src);
         card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
       }
     }
