@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USJ Express Pass 最新開放日</title>
+  <title>USJ Express Pass 時段查詢</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -34,16 +34,20 @@
     .product-name a { color: #58a6ff; text-decoration: none; }
     .product-name a:hover { text-decoration: underline; }
 
-    .latest-badge {
+    .selected-badge {
       background: #1f6feb22;
       border: 1px solid #1f6feb55;
       border-radius: 8px;
       padding: 12px 16px;
       margin-bottom: 18px;
     }
-    .latest-badge .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
-    .latest-badge .date { font-size: 24px; font-weight: 700; color: #79c0ff; }
-    .latest-badge .detail { font-size: 12px; color: #8b949e; margin-top: 2px; }
+    .selected-badge .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+    .selected-badge .date { font-size: 24px; font-weight: 700; color: #79c0ff; }
+    .selected-badge .detail { font-size: 12px; color: #8b949e; margin-top: 2px; }
+    .latest-tag {
+      font-size: 10px; color: #3fb950; border: 1px solid #3fb95055; background: #3fb9501a;
+      border-radius: 4px; padding: 2px 6px; margin-left: 6px; vertical-align: middle;
+    }
 
     .dow { display: inline-block; min-width: 20px; text-align: center; margin-left: 4px; font-size: 12px;
            background: #21262d; border-radius: 3px; padding: 1px 4px; color: #8b949e; vertical-align: middle; }
@@ -68,6 +72,37 @@
       padding-bottom: 8px;
       border-bottom: 1px solid #21262d;
     }
+
+    /* Date picker — one pill per date whose slots were actually looked up. */
+    .date-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 18px;
+      scrollbar-width: thin;
+    }
+    .date-pill {
+      flex: none;
+      min-width: 74px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .date-pill:hover { background: #2d333b; }
+    .date-pill.selected { background: #1f6feb33; border-color: #79c0ff; }
+    .date-pill .d { font-size: 14px; font-weight: 600; color: #e6edf3; font-variant-numeric: tabular-nums; }
+    .date-pill.selected .d { color: #79c0ff; }
+    .date-pill .w { font-size: 11px; color: #8b949e; margin-top: 1px; }
+    .date-pill .w.sat { color: #79c0ff; }
+    .date-pill .w.sun { color: #f85149; }
+    .date-pill .n { font-size: 11px; color: #484f58; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .date-pill .n.few { color: #f0883e; }
+    .date-pill .n.none { color: #f85149; }
 
     .slot-grid {
       display: grid;
@@ -113,10 +148,12 @@
     @media (max-width: 720px) {
       body { padding: 12px; }
       .card { padding: 18px 16px; border-radius: 10px; }
-      .latest-badge .date { font-size: 22px; }
+      .selected-badge .date { font-size: 22px; }
       .updated { text-align: left; }
       .slot-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
       .slot-chip { padding: 9px 6px; font-size: 13px; }
+      .date-strip { gap: 6px; margin-left: -16px; margin-right: -16px; padding: 0 16px 8px; }
+      .date-pill { min-width: 68px; padding: 7px 8px; }
     }
   </style>
 </head>
@@ -129,15 +166,30 @@
     const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
     // Fetcher runs every 15 min; an hour of silence means something is wrong.
     const STALE_MS = 60 * 60 * 1000;
+    const STORE_PREFIX = 'usj-selected-date:';
 
     function esc(s) {
       return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    }
+
+    // localStorage throws in private mode / blocked-cookie setups; a lost
+    // preference must never take the page down with it.
+    function readPref(key) {
+      try { return localStorage.getItem(STORE_PREFIX + key); } catch { return null; }
+    }
+    function writePref(key, value) {
+      try { localStorage.setItem(STORE_PREFIX + key, value); } catch { /* ignore */ }
     }
 
     function fmtDate(d) {
       if (!d) return '—';
       const [y, m, dd] = d.split('-');
       return `${y}/${m}/${dd}`;
+    }
+
+    function fmtShort(d) {
+      const [, m, dd] = d.split('-');
+      return `${Number(m)}/${dd}`;
     }
 
     function fmtUpdated(iso) {
@@ -155,6 +207,12 @@
       if (n === 6) return 'dow dow-sat';
       if (n === 0) return 'dow dow-sun';
       return 'dow';
+    }
+
+    function dowWordClass(n) {
+      if (n === 6) return 'w sat';
+      if (n === 0) return 'w sun';
+      return 'w';
     }
 
     function money(amount, currency) {
@@ -175,27 +233,87 @@
       return money(slot.pricePerPerson, src.currency);
     }
 
-    // Every still-bookable window for the date, listed flat — one chip each,
-    // tapping a chip reveals that slot's per-attraction entry times.
-    function slotSection(src, latest) {
-      if (!latest) return '<div class="empty">目前沒有可售日期</div>';
+    /**
+     * The selectable dates are exactly those the fetcher looked slots up for —
+     * the month leading to the latest on-sale date. timeSlots === null means
+     * the lookup never ran, so such a date has nothing to show.
+     */
+    function pickableDates(src) {
+      return (src.dates || []).filter(d => d.timeSlots);
+    }
 
-      // timeSlots === null means the lookup never ran for this date.
-      if (!latest.timeSlots) return '<div class="unknown-slots">此日尚未查詢時段</div>';
-      if (latest.timeSlots.length === 0) return '<div class="empty">此日已無可選時段</div>';
+    function badgeHtml(src, slot) {
+      const units = slot.availableUnits != null ? `剩餘 ${slot.availableUnits} 張 ｜ ` : '';
+      const perPerson = priceText(slot, src);
+      const total = slot.pricePerPerson != null
+        ? ` ｜ ${src.people} 人合計 ${money(slot.pricePerPerson * src.people, src.currency)}`
+        : '';
+      const isLatest = slot.date === src.latestDate;
+
+      return `
+        <div class="label">${isLatest ? '最新開放日' : '已選日期'}</div>
+        <div class="date">
+          ${fmtDate(slot.date)}
+          <span class="${dowClass(slot.dayOfWeek)}">${DAY_NAMES[slot.dayOfWeek]}</span>
+          ${isLatest ? '<span class="latest-tag">最新</span>' : ''}
+        </div>
+        <div class="detail">${units}${esc(perPerson)} /人${total}</div>`;
+    }
+
+    function slotsHtml(src, slot) {
+      if (!slot.timeSlots || slot.timeSlots.length === 0) {
+        return '<div class="empty">此日已無可選時段</div>';
+      }
 
       const names = src.attractionNames || {};
-      const chips = latest.timeSlots.map((ts, i) =>
-        `<div class="slot-chip" data-src="${esc(src.id)}" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}</div>`
+      const chips = slot.timeSlots.map((ts, i) =>
+        `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}</div>`
       ).join('');
-
       const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
 
       return `
-        <div class="section-title">可選時段 (${latest.timeSlots.length})</div>
-        <div class="slot-grid" data-grid="${esc(src.id)}">${chips}</div>
-        <div class="slot-detail" data-detail="${esc(src.id)}" hidden></div>
+        <div class="section-title">可選時段 (${slot.timeSlots.length})</div>
+        <div class="slot-grid">${chips}</div>
+        <div class="slot-detail" hidden></div>
         ${nonTimed.length ? `<div class="slot-note"><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}</div>` : ''}`;
+    }
+
+    /** Re-render the parts that depend on which date is selected. */
+    function showDate(card, src, date) {
+      const slot = (src.dates || []).find(d => d.date === date);
+      if (!slot) return;
+
+      writePref(src.id, date);
+
+      card.querySelectorAll('.date-pill').forEach(p => {
+        p.classList.toggle('selected', p.dataset.date === date);
+      });
+      card.querySelector('.selected-badge').innerHTML = badgeHtml(src, slot);
+
+      const body = card.querySelector('.slot-body');
+      body.innerHTML = slotsHtml(src, slot);
+
+      const detail = body.querySelector('.slot-detail');
+      const names = src.attractionNames || {};
+      body.querySelectorAll('.slot-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const wasOpen = chip.classList.contains('open');
+          body.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('open'));
+          if (wasOpen) { detail.hidden = true; return; }
+
+          const ts = slot.timeSlots[Number(chip.dataset.i)];
+          chip.classList.add('open');
+          detail.innerHTML = `
+            <div class="head">${esc(ts.from)}–${esc(ts.to)}</div>
+            ${(ts.events || []).map(e => `
+              <div class="ev">
+                <span>${esc(names[e.code] || e.code)}</span>
+                <span class="time">${esc(e.from)}–${esc(e.to)}</span>
+              </div>`).join('')}
+            <div class="code">${esc(ts.variantCode)}</div>`;
+          detail.hidden = false;
+        });
+      });
     }
 
     function sourceCard(src) {
@@ -208,29 +326,33 @@
           </div>`;
       }
 
-      const latest = (src.dates || []).find(d => d.date === src.latestDate);
       const stale = src.fetchedAt && (Date.now() - new Date(src.fetchedAt).getTime() > STALE_MS);
-      const units = latest && latest.availableUnits != null ? `剩餘 ${latest.availableUnits} 張 ｜ ` : '';
-      const perPerson = latest ? priceText(latest, src) : '';
-      const total = latest && latest.pricePerPerson != null
-        ? ` ｜ ${src.people} 人合計 ${money(latest.pricePerPerson * src.people, src.currency)}`
-        : '';
+      const dates = pickableDates(src);
 
-      const latestHtml = latest ? `
-        <div class="latest-badge">
-          <div class="label">最新開放日</div>
-          <div class="date">${fmtDate(src.latestDate)} <span class="${dowClass(latest.dayOfWeek)}">${DAY_NAMES[latest.dayOfWeek]}</span></div>
-          <div class="detail">${units}${esc(perPerson)} /人${total}</div>
-        </div>` : '';
+      const pills = dates.map(d => {
+        const n = d.timeSlots.length;
+        const cls = n === 0 ? 'n none' : n <= 3 ? 'n few' : 'n';
+        return `
+          <div class="date-pill" data-date="${esc(d.date)}">
+            <div class="d">${fmtShort(d.date)}</div>
+            <div class="${dowWordClass(d.dayOfWeek)}">${DAY_NAMES[d.dayOfWeek]}</div>
+            <div class="${cls}">${n} 時段</div>
+          </div>`;
+      }).join('');
+
+      const picker = dates.length
+        ? `<div class="date-strip">${pills}</div>`
+        : '<div class="unknown-slots">尚無已查詢時段的日期</div>';
 
       return `
-        <div class="card">
+        <div class="card" data-src="${esc(src.id)}">
           <div class="source-label">${esc(src.label || src.id)}</div>
           <div class="product-code">${esc(src.productCode)} ｜ ${esc(src.currency)}</div>
           <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.productName)} ↗</a>` : esc(src.productName)}</div>
           ${stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
-          ${latestHtml}
-          ${slotSection(src, latest)}
+          ${picker}
+          <div class="selected-badge"></div>
+          <div class="slot-body"></div>
           <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
         </div>`;
     }
@@ -248,34 +370,26 @@
         ${sources.map(sourceCard).join('')}
         <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>`;
 
-      // Slot lookup by source id, so a chip click can find its own events.
-      const byId = new Map(sources.map(s => [s.id, s]));
+      for (const src of sources) {
+        if (src.error) continue;
+        const card = root.querySelector(`.card[data-src="${CSS.escape(src.id)}"]`);
+        const dates = pickableDates(src);
+        if (!card || dates.length === 0) continue;
 
-      root.querySelectorAll('.slot-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          const src = byId.get(chip.dataset.src);
-          const latest = (src.dates || []).find(d => d.date === src.latestDate);
-          const ts = latest.timeSlots[Number(chip.dataset.i)];
-          const box = root.querySelector(`.slot-detail[data-detail="${CSS.escape(src.id)}"]`);
-          const grid = root.querySelector(`.slot-grid[data-grid="${CSS.escape(src.id)}"]`);
-          const wasOpen = chip.classList.contains('open');
-
-          grid.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('open'));
-          if (wasOpen) { box.hidden = true; return; }
-
-          chip.classList.add('open');
-          const names = src.attractionNames || {};
-          box.innerHTML = `
-            <div class="head">${esc(ts.from)}–${esc(ts.to)}</div>
-            ${(ts.events || []).map(e => `
-              <div class="ev">
-                <span>${esc(names[e.code] || e.code)}</span>
-                <span class="time">${esc(e.from)}–${esc(e.to)}</span>
-              </div>`).join('')}
-            <div class="code">${esc(ts.variantCode)}</div>`;
-          box.hidden = false;
+        card.querySelectorAll('.date-pill').forEach(pill => {
+          pill.addEventListener('click', () => showDate(card, src, pill.dataset.date));
         });
-      });
+
+        // Last choice wins, but only while that date is still in the fetched
+        // window — the window slides forward, so fall back to the latest date.
+        const saved = readPref(src.id);
+        const initial = dates.some(d => d.date === saved)
+          ? saved
+          : (dates.some(d => d.date === src.latestDate) ? src.latestDate : dates[dates.length - 1].date);
+
+        showDate(card, src, initial);
+        card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+      }
     }
 
     fetch('./data/results.json?t=' + Date.now())
