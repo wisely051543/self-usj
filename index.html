@@ -104,53 +104,17 @@
     .date-pill .n.few { color: #f0883e; }
     .date-pill .n.none { color: #f85149; }
 
-    /* People picker — changing it re-asks the store, so it sits above the slots. */
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .people {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 3px;
-    }
-    .people button {
-      width: 30px; height: 28px;
-      background: none; border: none; color: #e6edf3;
-      font-size: 16px; line-height: 1; cursor: pointer; border-radius: 6px;
-    }
-    .people button:hover:not(:disabled) { background: #30363d; }
-    .people button:disabled { color: #484f58; cursor: default; }
-    .people .count {
-      min-width: 54px; text-align: center; font-size: 14px; font-weight: 600;
-      font-variant-numeric: tabular-nums;
-    }
-    .live-status { font-size: 11px; color: #484f58; }
-    .live-status.ok { color: #3fb950; }
-    .live-status.busy { color: #79c0ff; }
-    .live-status.fail { color: #f0883e; }
-
     .slot-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 8px;
     }
-    .slot-grid.busy { opacity: 0.5; }
     .slot-chip {
       background: #1f6feb1a; border: 1px solid #1f6feb44; color: #79c0ff;
       border-radius: 8px; padding: 10px 8px; font-size: 14px; text-align: center;
       font-variant-numeric: tabular-nums; cursor: pointer;
       transition: background 0.12s, border-color 0.12s;
     }
-    .slot-chip .left { display: block; font-size: 11px; margin-top: 3px; color: #8b949e; }
-    .slot-chip .left.few { color: #f0883e; }
     .slot-chip:hover { background: #1f6feb33; border-color: #1f6feb88; }
     .slot-chip.open { background: #1f6feb44; border-color: #79c0ff; color: #e6edf3; }
 
@@ -228,157 +192,11 @@
       return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : null;
     }
 
-    /** ?people=N, shared by every source. */
-    function queryPeople() {
-      const n = Number(new URLSearchParams(location.search).get('people'));
-      return Number.isInteger(n) && n >= 1 && n <= MAX_PEOPLE ? n : null;
-    }
-
     /** Keep the URL in sync so the current view is copy-pasteable. */
-    function syncQuery(sourceId, date, people) {
+    function syncQuery(sourceId, date) {
       const q = new URLSearchParams(location.search);
       q.set(q.has(sourceId) ? sourceId : 'date', date);
-      q.set('people', String(people));
       history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
-    }
-
-    /* ---------------------------------------------------------------
-     * Live lookups against the store's own API. It answers with
-     * Access-Control-Allow-Origin: *, so the page can ask it directly —
-     * the committed snapshot is only the instant first paint, and anything
-     * that depends on the party size has to be asked fresh.
-     * --------------------------------------------------------------- */
-    const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
-    const API_HEADERS = {
-      'Accept': 'application/json, text/plain, */*',
-      'x-anonymous-consents': '%5B%5D',
-      'Accept-Language': 'ja-JP',
-    };
-    const MAX_PEOPLE = 10;
-    const LIVE_CONCURRENCY = 6;
-
-    function nextDay(date) {
-      const [y, m, d] = date.split('-').map(Number);
-      const t = new Date(Date.UTC(y, m - 1, d + 1));
-      return t.toISOString().slice(0, 10);
-    }
-
-    function toMMDDYYYY(date) {
-      const [y, m, d] = date.split('-');
-      return `${m}/${d}/${y}`;
-    }
-
-    async function mapLimit(items, limit, fn) {
-      const out = new Array(items.length);
-      let next = 0;
-      await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-        while (next < items.length) {
-          const i = next++;
-          out[i] = await fn(items[i], i);
-        }
-      }));
-      return out;
-    }
-
-    /**
-     * Inventory for one part number on one date. partNumber is the product code
-     * for the date total, or a variant code for a single time slot — the store
-     * answers the same shape either way, which is the only route to a per-slot
-     * remaining count.
-     */
-    async function fetchUnits(partNumber, date, people, currency) {
-      const res = await fetch(
-        `${API_BASE}/products/fetchCalendarDatesWithPriceAndInventory?lang=ja&curr=${currency}`,
-        {
-          method: 'POST',
-          headers: { ...API_HEADERS, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            currency,
-            events: {
-              startDate: `${date} 00:00:01`,
-              endDate: nextDay(date),
-              partNumber,
-              quantity: people,
-            },
-          }),
-        });
-      if (!res.ok) throw new Error(`inventory ${res.status}`);
-
-      const body = await res.json();
-      const day = (body.eventAvailability?.[0]?.calendarDates || []).find(d => d.date === date);
-      if (!day) return null;
-
-      const inv = day.inventoryEvents?.[0];
-      const price = day.pricing?.[0];
-      return {
-        availableUnits: inv ? Number(inv.availableUnits) : null,
-        pricePerPerson: price ? price.amount : null,
-        formattedPrice: price ? price.formattedAmount : '',
-      };
-    }
-
-    /** 'EXP_MKC_182000185000' -> 'EXP_MKC'; codes without a time suffix pass through. */
-    function baseEventCode(code) {
-      return code.replace(/_\d{6,}(_\d{6,})*$/, '');
-    }
-
-    /**
-     * The bookable slots for a date and party size. Only variants the store
-     * would still sell to that many people come back, so the list itself
-     * narrows as the party grows.
-     */
-    async function fetchSlots(productCode, date, people, currency, names) {
-      const res = await fetch(
-        `${API_BASE}/products/getExpressPassVariantDetails` +
-        `?baseProductCode=${encodeURIComponent(productCode)}&selectedDate=${encodeURIComponent(toMMDDYYYY(date))}` +
-        `&selectedQty=${people}&lang=ja&curr=${currency}`,
-        { headers: API_HEADERS });
-      if (!res.ok) throw new Error(`variants ${res.status}`);
-
-      const body = await res.json();
-      const slots = [];
-
-      for (const product of body.products || []) {
-        const events = [];
-        for (const e of product.attractions?.events || []) {
-          const code = baseEventCode(e.eventCode);
-          if (names[code] == null) names[code] = e.eventName;
-          if (e.maingroup !== 'TIMED') continue;
-          events.push({ code, from: (e.selectionFromTime || '').slice(0, 5), to: (e.selectionToTime || '').slice(0, 5) });
-        }
-        if (events.length === 0) continue;
-        events.sort((a, b) => a.from.localeCompare(b.from) || a.code.localeCompare(b.code));
-
-        slots.push({
-          variantCode: product.code,
-          from: events[0].from,
-          to: events.reduce((latest, e) => (e.to > latest ? e.to : latest), events[0].to),
-          events,
-        });
-      }
-
-      slots.sort((a, b) => a.from.localeCompare(b.from) || a.variantCode.localeCompare(b.variantCode));
-      return slots;
-    }
-
-    /** Slots for the date and party size, each with its own remaining count. */
-    async function fetchLive(src, date, people) {
-      const names = { ...(src.attractionNames || {}) };
-      const [slots, day] = await Promise.all([
-        fetchSlots(src.productCode, date, people, src.currency, names),
-        fetchUnits(src.productCode, date, people, src.currency),
-      ]);
-
-      await mapLimit(slots, LIVE_CONCURRENCY, async slot => {
-        try {
-          const inv = await fetchUnits(slot.variantCode, date, people, src.currency);
-          slot.availableUnits = inv ? inv.availableUnits : null;
-        } catch {
-          slot.availableUnits = null;   // one slot's count failing is not fatal
-        }
-      });
-
-      return { date, people, slots, day, names, at: Date.now() };
     }
 
     function fmtDate(d) {
@@ -442,182 +260,79 @@
       return (src.dates || []).filter(d => d.timeSlots);
     }
 
-    /** Per-source view state: which date, how many people, last live answer. */
-    const state = new Map();
-
-    /**
-     * What to draw right now. A live answer is only usable while it matches the
-     * date and party size on screen; otherwise fall back to the snapshot, which
-     * was fetched for src.people and says nothing about other party sizes.
-     */
-    function currentView(src, st) {
-      const day = (src.dates || []).find(d => d.date === st.date);
-      const live = st.live && st.live.date === st.date && st.live.people === st.people ? st.live : null;
-
-      if (live) {
-        return {
-          live: true,
-          slots: live.slots,
-          names: live.names,
-          availableUnits: live.day ? live.day.availableUnits : null,
-          pricePerPerson: live.day ? live.day.pricePerPerson : (day ? day.pricePerPerson : null),
-          formattedPrice: live.day ? live.day.formattedPrice : (day ? day.formattedPrice : ''),
-          dayOfWeek: day ? day.dayOfWeek : 0,
-        };
-      }
-
-      return {
-        live: false,
-        stalePeople: st.people !== src.people,
-        slots: day && day.timeSlots ? day.timeSlots : [],
-        names: src.attractionNames || {},
-        availableUnits: day ? day.availableUnits : null,
-        pricePerPerson: day ? day.pricePerPerson : null,
-        formattedPrice: day ? day.formattedPrice : '',
-        dayOfWeek: day ? day.dayOfWeek : 0,
-      };
-    }
-
-    function badgeHtml(src, st, view) {
-      const units = view.availableUnits != null ? `剩餘 ${view.availableUnits} 張 ｜ ` : '';
-      const perPerson = view.formattedPrice || money(view.pricePerPerson, src.currency);
-      const total = view.pricePerPerson != null
-        ? ` ｜ ${st.people} 人合計 ${money(view.pricePerPerson * st.people, src.currency)}`
+    function badgeHtml(src, slot) {
+      const units = slot.availableUnits != null ? `剩餘 ${slot.availableUnits} 張 ｜ ` : '';
+      const perPerson = priceText(slot, src);
+      const total = slot.pricePerPerson != null
+        ? ` ｜ ${src.people} 人合計 ${money(slot.pricePerPerson * src.people, src.currency)}`
         : '';
-      const isLatest = st.date === src.latestDate;
+      const isLatest = slot.date === src.latestDate;
 
       return `
         <div class="label">${isLatest ? '最新開放日' : '已選日期'}</div>
         <div class="date">
-          ${fmtDate(st.date)}
-          <span class="${dowClass(view.dayOfWeek)}">${DAY_NAMES[view.dayOfWeek]}</span>
+          ${fmtDate(slot.date)}
+          <span class="${dowClass(slot.dayOfWeek)}">${DAY_NAMES[slot.dayOfWeek]}</span>
           ${isLatest ? '<span class="latest-tag">最新</span>' : ''}
         </div>
         <div class="detail">${units}${esc(perPerson)} /人${total}</div>`;
     }
 
-    function slotsHtml(src, st, view) {
-      if (view.slots.length === 0) {
-        return st.busy
-          ? '<div class="unknown-slots">查詢中…</div>'
-          : `<div class="empty">${view.live ? `此日已無 ${st.people} 人可買的時段` : '此日已無可選時段'}</div>`;
+    function slotsHtml(src, slot) {
+      if (!slot.timeSlots || slot.timeSlots.length === 0) {
+        return '<div class="empty">此日已無可選時段</div>';
       }
 
-      const chips = view.slots.map((ts, i) => {
-        const n = ts.availableUnits;
-        const left = n == null ? '' : `<span class="left${n <= 5 ? ' few' : ''}">剩 ${n}</span>`;
-        return `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}${left}</div>`;
-      }).join('');
-
-      const nonTimed = (src.nonTimedAttractions || []).map(c => view.names[c] || c);
-      const note = view.live
-        ? ''
-        : `<div class="slot-note"><span class="k">以上為快照資料（${src.people} 人）；即時剩餘張數查詢中或失敗。</span></div>`;
+      const names = src.attractionNames || {};
+      const chips = slot.timeSlots.map((ts, i) =>
+        `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}</div>`
+      ).join('');
+      const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
 
       return `
-        <div class="section-title">可選時段 (${view.slots.length})</div>
-        <div class="slot-grid${st.busy ? ' busy' : ''}">${chips}</div>
+        <div class="section-title">可選時段 (${slot.timeSlots.length})</div>
+        <div class="slot-grid">${chips}</div>
         <div class="slot-detail" hidden></div>
-        ${note}
         ${nonTimed.length ? `<div class="slot-note"><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}</div>` : ''}`;
     }
 
-    function statusHtml(st) {
-      if (st.busy) return '<span class="live-status busy">● 即時查詢中…</span>';
-      if (st.liveError) return `<span class="live-status fail">● 即時查詢失敗（${esc(st.liveError)}），顯示快照</span>`;
-      if (st.live && st.live.date === st.date && st.live.people === st.people) {
-        const t = new Date(st.live.at).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        return `<span class="live-status ok">● 即時 ｜ ${t} 向官網查詢</span>`;
-      }
-      return '<span class="live-status">● 快照資料</span>';
-    }
+    /** Re-render the parts that depend on which date is selected. */
+    function showDate(card, src, date) {
+      const slot = (src.dates || []).find(d => d.date === date);
+      if (!slot) return;
 
-    /** Redraw everything below the date strip from the current state. */
-    function paint(card, src) {
-      const st = state.get(src.id);
-      const view = currentView(src, st);
+      writePref(src.id, date);
+      syncQuery(src.id, date);
 
       card.querySelectorAll('.date-pill').forEach(p => {
-        p.classList.toggle('selected', p.dataset.date === st.date);
+        p.classList.toggle('selected', p.dataset.date === date);
       });
-
-      card.querySelector('.people .count').textContent = `${st.people} 人`;
-      card.querySelector('.people .minus').disabled = st.people <= 1 || st.busy;
-      card.querySelector('.people .plus').disabled = st.people >= MAX_PEOPLE || st.busy;
-      card.querySelector('.live-wrap').innerHTML = statusHtml(st);
-      card.querySelector('.selected-badge').innerHTML = badgeHtml(src, st, view);
+      card.querySelector('.selected-badge').innerHTML = badgeHtml(src, slot);
 
       const body = card.querySelector('.slot-body');
-      body.innerHTML = slotsHtml(src, st, view);
+      body.innerHTML = slotsHtml(src, slot);
 
       const detail = body.querySelector('.slot-detail');
+      const names = src.attractionNames || {};
       body.querySelectorAll('.slot-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const wasOpen = chip.classList.contains('open');
           body.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('open'));
           if (wasOpen) { detail.hidden = true; return; }
 
-          const ts = view.slots[Number(chip.dataset.i)];
+          const ts = slot.timeSlots[Number(chip.dataset.i)];
           chip.classList.add('open');
           detail.innerHTML = `
-            <div class="head">${esc(ts.from)}–${esc(ts.to)}${ts.availableUnits != null ? ` ｜ 剩 ${ts.availableUnits} 張` : ''}</div>
+            <div class="head">${esc(ts.from)}–${esc(ts.to)}</div>
             ${(ts.events || []).map(e => `
               <div class="ev">
-                <span>${esc(view.names[e.code] || e.code)}</span>
+                <span>${esc(names[e.code] || e.code)}</span>
                 <span class="time">${esc(e.from)}–${esc(e.to)}</span>
               </div>`).join('')}
             <div class="code">${esc(ts.variantCode)}</div>`;
           detail.hidden = false;
         });
       });
-    }
-
-    /**
-     * Ask the store for the current date and party size. Every request carries a
-     * sequence number so a slow answer for a date the user already left is
-     * dropped instead of overwriting a newer one.
-     */
-    async function refresh(card, src) {
-      const st = state.get(src.id);
-      const seq = ++st.seq;
-      st.busy = true;
-      st.liveError = '';
-      paint(card, src);
-
-      try {
-        const live = await fetchLive(src, st.date, st.people);
-        if (seq !== st.seq) return;
-        st.live = live;
-      } catch (err) {
-        if (seq !== st.seq) return;
-        st.liveError = err.message || String(err);
-      } finally {
-        if (seq === st.seq) {
-          st.busy = false;
-          paint(card, src);
-        }
-      }
-    }
-
-    function selectDate(card, src, date) {
-      const st = state.get(src.id);
-      if (st.date === date) return;
-      st.date = date;
-      writePref(src.id, date);
-      syncQuery(src.id, date, st.people);
-      paint(card, src);
-      refresh(card, src);
-    }
-
-    function selectPeople(card, src, people) {
-      const st = state.get(src.id);
-      const next = Math.min(MAX_PEOPLE, Math.max(1, people));
-      if (st.people === next) return;
-      st.people = next;
-      writePref(`${src.id}:people`, String(next));
-      syncQuery(src.id, st.date, next);
-      paint(card, src);
-      refresh(card, src);
     }
 
     function sourceCard(src) {
@@ -655,14 +370,6 @@
           <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.productName)} ↗</a>` : esc(src.productName)}</div>
           ${stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
           ${picker}
-          <div class="controls">
-            <div class="people">
-              <button class="minus" type="button" aria-label="減少人數">−</button>
-              <span class="count"></span>
-              <button class="plus" type="button" aria-label="增加人數">+</button>
-            </div>
-            <span class="live-wrap"></span>
-          </div>
           <div class="selected-badge"></div>
           <div class="slot-body"></div>
           <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
@@ -684,20 +391,12 @@
 
       for (const src of sources) {
         if (src.error) continue;
-        // Matched by property rather than a built selector — source ids come
-        // from the data file and need no escaping this way.
-        const card = [...root.querySelectorAll('.card')].find(c => c.dataset.src === src.id);
+        const card = root.querySelector(`.card[data-src="${CSS.escape(src.id)}"]`);
         const dates = pickableDates(src);
         if (!card || dates.length === 0) continue;
 
         card.querySelectorAll('.date-pill').forEach(pill => {
-          pill.addEventListener('click', () => selectDate(card, src, pill.dataset.date));
-        });
-        card.querySelector('.people .minus').addEventListener('click', () => {
-          selectPeople(card, src, state.get(src.id).people - 1);
-        });
-        card.querySelector('.people .plus').addEventListener('click', () => {
-          selectPeople(card, src, state.get(src.id).people + 1);
+          pill.addEventListener('click', () => showDate(card, src, pill.dataset.date));
         });
 
         // Query string, then last choice — each only while that date is still
@@ -705,21 +404,11 @@
         // latest date is the fallback.
         const has = d => !!d && dates.some(x => x.date === d);
         const wanted = [queryDate(src.id), readPref(src.id)].find(has);
-        const date = wanted
+        const initial = wanted
           || (has(src.latestDate) ? src.latestDate : dates[dates.length - 1].date);
 
-        const savedPeople = Number(readPref(`${src.id}:people`));
-        const people = queryPeople()
-          || (savedPeople >= 1 && savedPeople <= MAX_PEOPLE ? savedPeople : src.people || 2);
-
-        state.set(src.id, { date, people, live: null, busy: false, liveError: '', seq: 0 });
-        writePref(src.id, date);
-        writePref(`${src.id}:people`, String(people));
-        syncQuery(src.id, date, people);
-
-        paint(card, src);
+        showDate(card, src, initial);
         card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
-        refresh(card, src);
       }
     }
 
