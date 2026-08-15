@@ -1,0 +1,47 @@
+name: Fetch Express Pass Availability
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run fetch
+
+      - name: Flag failed sources
+        if: always()
+        run: |
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('data/results.json','utf8'));
+            for (const s of r.sources.filter(s => s.error)) {
+              console.log('::warning title=' + s.id + ' fetch failed::' + s.error);
+            }
+          "
+
+      # Runs even when one source failed, so the healthy source's fresh data
+      # still lands in git. Only a total outage reddens the run (npm run fetch
+      # exits non-zero when every source failed).
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "chore: update availability data"
+          git push

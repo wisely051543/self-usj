@@ -1,0 +1,14 @@
+{
+  "name": "usj-availability",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "fetch": "ts-node src/fetcher.ts",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
