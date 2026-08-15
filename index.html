@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USJ Express Pass 可用性比較</title>
+  <title>USJ Express Pass 最新開放日</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -16,7 +16,7 @@
     }
 
     .container {
-      max-width: 1040px;
+      max-width: 760px;
       margin: 0 auto;
     }
 
@@ -28,33 +28,27 @@
       margin-bottom: 16px;
     }
 
-    .sources {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .sources .card { margin-bottom: 0; }
-
     .source-label { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
     .product-code { font-size: 12px; color: #484f58; margin-bottom: 4px; font-family: monospace; }
-    .product-name { font-size: 14px; color: #8b949e; margin-bottom: 12px; line-height: 1.4; }
+    .product-name { font-size: 14px; color: #8b949e; margin-bottom: 16px; line-height: 1.4; }
     .product-name a { color: #58a6ff; text-decoration: none; }
     .product-name a:hover { text-decoration: underline; }
 
     .latest-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
       background: #1f6feb22;
       border: 1px solid #1f6feb55;
       border-radius: 8px;
-      padding: 10px 16px;
-      margin-bottom: 12px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
     }
     .latest-badge .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
-    .latest-badge .date { font-size: 20px; font-weight: 700; color: #79c0ff; }
-    .latest-badge .detail { font-size: 12px; color: #8b949e; }
+    .latest-badge .date { font-size: 24px; font-weight: 700; color: #79c0ff; }
+    .latest-badge .detail { font-size: 12px; color: #8b949e; margin-top: 2px; }
+
+    .dow { display: inline-block; min-width: 20px; text-align: center; margin-left: 4px; font-size: 12px;
+           background: #21262d; border-radius: 3px; padding: 1px 4px; color: #8b949e; vertical-align: middle; }
+    .dow-sat { background: #1f4068; color: #79c0ff; }
+    .dow-sun { background: #4d1f1f; color: #f85149; }
 
     .meta { font-size: 12px; color: #484f58; }
 
@@ -75,79 +69,38 @@
       border-bottom: 1px solid #21262d;
     }
 
-    .table-wrap { overflow-x: auto; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      min-width: 720px;
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
     }
-
-    thead th {
-      text-align: left;
-      padding: 6px 10px;
-      color: #8b949e;
-      font-weight: 500;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      border-bottom: 1px solid #30363d;
-      white-space: nowrap;
-    }
-    thead th.group-start { border-left: 1px solid #30363d; }
-    thead tr.groups th { text-align: center; color: #e6edf3; font-size: 11px; padding-bottom: 2px; }
-
-    tbody tr { border-bottom: 1px solid #21262d; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr.latest { background: #1f6feb0a; }
-
-    td { padding: 9px 10px; white-space: nowrap; }
-    td.group-start { border-left: 1px solid #21262d; }
-
-    .date-col { font-variant-numeric: tabular-nums; font-weight: 600; }
-    .dow { display: inline-block; width: 20px; text-align: center; margin-left: 4px; font-size: 11px;
-           background: #21262d; border-radius: 3px; padding: 1px 2px; color: #8b949e; }
-    .dow-sat { background: #1f4068; color: #79c0ff; }
-    .dow-sun { background: #4d1f1f; color: #f85149; }
-    .latest-marker { font-size: 10px; color: #3fb950; margin-left: 4px; }
-
-    .avail-col { font-variant-numeric: tabular-nums; }
-    .avail-low { color: #f0883e; }
-    .avail-ok  { color: #8b949e; }
-    .unknown   { color: #8b949e; cursor: help; }
-
-    .price-col { font-variant-numeric: tabular-nums; color: #e6edf3; }
-    .cheaper { color: #3fb950; font-weight: 600; }
-
-    .status-available { color: #3fb950; }
-    .status-soldout   { color: #f85149; }
-    .missing { color: #30363d; }
-
-    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
-    .dot-avail  { background: #3fb950; }
-    .dot-sold   { background: #f85149; }
-
-    .slot-col { font-variant-numeric: tabular-nums; }
-
-    tbody tr.expandable { cursor: pointer; }
-    tbody tr.expandable:hover { background: #21262d55; }
-    .caret { display: inline-block; width: 12px; color: #484f58; font-size: 9px; transition: transform 0.12s; }
-    tbody tr.open .caret { transform: rotate(90deg); color: #79c0ff; }
-    .caret-spacer { display: inline-block; width: 12px; }
-
-    tr.slot-detail > td { background: #0d1117; padding: 14px 10px 16px 22px; white-space: normal; }
-    .slot-block + .slot-block { margin-top: 14px; }
-    .slot-src { font-size: 11px; color: #8b949e; margin-bottom: 8px; }
-    .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .slot-chip {
       background: #1f6feb1a; border: 1px solid #1f6feb44; color: #79c0ff;
-      border-radius: 6px; padding: 3px 9px; font-size: 12px;
-      font-variant-numeric: tabular-nums; cursor: help;
+      border-radius: 8px; padding: 10px 8px; font-size: 14px; text-align: center;
+      font-variant-numeric: tabular-nums; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
     }
-    .slot-note { font-size: 11px; color: #484f58; margin-top: 8px; }
+    .slot-chip:hover { background: #1f6feb33; border-color: #1f6feb88; }
+    .slot-chip.open { background: #1f6feb44; border-color: #79c0ff; color: #e6edf3; }
 
-    .legend { font-size: 11px; color: #484f58; margin-top: 12px; line-height: 1.7; }
+    .slot-detail {
+      margin-top: 10px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+    }
+    .slot-detail .head { color: #79c0ff; font-weight: 600; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+    .slot-detail .ev { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; color: #8b949e; }
+    .slot-detail .ev .time { color: #e6edf3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .slot-detail .code { font-family: monospace; font-size: 11px; color: #484f58; margin-top: 8px; }
+
+    .slot-note { font-size: 12px; color: #8b949e; margin-top: 14px; line-height: 1.6; }
+    .slot-note .k { color: #484f58; }
+
+    .empty { color: #f85149; font-size: 14px; padding: 8px 0; }
+    .unknown-slots { color: #8b949e; font-size: 13px; padding: 8px 0; }
 
     .loading { color: #8b949e; text-align: center; padding: 60px 0; font-size: 14px; }
     .error-box {
@@ -157,56 +110,13 @@
     }
     .updated { font-size: 11px; color: #484f58; margin-top: 16px; text-align: right; }
 
-    /*
-     * Narrow screens: the table cannot stay a table — four columns per source
-     * plus a date would only scroll sideways. Each row becomes its own block
-     * and every cell names itself from the data-label the renderer emits.
-     */
     @media (max-width: 720px) {
       body { padding: 12px; }
       .card { padding: 18px 16px; border-radius: 10px; }
-      .sources { grid-template-columns: 1fr; gap: 12px; }
-      .latest-badge { display: flex; width: 100%; }
       .latest-badge .date { font-size: 22px; }
       .updated { text-align: left; }
-
-      .table-wrap { overflow-x: visible; }
-      table { min-width: 0; display: block; }
-      thead { display: none; }
-      tbody { display: block; }
-
-      tbody tr {
-        display: block;
-        border: 1px solid #21262d;
-        border-radius: 8px;
-        padding: 10px 12px;
-        margin-bottom: 8px;
-      }
-      tbody tr.latest { border-color: #1f6feb55; }
-
-      td { display: flex; justify-content: space-between; align-items: baseline;
-           gap: 12px; padding: 5px 0; white-space: normal; }
-      td.group-start { border-left: none; }
-      td::before {
-        content: attr(data-label);
-        color: #8b949e;
-        font-size: 11px;
-        flex: none;
-      }
-      /* The date is the row's heading, not a labelled field. */
-      td.date-col {
-        display: block;
-        font-size: 15px;
-        padding-bottom: 8px;
-        margin-bottom: 6px;
-        border-bottom: 1px solid #21262d;
-      }
-      td.date-col::before { content: none; }
-
-      tr.slot-detail { padding: 0; border: none; margin-top: -6px; margin-bottom: 8px; }
-      tr.slot-detail > td { display: block; padding: 12px 14px; border-radius: 0 0 8px 8px; }
-      tr.slot-detail > td::before { content: none; }
-      .slot-chip { padding: 5px 10px; font-size: 13px; }
+      .slot-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+      .slot-chip { padding: 9px 6px; font-size: 13px; }
     }
   </style>
 </head>
@@ -217,7 +127,8 @@
 
   <script>
     const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-    const STALE_MS = 2 * 60 * 60 * 1000;
+    // Fetcher runs every 15 min; an hour of silence means something is wrong.
+    const STALE_MS = 60 * 60 * 1000;
 
     function esc(s) {
       return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -264,6 +175,29 @@
       return money(slot.pricePerPerson, src.currency);
     }
 
+    // Every still-bookable window for the date, listed flat — one chip each,
+    // tapping a chip reveals that slot's per-attraction entry times.
+    function slotSection(src, latest) {
+      if (!latest) return '<div class="empty">目前沒有可售日期</div>';
+
+      // timeSlots === null means the lookup never ran for this date.
+      if (!latest.timeSlots) return '<div class="unknown-slots">此日尚未查詢時段</div>';
+      if (latest.timeSlots.length === 0) return '<div class="empty">此日已無可選時段</div>';
+
+      const names = src.attractionNames || {};
+      const chips = latest.timeSlots.map((ts, i) =>
+        `<div class="slot-chip" data-src="${esc(src.id)}" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}</div>`
+      ).join('');
+
+      const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
+
+      return `
+        <div class="section-title">可選時段 (${latest.timeSlots.length})</div>
+        <div class="slot-grid" data-grid="${esc(src.id)}">${chips}</div>
+        <div class="slot-detail" data-detail="${esc(src.id)}" hidden></div>
+        ${nonTimed.length ? `<div class="slot-note"><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}</div>` : ''}`;
+    }
+
     function sourceCard(src) {
       if (src.error) {
         return `
@@ -284,14 +218,10 @@
 
       const latestHtml = latest ? `
         <div class="latest-badge">
-          <div>
-            <div class="label">最新開放日</div>
-            <div class="date">${fmtDate(src.latestDate)} <span class="${dowClass(latest.dayOfWeek)}">${DAY_NAMES[latest.dayOfWeek]}</span></div>
-            <div class="detail">${units}${esc(perPerson)} /人${total}</div>
-          </div>
-        </div>` : '<div class="meta">無可售日期</div>';
-
-      const available = (src.dates || []).filter(d => d.available).length;
+          <div class="label">最新開放日</div>
+          <div class="date">${fmtDate(src.latestDate)} <span class="${dowClass(latest.dayOfWeek)}">${DAY_NAMES[latest.dayOfWeek]}</span></div>
+          <div class="detail">${units}${esc(perPerson)} /人${total}</div>
+        </div>` : '';
 
       return `
         <div class="card">
@@ -300,93 +230,9 @@
           <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.productName)} ↗</a>` : esc(src.productName)}</div>
           ${stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
           ${latestHtml}
-          <div class="meta">可售 ${available} / ${(src.dates || []).length} 天 ｜ 查詢 ${src.people} 人</div>
+          ${slotSection(src, latest)}
           <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
         </div>`;
-    }
-
-    // Three distinct "no number" states: date missing on this platform,
-    // sold out, or the platform simply never publishes a count.
-    function cells(slot, src, isGroupStart, showSourceInLabel) {
-      const gs = isGroupStart ? ' group-start' : '';
-      // data-label drives the stacked layout on narrow screens, where the
-      // table header is hidden and each cell has to name itself.
-      const p = showSourceInLabel ? `${src.label || src.id} ` : '';
-      const L = {
-        status: `data-label="${esc(p)}狀態"`,
-        avail: `data-label="${esc(p)}剩餘"`,
-        price: `data-label="${esc(p)}票價/人"`,
-        slots: `data-label="${esc(p)}時段"`,
-      };
-
-      if (!slot) {
-        return `
-          <td class="missing${gs}" ${L.status}>—</td>
-          <td class="missing" ${L.avail}>—</td>
-          <td class="missing" ${L.price}>—</td>
-          <td class="missing" ${L.slots}>—</td>`;
-      }
-
-      const statusClass = slot.available ? 'status-available' : 'status-soldout';
-      const dot = slot.available ? 'dot-avail' : 'dot-sold';
-      const statusText = slot.available ? '販售中' : '售完';
-
-      let availCell;
-      if (!slot.available) {
-        availCell = `<td class="avail-col missing" ${L.avail}>—</td>`;
-      } else if (slot.availableUnits == null) {
-        availCell = `<td class="avail-col unknown" ${L.avail} title="此平台未公開剩餘張數">?</td>`;
-      } else {
-        const cls = slot.availableUnits <= 10 ? 'avail-low' : 'avail-ok';
-        availCell = `<td class="avail-col ${cls}" ${L.avail}>${slot.availableUnits}</td>`;
-      }
-
-      // timeSlots === null means this date was never looked up (only the
-      // latest on-sale date is, to keep the run to a few requests).
-      let slotCell;
-      if (!slot.timeSlots) {
-        slotCell = `<td class="slot-col missing" ${L.slots}>—</td>`;
-      } else if (slot.timeSlots.length === 0) {
-        slotCell = `<td class="slot-col status-soldout" ${L.slots}>0</td>`;
-      } else {
-        const cls = slot.timeSlots.length <= 2 ? 'avail-low' : 'avail-ok';
-        slotCell = `<td class="slot-col ${cls}" ${L.slots}>${slot.timeSlots.length}</td>`;
-      }
-
-      return `
-        <td class="${statusClass}${gs}" ${L.status}><span><span class="dot ${dot}"></span>${statusText}</span></td>
-        ${availCell}
-        <td class="price-col" ${L.price}>${esc(priceText(slot, src) ?? '—')}</td>
-        ${slotCell}`;
-    }
-
-    // Detail row listing each still-bookable entry window for a date.
-    function slotDetail(date, perSource, sources, colspan) {
-      const blocks = [];
-
-      for (const src of sources) {
-        const slot = perSource[src.id];
-        if (!slot || !slot.timeSlots || slot.timeSlots.length === 0) continue;
-
-        const names = src.attractionNames || {};
-        const chips = slot.timeSlots.map(ts => {
-          const detail = (ts.events || [])
-            .map(e => `${names[e.code] || e.code} ${e.from}–${e.to}`)
-            .join('\n');
-          return `<span class="slot-chip" title="${esc(detail)}">${esc(ts.from)}–${esc(ts.to)}</span>`;
-        }).join('');
-
-        const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
-        blocks.push(`
-          <div class="slot-block">
-            <div class="slot-src">${esc(src.label || src.id)} ｜ ${slot.timeSlots.length} 個可選時段</div>
-            <div class="slot-chips">${chips}</div>
-            ${nonTimed.length ? `<div class="slot-note">不限時段：${esc(nonTimed.join('、'))}</div>` : ''}
-          </div>`);
-      }
-
-      if (blocks.length === 0) return '';
-      return `<tr class="slot-detail" data-date="${esc(date)}" hidden><td colspan="${colspan}">${blocks.join('')}</td></tr>`;
     }
 
     function render(data) {
@@ -398,68 +244,36 @@
         return;
       }
 
-      // Union of every date any source knows about.
-      const byDate = new Map();
-      for (const src of sources) {
-        for (const slot of (src.dates || [])) {
-          if (!byDate.has(slot.date)) byDate.set(slot.date, {});
-          byDate.get(slot.date)[src.id] = slot;
-        }
-      }
-      const allDates = [...byDate.keys()].sort();
-
-      const colspan = 1 + sources.length * 4;
-      let rows = '';
-      for (const date of allDates) {
-        const perSource = byDate.get(date);
-        const anySlot = sources.map(s => perSource[s.id]).find(Boolean);
-        const isLatest = sources.some(s => s.latestDate === date);
-        const detail = slotDetail(date, perSource, sources, colspan);
-
-        rows += `
-          <tr class="${isLatest ? 'latest' : ''}${detail ? ' expandable' : ''}" data-date="${esc(date)}">
-            <td class="date-col">
-              ${detail ? '<span class="caret">▸</span>' : '<span class="caret-spacer"></span>'}${fmtDate(date)}<span class="${dowClass(anySlot.dayOfWeek)}">${DAY_NAMES[anySlot.dayOfWeek]}</span>${isLatest ? '<span class="latest-marker">★</span>' : ''}
-            </td>
-            ${sources.map((s, i) => cells(perSource[s.id], s, i > 0, sources.length > 1)).join('')}
-          </tr>${detail}`;
-      }
-
-      const groupHeader = sources
-        .map((s, i) => `<th colspan="4" class="${i > 0 ? 'group-start' : ''}">${esc(s.label || s.id)}</th>`)
-        .join('');
-      const colHeader = sources
-        .map((s, i) => `<th class="${i > 0 ? 'group-start' : ''}">狀態</th><th>剩餘</th><th>票價/人</th><th>時段</th>`)
-        .join('');
-
       root.innerHTML = `
-        <div class="sources">${sources.map(sourceCard).join('')}</div>
-        <div class="card">
-          <div class="section-title">每日狀況 (${allDates.length} 天)</div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                ${sources.length > 1 ? `<tr class="groups"><th></th>${groupHeader}</tr>` : ''}
-                <tr><th>日期</th>${colHeader}</tr>
-              </thead>
-              <tbody>${rows || '<tr><td colspan="99" style="text-align:center;color:#8b949e;padding:20px">無資料</td></tr>'}</tbody>
-            </table>
-          </div>
-          <div class="legend">
-            時段只抓最新開放日（★），點該列展開；其餘日期的時段欄為 <span class="missing">—</span> 代表未查詢 ｜
-            <span class="status-soldout"><span class="dot dot-sold"></span>售完</span> 該平台此日售罄 ｜
-            <span class="unknown">?</span> 該平台未公開剩餘張數 ｜
-            滑過時段標籤看各設施時間
-          </div>
-          <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>
-        </div>`;
+        ${sources.map(sourceCard).join('')}
+        <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>`;
 
-      root.querySelectorAll('tr.expandable').forEach(tr => {
-        tr.addEventListener('click', () => {
-          const detail = root.querySelector(`tr.slot-detail[data-date="${tr.dataset.date}"]`);
-          if (!detail) return;
-          detail.hidden = !detail.hidden;
-          tr.classList.toggle('open', !detail.hidden);
+      // Slot lookup by source id, so a chip click can find its own events.
+      const byId = new Map(sources.map(s => [s.id, s]));
+
+      root.querySelectorAll('.slot-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const src = byId.get(chip.dataset.src);
+          const latest = (src.dates || []).find(d => d.date === src.latestDate);
+          const ts = latest.timeSlots[Number(chip.dataset.i)];
+          const box = root.querySelector(`.slot-detail[data-detail="${CSS.escape(src.id)}"]`);
+          const grid = root.querySelector(`.slot-grid[data-grid="${CSS.escape(src.id)}"]`);
+          const wasOpen = chip.classList.contains('open');
+
+          grid.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('open'));
+          if (wasOpen) { box.hidden = true; return; }
+
+          chip.classList.add('open');
+          const names = src.attractionNames || {};
+          box.innerHTML = `
+            <div class="head">${esc(ts.from)}–${esc(ts.to)}</div>
+            ${(ts.events || []).map(e => `
+              <div class="ev">
+                <span>${esc(names[e.code] || e.code)}</span>
+                <span class="time">${esc(e.from)}–${esc(e.to)}</span>
+              </div>`).join('')}
+            <div class="code">${esc(ts.variantCode)}</div>`;
+          box.hidden = false;
         });
       });
     }
