@@ -209,34 +209,29 @@ export const usjSource: Source = {
 
     console.log(`[usj] ${availableDates.length} / ${dates.length} dates available, latest ${latestDate}`);
 
-    // One extra request per on-sale date. Sold-out dates have nothing to list,
-    // so they keep timeSlots: null and cost nothing.
+    // Time slots need one request per date, so only the latest on-sale date —
+    // the one worth watching — is looked up. Every other date keeps
+    // timeSlots: null, which the UI renders as "not fetched".
     const attractionNames: Record<string, string> = {};
     let nonTimedAttractions: string[] = [];
-    let slotFailures = 0;
 
-    try {
-      nonTimedAttractions = await fetchNonTimedAttractions(attractionNames);
-    } catch (err) {
-      console.error(`[usj] non-timed attractions failed: ${err instanceof Error ? err.message : err}`);
-    }
-
-    for (const [i, slot] of availableDates.entries()) {
-      if (i > 0) await sleep(SLOT_REQUEST_GAP_MS);
+    const target = dates.find(d => d.date === latestDate && d.available);
+    if (target) {
       try {
-        slot.timeSlots = await fetchTimeSlots(slot.date, attractionNames);
+        nonTimedAttractions = await fetchNonTimedAttractions(attractionNames);
       } catch (err) {
-        // A per-date failure should not lose the calendar data we already have.
-        slotFailures++;
-        console.error(`[usj] time slots for ${slot.date} failed: ${err instanceof Error ? err.message : err}`);
+        console.error(`[usj] non-timed attractions failed: ${err instanceof Error ? err.message : err}`);
+      }
+
+      try {
+        await sleep(SLOT_REQUEST_GAP_MS);
+        target.timeSlots = await fetchTimeSlots(target.date, attractionNames);
+        console.log(`[usj] time slots for ${target.date}: ${target.timeSlots.length}`);
+      } catch (err) {
+        // Losing the slot lookup must not lose the calendar data we already have.
+        console.error(`[usj] time slots for ${target.date} failed: ${err instanceof Error ? err.message : err}`);
       }
     }
-
-    const withSlots = availableDates.filter(d => d.timeSlots && d.timeSlots.length > 0);
-    console.log(
-      `[usj] time slots: ${withSlots.length} dates have slots` +
-        (slotFailures ? `, ${slotFailures} lookups failed` : '')
-    );
 
     return {
       id: 'usj',

@@ -156,6 +156,58 @@
       word-break: break-word;
     }
     .updated { font-size: 11px; color: #484f58; margin-top: 16px; text-align: right; }
+
+    /*
+     * Narrow screens: the table cannot stay a table — four columns per source
+     * plus a date would only scroll sideways. Each row becomes its own block
+     * and every cell names itself from the data-label the renderer emits.
+     */
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .card { padding: 18px 16px; border-radius: 10px; }
+      .sources { grid-template-columns: 1fr; gap: 12px; }
+      .latest-badge { display: flex; width: 100%; }
+      .latest-badge .date { font-size: 22px; }
+      .updated { text-align: left; }
+
+      .table-wrap { overflow-x: visible; }
+      table { min-width: 0; display: block; }
+      thead { display: none; }
+      tbody { display: block; }
+
+      tbody tr {
+        display: block;
+        border: 1px solid #21262d;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+      }
+      tbody tr.latest { border-color: #1f6feb55; }
+
+      td { display: flex; justify-content: space-between; align-items: baseline;
+           gap: 12px; padding: 5px 0; white-space: normal; }
+      td.group-start { border-left: none; }
+      td::before {
+        content: attr(data-label);
+        color: #8b949e;
+        font-size: 11px;
+        flex: none;
+      }
+      /* The date is the row's heading, not a labelled field. */
+      td.date-col {
+        display: block;
+        font-size: 15px;
+        padding-bottom: 8px;
+        margin-bottom: 6px;
+        border-bottom: 1px solid #21262d;
+      }
+      td.date-col::before { content: none; }
+
+      tr.slot-detail { padding: 0; border: none; margin-top: -6px; margin-bottom: 8px; }
+      tr.slot-detail > td { display: block; padding: 12px 14px; border-radius: 0 0 8px 8px; }
+      tr.slot-detail > td::before { content: none; }
+      .slot-chip { padding: 5px 10px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -255,14 +307,24 @@
 
     // Three distinct "no number" states: date missing on this platform,
     // sold out, or the platform simply never publishes a count.
-    function cells(slot, src, isGroupStart) {
+    function cells(slot, src, isGroupStart, showSourceInLabel) {
       const gs = isGroupStart ? ' group-start' : '';
+      // data-label drives the stacked layout on narrow screens, where the
+      // table header is hidden and each cell has to name itself.
+      const p = showSourceInLabel ? `${src.label || src.id} ` : '';
+      const L = {
+        status: `data-label="${esc(p)}狀態"`,
+        avail: `data-label="${esc(p)}剩餘"`,
+        price: `data-label="${esc(p)}票價/人"`,
+        slots: `data-label="${esc(p)}時段"`,
+      };
+
       if (!slot) {
         return `
-          <td class="missing${gs}">—</td>
-          <td class="missing">—</td>
-          <td class="missing">—</td>
-          <td class="missing">—</td>`;
+          <td class="missing${gs}" ${L.status}>—</td>
+          <td class="missing" ${L.avail}>—</td>
+          <td class="missing" ${L.price}>—</td>
+          <td class="missing" ${L.slots}>—</td>`;
       }
 
       const statusClass = slot.available ? 'status-available' : 'status-soldout';
@@ -271,29 +333,30 @@
 
       let availCell;
       if (!slot.available) {
-        availCell = '<td class="avail-col missing">—</td>';
+        availCell = `<td class="avail-col missing" ${L.avail}>—</td>`;
       } else if (slot.availableUnits == null) {
-        availCell = '<td class="avail-col unknown" title="此平台未公開剩餘張數">?</td>';
+        availCell = `<td class="avail-col unknown" ${L.avail} title="此平台未公開剩餘張數">?</td>`;
       } else {
         const cls = slot.availableUnits <= 10 ? 'avail-low' : 'avail-ok';
-        availCell = `<td class="avail-col ${cls}">${slot.availableUnits}</td>`;
+        availCell = `<td class="avail-col ${cls}" ${L.avail}>${slot.availableUnits}</td>`;
       }
 
-      // timeSlots === null means this platform was never asked (e.g. sold out).
+      // timeSlots === null means this date was never looked up (only the
+      // latest on-sale date is, to keep the run to a few requests).
       let slotCell;
       if (!slot.timeSlots) {
-        slotCell = '<td class="slot-col missing">—</td>';
+        slotCell = `<td class="slot-col missing" ${L.slots}>—</td>`;
       } else if (slot.timeSlots.length === 0) {
-        slotCell = '<td class="slot-col status-soldout">0</td>';
+        slotCell = `<td class="slot-col status-soldout" ${L.slots}>0</td>`;
       } else {
         const cls = slot.timeSlots.length <= 2 ? 'avail-low' : 'avail-ok';
-        slotCell = `<td class="slot-col ${cls}">${slot.timeSlots.length}</td>`;
+        slotCell = `<td class="slot-col ${cls}" ${L.slots}>${slot.timeSlots.length}</td>`;
       }
 
       return `
-        <td class="${statusClass}${gs}"><span class="dot ${dot}"></span>${statusText}</td>
+        <td class="${statusClass}${gs}" ${L.status}><span><span class="dot ${dot}"></span>${statusText}</span></td>
         ${availCell}
-        <td class="price-col">${esc(priceText(slot, src) ?? '—')}</td>
+        <td class="price-col" ${L.price}>${esc(priceText(slot, src) ?? '—')}</td>
         ${slotCell}`;
     }
 
@@ -358,7 +421,7 @@
             <td class="date-col">
               ${detail ? '<span class="caret">▸</span>' : '<span class="caret-spacer"></span>'}${fmtDate(date)}<span class="${dowClass(anySlot.dayOfWeek)}">${DAY_NAMES[anySlot.dayOfWeek]}</span>${isLatest ? '<span class="latest-marker">★</span>' : ''}
             </td>
-            ${sources.map((s, i) => cells(perSource[s.id], s, i > 0)).join('')}
+            ${sources.map((s, i) => cells(perSource[s.id], s, i > 0, sources.length > 1)).join('')}
           </tr>${detail}`;
       }
 
@@ -383,11 +446,10 @@
             </table>
           </div>
           <div class="legend">
-            點日期展開該日可選時段 ｜
-            <span class="missing">—</span> 該平台沒有這天 ｜
+            時段只抓最新開放日（★），點該列展開；其餘日期的時段欄為 <span class="missing">—</span> 代表未查詢 ｜
             <span class="status-soldout"><span class="dot dot-sold"></span>售完</span> 該平台此日售罄 ｜
             <span class="unknown">?</span> 該平台未公開剩餘張數 ｜
-            「時段」＝當日仍可預約的入場時段數，滑過時段標籤看各設施時間
+            滑過時段標籤看各設施時間
           </div>
           <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>
         </div>`;
