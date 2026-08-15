@@ -5,6 +5,13 @@ export function todayJST(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date());
 }
 
+/** The day after `date` — the calendar API's end bound is exclusive-ish. */
+export function nextDay(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + 1));
+  return t.toISOString().slice(0, 10);
+}
+
 /**
  * Shift a date by whole months. Overflowing days roll into the next month the
  * way Date does (2026-03-31 minus 1 month -> 2026-03-03), which is fine here:

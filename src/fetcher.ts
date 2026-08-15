@@ -69,7 +69,7 @@ async function main() {
   );
 
   const results: Results = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     updatedAt: new Date().toISOString(),
     sources: mergeSources(readPrevious(), fresh),
   };

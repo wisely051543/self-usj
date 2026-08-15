@@ -1,9 +1,15 @@
 import { DateRange, DateSlot, SlotEvent, Source, SourceResult, TimeSlot } from '../types';
-import { shiftMonths } from '../dates';
+import { nextDay, shiftMonths } from '../dates';
 
 const PRODUCT_CODE = 'EXP0069';
 const PRODUCT_NAME = 'ユニバーサル・エクスプレス・パス 4～トロッコ＆ジョーズ～';
-const PEOPLE = 2;
+/**
+ * Everything is fetched for a party of one. The store hides whatever it cannot
+ * sell to the party asked about, so a larger number would silently drop slots;
+ * asking for one and recording each slot's remaining units lets the UI filter
+ * by party size itself.
+ */
+const PEOPLE = 1;
 const CURRENCY = 'JPY';
 const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
 /** Store front the b2cportal API belongs to; product paths hang off it. */
@@ -13,6 +19,9 @@ const FALLBACK_PAGE_URL = `${SITE_BASE}/tickets-and-passes/express-pass`;
 
 /** Courtesy gap between the per-date time-slot calls. */
 const SLOT_REQUEST_GAP_MS = 150;
+
+/** Parallel per-slot inventory calls; the store answers each in ~50ms. */
+const STOCK_CONCURRENCY = 6;
 
 /**
  * How far back from the latest on-sale date time slots are looked up. Slots
@@ -49,14 +58,24 @@ interface CalendarResponse {
   }>;
 }
 
-async function fetchCalendar(startDate: string, endDate: string): Promise<CalendarResponse> {
+/**
+ * Inventory for one part number over a date range. partNumber is the product
+ * code for whole-day totals, or a variant code for a single time slot — the
+ * store answers the same shape either way, which is the only route to a
+ * per-slot remaining count.
+ */
+async function fetchCalendar(
+  startDate: string,
+  endDate: string,
+  partNumber = PRODUCT_CODE,
+): Promise<CalendarResponse> {
   const url = `${API_BASE}/products/fetchCalendarDatesWithPriceAndInventory?lang=ja&curr=${CURRENCY}`;
   const body = {
     currency: CURRENCY,
     events: {
       startDate: `${startDate} 00:00:01`,
       endDate,
-      partNumber: PRODUCT_CODE,
+      partNumber,
       quantity: PEOPLE,
     },
   };
@@ -130,8 +149,8 @@ function toMMDDYYYY(isoDate: string): string {
 /**
  * Each bookable time slot is sold as its own product variant, so the store
  * exposes them through a variant lookup rather than the calendar. Only variants
- * that are still purchasable for the date come back — there is no per-slot unit
- * count, so a slot being listed is the availability signal.
+ * still purchasable for the date come back; how many are left in each is a
+ * separate lookup — see fetchSlotStock.
  */
 async function fetchTimeSlots(date: string, names: Record<string, string>): Promise<TimeSlot[]> {
   const url =
@@ -165,12 +184,44 @@ async function fetchTimeSlots(date: string, names: Record<string, string>): Prom
       variantCode: product.code,
       from: events[0].from,
       to: events.reduce((latest, e) => (e.to > latest ? e.to : latest), events[0].to),
+      availableUnits: null,
       events,
     });
   }
 
   slots.sort((a, b) => a.from.localeCompare(b.from) || a.variantCode.localeCompare(b.variantCode));
   return slots;
+}
+
+/** Run tasks with a ceiling on how many are in flight at once. */
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        await fn(items[next++]);
+      }
+    }),
+  );
+}
+
+/**
+ * Fill in each slot's remaining units. One request per slot, so this is the
+ * expensive part of a run — but it is what lets the page answer party-size
+ * questions offline, since a slot fits a party exactly when enough is left.
+ */
+async function fetchSlotStock(date: string, slots: TimeSlot[]): Promise<void> {
+  await mapLimit(slots, STOCK_CONCURRENCY, async slot => {
+    try {
+      const data = await fetchCalendar(date, nextDay(date), slot.variantCode);
+      const day = (data.eventAvailability?.[0]?.calendarDates ?? []).find(d => d.date === date);
+      const units = day?.inventoryEvents?.[0]?.availableUnits;
+      slot.availableUnits = units == null ? null : parseInt(units, 10);
+    } catch (err) {
+      // A missing count only costs this slot its party-size filter.
+      console.error(`[usj]   ${date} ${slot.variantCode} stock failed: ${err instanceof Error ? err.message : err}`);
+    }
+  });
 }
 
 /**
@@ -254,7 +305,11 @@ export const usjSource: Source = {
         try {
           await sleep(SLOT_REQUEST_GAP_MS);
           target.timeSlots = await fetchTimeSlots(target.date, attractionNames);
-          console.log(`[usj]   ${target.date}: ${target.timeSlots.length} slots`);
+          await fetchSlotStock(target.date, target.timeSlots);
+
+          const counted = target.timeSlots.filter(s => s.availableUnits != null);
+          const left = counted.reduce((sum, s) => sum + (s.availableUnits ?? 0), 0);
+          console.log(`[usj]   ${target.date}: ${target.timeSlots.length} slots, ${left} units across ${counted.length}`);
         } catch (err) {
           // Losing one date's slot lookup must not lose the rest of the run.
           console.error(`[usj]   ${target.date} failed: ${err instanceof Error ? err.message : err}`);

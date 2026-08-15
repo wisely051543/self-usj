@@ -16,6 +16,13 @@ export interface TimeSlot {
   variantCode: string;           // e.g. 'E4DKT23D10A093'
   from: string;                  // HH:MM — start of the earliest timed entry
   to: string;                    // HH:MM — end of the latest timed entry
+  /**
+   * Tickets left in this slot. Also the party-size limit: the store stops
+   * offering a slot once a party is larger than what remains, so the UI can
+   * answer "which slots fit N people" with availableUnits >= N and never has
+   * to ask the store itself. null = the per-slot lookup failed.
+   */
+  availableUnits: number | null;
   events: SlotEvent[];
 }
 
@@ -38,6 +45,7 @@ export interface SourceResult {
   productName: string;
   productCode: string;           // platform's product id, e.g. 'EXP0069'
   currency: string;              // ISO 4217, e.g. 'JPY' / 'TWD'
+  /** Party size the snapshot was fetched at — 1, so nothing is filtered out. */
   people: number;
   fetchedAt: string;             // ISO8601 — per source, not per file
   calendarStart: string;         // YYYY-MM-DD
@@ -52,7 +60,7 @@ export interface SourceResult {
 }
 
 export interface Results {
-  schemaVersion: 2;
+  schemaVersion: 3;
   updatedAt: string;             // ISO8601 — last time the file was written
   sources: SourceResult[];
 }
