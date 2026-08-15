@@ -1,25 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { DateRange, Results, Source, SourceResult } from './types';
+import { shiftMonths, todayJST } from './dates';
 import { usjSource } from './sources/usj';
 
 const SOURCES: Source[] = [usjSource];
 const MONTHS_AHEAD = 6;
 const RESULTS_PATH = path.join(__dirname, '..', 'data', 'results.json');
-
-/** Today in JST as YYYY-MM-DD, independent of the runner's local timezone. */
-export function todayJST(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date());
-}
-
-function plusMonths(date: string, months: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  const shifted = new Date(Date.UTC(y, m - 1 + months, d));
-  const yy = shifted.getUTCFullYear();
-  const mm = String(shifted.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(shifted.getUTCDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
-}
 
 function readPrevious(): SourceResult[] {
   try {
@@ -75,7 +62,7 @@ async function main() {
   }
 
   const start = todayJST();
-  const range: DateRange = { start, end: plusMonths(start, MONTHS_AHEAD) };
+  const range: DateRange = { start, end: shiftMonths(start, MONTHS_AHEAD) };
 
   const fresh = await Promise.all(
     targets.map(s => s.run(range).catch(err => errorResult(s, range, err)))

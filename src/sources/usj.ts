@@ -1,4 +1,5 @@
 import { DateRange, DateSlot, SlotEvent, Source, SourceResult, TimeSlot } from '../types';
+import { shiftMonths } from '../dates';
 
 const PRODUCT_CODE = 'EXP0069';
 const PRODUCT_NAME = 'ユニバーサル・エクスプレス・パス 4～トロッコ＆ジョーズ～';
@@ -9,6 +10,13 @@ const PAGE_URL = 'https://www.usj.co.jp/tickets-and-passes/express-pass/';
 
 /** Courtesy gap between the per-date time-slot calls. */
 const SLOT_REQUEST_GAP_MS = 150;
+
+/**
+ * How far back from the latest on-sale date time slots are looked up. Slots
+ * cost one request per date, so this bounds the run at roughly a month of
+ * on-sale dates instead of the whole six-month calendar.
+ */
+const SLOT_WINDOW_MONTHS = 1;
 
 const HEADERS = {
   'Accept': 'application/json, text/plain, */*',
@@ -209,27 +217,36 @@ export const usjSource: Source = {
 
     console.log(`[usj] ${availableDates.length} / ${dates.length} dates available, latest ${latestDate}`);
 
-    // Time slots need one request per date, so only the latest on-sale date —
-    // the one worth watching — is looked up. Every other date keeps
-    // timeSlots: null, which the UI renders as "not fetched".
+    // Time slots need one request per date, so they are looked up only for the
+    // on-sale dates in the month leading up to the latest one — the window
+    // worth watching. Dates outside it keep timeSlots: null, which the UI
+    // renders as "not fetched".
     const attractionNames: Record<string, string> = {};
     let nonTimedAttractions: string[] = [];
 
-    const target = dates.find(d => d.date === latestDate && d.available);
-    if (target) {
+    const windowStart = latestDate ? shiftMonths(latestDate, -SLOT_WINDOW_MONTHS) : '';
+    const targets = latestDate
+      ? dates.filter(d => d.available && d.date >= windowStart && d.date <= latestDate)
+      : [];
+
+    if (targets.length > 0) {
+      console.log(`[usj] time slots for ${targets.length} dates in ${windowStart} → ${latestDate}`);
+
       try {
         nonTimedAttractions = await fetchNonTimedAttractions(attractionNames);
       } catch (err) {
         console.error(`[usj] non-timed attractions failed: ${err instanceof Error ? err.message : err}`);
       }
 
-      try {
-        await sleep(SLOT_REQUEST_GAP_MS);
-        target.timeSlots = await fetchTimeSlots(target.date, attractionNames);
-        console.log(`[usj] time slots for ${target.date}: ${target.timeSlots.length}`);
-      } catch (err) {
-        // Losing the slot lookup must not lose the calendar data we already have.
-        console.error(`[usj] time slots for ${target.date} failed: ${err instanceof Error ? err.message : err}`);
+      for (const target of targets) {
+        try {
+          await sleep(SLOT_REQUEST_GAP_MS);
+          target.timeSlots = await fetchTimeSlots(target.date, attractionNames);
+          console.log(`[usj]   ${target.date}: ${target.timeSlots.length} slots`);
+        } catch (err) {
+          // Losing one date's slot lookup must not lose the rest of the run.
+          console.error(`[usj]   ${target.date} failed: ${err instanceof Error ? err.message : err}`);
+        }
       }
     }
 
