@@ -47,6 +47,8 @@ function errorResult(source: Source, range: DateRange, err: unknown): SourceResu
     calendarEnd: range.end,
     latestDate: '',
     dates: [],
+    attractionNames: {},
+    nonTimedAttractions: [],
     error: message,
   };
 }

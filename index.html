@@ -128,6 +128,25 @@
     .dot-avail  { background: #3fb950; }
     .dot-sold   { background: #f85149; }
 
+    .slot-col { font-variant-numeric: tabular-nums; }
+
+    tbody tr.expandable { cursor: pointer; }
+    tbody tr.expandable:hover { background: #21262d55; }
+    .caret { display: inline-block; width: 12px; color: #484f58; font-size: 9px; transition: transform 0.12s; }
+    tbody tr.open .caret { transform: rotate(90deg); color: #79c0ff; }
+    .caret-spacer { display: inline-block; width: 12px; }
+
+    tr.slot-detail > td { background: #0d1117; padding: 14px 10px 16px 22px; white-space: normal; }
+    .slot-block + .slot-block { margin-top: 14px; }
+    .slot-src { font-size: 11px; color: #8b949e; margin-bottom: 8px; }
+    .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .slot-chip {
+      background: #1f6feb1a; border: 1px solid #1f6feb44; color: #79c0ff;
+      border-radius: 6px; padding: 3px 9px; font-size: 12px;
+      font-variant-numeric: tabular-nums; cursor: help;
+    }
+    .slot-note { font-size: 11px; color: #484f58; margin-top: 8px; }
+
     .legend { font-size: 11px; color: #484f58; margin-top: 12px; line-height: 1.7; }
 
     .loading { color: #8b949e; text-align: center; padding: 60px 0; font-size: 14px; }
@@ -242,6 +261,7 @@
         return `
           <td class="missing${gs}">—</td>
           <td class="missing">—</td>
+          <td class="missing">—</td>
           <td class="missing">—</td>`;
       }
 
@@ -259,10 +279,51 @@
         availCell = `<td class="avail-col ${cls}">${slot.availableUnits}</td>`;
       }
 
+      // timeSlots === null means this platform was never asked (e.g. sold out).
+      let slotCell;
+      if (!slot.timeSlots) {
+        slotCell = '<td class="slot-col missing">—</td>';
+      } else if (slot.timeSlots.length === 0) {
+        slotCell = '<td class="slot-col status-soldout">0</td>';
+      } else {
+        const cls = slot.timeSlots.length <= 2 ? 'avail-low' : 'avail-ok';
+        slotCell = `<td class="slot-col ${cls}">${slot.timeSlots.length}</td>`;
+      }
+
       return `
         <td class="${statusClass}${gs}"><span class="dot ${dot}"></span>${statusText}</td>
         ${availCell}
-        <td class="price-col">${esc(priceText(slot, src) ?? '—')}</td>`;
+        <td class="price-col">${esc(priceText(slot, src) ?? '—')}</td>
+        ${slotCell}`;
+    }
+
+    // Detail row listing each still-bookable entry window for a date.
+    function slotDetail(date, perSource, sources, colspan) {
+      const blocks = [];
+
+      for (const src of sources) {
+        const slot = perSource[src.id];
+        if (!slot || !slot.timeSlots || slot.timeSlots.length === 0) continue;
+
+        const names = src.attractionNames || {};
+        const chips = slot.timeSlots.map(ts => {
+          const detail = (ts.events || [])
+            .map(e => `${names[e.code] || e.code} ${e.from}–${e.to}`)
+            .join('\n');
+          return `<span class="slot-chip" title="${esc(detail)}">${esc(ts.from)}–${esc(ts.to)}</span>`;
+        }).join('');
+
+        const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
+        blocks.push(`
+          <div class="slot-block">
+            <div class="slot-src">${esc(src.label || src.id)} ｜ ${slot.timeSlots.length} 個可選時段</div>
+            <div class="slot-chips">${chips}</div>
+            ${nonTimed.length ? `<div class="slot-note">不限時段：${esc(nonTimed.join('、'))}</div>` : ''}
+          </div>`);
+      }
+
+      if (blocks.length === 0) return '';
+      return `<tr class="slot-detail" data-date="${esc(date)}" hidden><td colspan="${colspan}">${blocks.join('')}</td></tr>`;
     }
 
     function render(data) {
@@ -284,26 +345,28 @@
       }
       const allDates = [...byDate.keys()].sort();
 
+      const colspan = 1 + sources.length * 4;
       let rows = '';
       for (const date of allDates) {
         const perSource = byDate.get(date);
         const anySlot = sources.map(s => perSource[s.id]).find(Boolean);
         const isLatest = sources.some(s => s.latestDate === date);
+        const detail = slotDetail(date, perSource, sources, colspan);
 
         rows += `
-          <tr class="${isLatest ? 'latest' : ''}">
+          <tr class="${isLatest ? 'latest' : ''}${detail ? ' expandable' : ''}" data-date="${esc(date)}">
             <td class="date-col">
-              ${fmtDate(date)}<span class="${dowClass(anySlot.dayOfWeek)}">${DAY_NAMES[anySlot.dayOfWeek]}</span>${isLatest ? '<span class="latest-marker">★</span>' : ''}
+              ${detail ? '<span class="caret">▸</span>' : '<span class="caret-spacer"></span>'}${fmtDate(date)}<span class="${dowClass(anySlot.dayOfWeek)}">${DAY_NAMES[anySlot.dayOfWeek]}</span>${isLatest ? '<span class="latest-marker">★</span>' : ''}
             </td>
             ${sources.map((s, i) => cells(perSource[s.id], s, i > 0)).join('')}
-          </tr>`;
+          </tr>${detail}`;
       }
 
       const groupHeader = sources
-        .map((s, i) => `<th colspan="3" class="${i > 0 ? 'group-start' : ''}">${esc(s.label || s.id)}</th>`)
+        .map((s, i) => `<th colspan="4" class="${i > 0 ? 'group-start' : ''}">${esc(s.label || s.id)}</th>`)
         .join('');
       const colHeader = sources
-        .map((s, i) => `<th class="${i > 0 ? 'group-start' : ''}">狀態</th><th>剩餘</th><th>票價/人</th>`)
+        .map((s, i) => `<th class="${i > 0 ? 'group-start' : ''}">狀態</th><th>剩餘</th><th>票價/人</th><th>時段</th>`)
         .join('');
 
       root.innerHTML = `
@@ -320,12 +383,23 @@
             </table>
           </div>
           <div class="legend">
+            點日期展開該日可選時段 ｜
             <span class="missing">—</span> 該平台沒有這天 ｜
             <span class="status-soldout"><span class="dot dot-sold"></span>售完</span> 該平台此日售罄 ｜
-            <span class="unknown">?</span> 該平台未公開剩餘張數
+            <span class="unknown">?</span> 該平台未公開剩餘張數 ｜
+            「時段」＝當日仍可預約的入場時段數，滑過時段標籤看各設施時間
           </div>
           <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>
         </div>`;
+
+      root.querySelectorAll('tr.expandable').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const detail = root.querySelector(`tr.slot-detail[data-date="${tr.dataset.date}"]`);
+          if (!detail) return;
+          detail.hidden = !detail.hidden;
+          tr.classList.toggle('open', !detail.hidden);
+        });
+      });
     }
 
     fetch('./data/results.json?t=' + Date.now())

@@ -1,5 +1,24 @@
 export type SourceId = 'usj';
 
+/** One attraction's entry window inside a time slot. */
+export interface SlotEvent {
+  code: string;                  // attraction code, e.g. 'EXP_MKC' — see attractionNames
+  from: string;                  // HH:MM
+  to: string;                    // HH:MM
+}
+
+/**
+ * A bookable time slot for a given date. The store sells each slot as its own
+ * product variant, and only still-purchasable variants come back — so a slot
+ * appearing here means it is available. There is no per-slot unit count.
+ */
+export interface TimeSlot {
+  variantCode: string;           // e.g. 'E4DKT23D10A093'
+  from: string;                  // HH:MM — start of the earliest timed entry
+  to: string;                    // HH:MM — end of the latest timed entry
+  events: SlotEvent[];
+}
+
 export interface DateSlot {
   date: string;                  // YYYY-MM-DD
   dayOfWeek: number;             // 0=Sun … 6=Sat (locale-neutral; the UI renders the label)
@@ -9,6 +28,7 @@ export interface DateSlot {
   totalCapacity: number | null;
   pricePerPerson: number | null;
   formattedPrice: string;        // platform's own string, e.g. "¥26,800"
+  timeSlots: TimeSlot[] | null;  // null = not fetched for this date (e.g. sold out)
 }
 
 export interface SourceResult {
@@ -24,6 +44,10 @@ export interface SourceResult {
   calendarEnd: string;           // YYYY-MM-DD
   latestDate: string;            // YYYY-MM-DD — latest date still on sale
   dates: DateSlot[];
+  /** Attraction code -> display name, hoisted out of the slots to keep them small. */
+  attractionNames: Record<string, string>;
+  /** Attractions the pass covers with no fixed entry window. */
+  nonTimedAttractions: string[];
   error?: string;
 }
 
