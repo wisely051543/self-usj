@@ -433,31 +433,41 @@ export const usjSource: Source = {
     range: DateRange,
     previous: ProductResult | null,
   ): Promise<ProductResult> {
-    const [availability] = await fetchInventory([
-      { startDate: range.start, endDate: range.end, partNumber: entry.code },
-    ]);
-    const dates = (availability?.calendarDates ?? []).map(parseCalendarDate);
-
-    const availableDates = dates.filter(d => d.available);
-    const latestDate =
-      availableDates[availableDates.length - 1]?.date ??
-      dates[dates.length - 1]?.date ??
-      '';
-
     const attractionNames: Record<string, string> = { ...(previous?.attractionNames ?? {}) };
     let nonTimedAttractions = previous?.nonTimedAttractions ?? [];
     let pageUrl = previous?.url || FALLBACK_PAGE_URL;
     // Falling back to the last run's answer keeps a blocked product-info call
     // from silently downgrading a slotted pass to "no slots" for a whole run.
     let deep = previous?.deep ?? false;
+    let classified = false;
 
     try {
       const info = await fetchProductInfo(entry.code, attractionNames);
       ({ nonTimed: nonTimedAttractions, pageUrl } = info);
       deep = info.timed.length > 0;
+      classified = true;
     } catch (err) {
       console.error(`[usj] ${entry.code} product info failed: ${err instanceof Error ? err.message : err}`);
     }
+
+    // A pass with no timed attraction is walk-up-any-time: it has no slots to
+    // report, so the fetcher discards it and its calendar is a request spent on
+    // nothing. Only skip it when the product API actually answered — an
+    // unclassified pass still gets its calendar, so one blocked call cannot
+    // mistake a slotted pass for a walk-up one.
+    let dates: DateSlot[] = [];
+    if (deep || !classified) {
+      const [availability] = await fetchInventory([
+        { startDate: range.start, endDate: range.end, partNumber: entry.code },
+      ]);
+      dates = (availability?.calendarDates ?? []).map(parseCalendarDate);
+    }
+
+    const availableDates = dates.filter(d => d.available);
+    const latestDate =
+      availableDates[availableDates.length - 1]?.date ??
+      dates[dates.length - 1]?.date ??
+      '';
 
     const result: ProductResult = {
       code: entry.code,

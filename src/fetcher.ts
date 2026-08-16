@@ -226,6 +226,9 @@ async function main() {
   // lookups out to the shared rate gate, so racing products against each other
   // would only lengthen the queue, not the throughput.
   const summaries: ProductSummary[] = [];
+  // Walk-up passes, kept aside so the merge below does not resurrect them from
+  // the previous index as stale entries.
+  const dropped = new Set<string>();
   let written = 0;
   let failed = 0;
 
@@ -235,6 +238,17 @@ async function main() {
 
     try {
       const result = await source.fetchProduct(entry, range, readProduct(entry.code));
+
+      // A pass with no timed attraction admits at any hour: there are no slots
+      // to compare, so it carries nothing this site can answer a question with.
+      // Dropping it here rather than hiding it in the UI keeps its file out of
+      // the repo instead of rewriting it every run.
+      if (!result.deep) {
+        dropped.add(entry.code);
+        fs.rmSync(productPath(entry.code), { force: true });
+        continue;
+      }
+
       const trimmed = dropPastDates(result, start);
       if (writeProduct(trimmed)) written++;
       summaries.push(summarize(trimmed, lastSeenAt));
@@ -261,7 +275,9 @@ async function main() {
   // A partial run (--product=) must not touch the products it skipped, delist
   // sweep included: their absence from this run says nothing about the store.
   const touched = new Set(summaries.map(s => s.code));
-  const untouched = previousSummaries.filter(p => !touched.has(p.code)).map(p => ({ ...p, stale: true }));
+  const untouched = previousSummaries
+    .filter(p => !touched.has(p.code) && !dropped.has(p.code))
+    .map(p => ({ ...p, stale: true }));
   const merged = [...summaries, ...untouched].sort((a, b) => a.code.localeCompare(b.code));
   const products = wanted.length ? merged : sweepDelisted(merged, now);
 
@@ -280,6 +296,10 @@ async function main() {
     `[fetch] calendar: ${Object.keys(days.days).length} days with stock` +
     `${daysWritten ? '' : ' (unchanged)'}`,
   );
+
+  if (dropped.size) {
+    console.log(`[fetch] skipped ${dropped.size} walk-up passes: ${[...dropped].sort().join(', ')}`);
+  }
 
   const seconds = (Date.now() - startedAt) / 1000;
   console.log(

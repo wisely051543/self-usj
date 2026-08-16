@@ -72,7 +72,11 @@ export interface ProductResult {
   currency: string;              // ISO 4217, e.g. 'JPY'
   /** Party size the snapshot was fetched at — 1, so nothing is filtered out. */
   people: number;
-  /** Whether time slots were looked up at all — see WATCHLIST in sources/usj.ts. */
+  /**
+   * Whether the pass has any timed attraction, and so any slots to look up.
+   * A false here means the fetcher throws the result away — a walk-up pass
+   * carries nothing this project reports on — so it never reaches disk.
+   */
   deep: boolean;
   fetchedAt: string;             // ISO8601
   calendarStart: string;         // YYYY-MM-DD
@@ -98,6 +102,7 @@ export interface ProductSummary {
   url: string;
   fromPrice: number | null;
   currency: string;
+  /** Always true — walk-up passes never make it into the index. */
   deep: boolean;
   latestDate: string;
   availableDateCount: number;
@@ -165,9 +170,9 @@ export interface Source {
    */
   listProducts(range: DateRange, known: string[]): Promise<CatalogEntry[]>;
   /**
-   * One product's availability. Whether it is worth the per-slot inventory
-   * calls is the source's own call — only it knows whether the pass has timed
-   * attractions at all — and lands in ProductResult.deep.
+   * One product's availability. Whether the pass has timed attractions at all
+   * is the source's own call — it lands in ProductResult.deep, and a false
+   * there tells the caller the product is not worth keeping.
    */
   fetchProduct(
     entry: CatalogEntry,
