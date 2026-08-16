@@ -7,8 +7,8 @@
   "url": "https://www.usj.co.jp/web/ja/jp/%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%97%E3%83%AC%E3%82%B9%E3%83%BB%E3%83%91%E3%82%B9/%EF%BD%9E4-D%EF%BC%86%E3%82%B9%E3%83%9A%E3%83%BC%E3%82%B9%E3%83%BB%E3%83%95%E3%82%A1%E3%83%B3%E3%82%BF%E3%82%B8%E3%83%BC%EF%BD%9E/p/EXP0094",
   "currency": "JPY",
   "people": 1,
-  "deep": false,
-  "fetchedAt": "2026-08-16T01:07:51.575Z",
+  "deep": true,
+  "fetchedAt": "2026-08-16T02:19:33.905Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-08-17",
@@ -17,13 +17,266 @@
       "date": "2026-08-16",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 943,
+      "availableUnits": 644,
       "maxAvailable": 68,
-      "totalCapacity": 943,
+      "totalCapacity": 644,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
-      "timeSlots": null,
-      "slotsFetchedAt": null
+      "timeSlots": [
+        {
+          "variantCode": "E4SFR03D10A043",
+          "from": "12:30",
+          "to": "18:50",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "12:30",
+              "to": "12:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A054",
+          "from": "12:50",
+          "to": "19:10",
+          "availableUnits": 46,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "12:50",
+              "to": "13:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:40",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A032",
+          "from": "13:10",
+          "to": "19:30",
+          "availableUnits": 45,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "13:10",
+              "to": "13:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A034",
+          "from": "13:20",
+          "to": "18:30",
+          "availableUnits": 42,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:20",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "18:10",
+              "to": "18:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A037",
+          "from": "13:20",
+          "to": "14:50",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:20",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "14:30",
+              "to": "14:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A029",
+          "from": "13:40",
+          "to": "19:10",
+          "availableUnits": 46,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "18:50",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A047",
+          "from": "14:50",
+          "to": "18:50",
+          "availableUnits": 46,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "14:50",
+              "to": "15:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A042",
+          "from": "15:10",
+          "to": "19:30",
+          "availableUnits": 45,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "15:10",
+              "to": "15:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A039",
+          "from": "15:30",
+          "to": "20:00",
+          "availableUnits": 39,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "15:30",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A053",
+          "from": "15:50",
+          "to": "18:30",
+          "availableUnits": 43,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "15:50",
+              "to": "16:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:00",
+              "to": "18:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A033",
+          "from": "16:10",
+          "to": "18:10",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "16:10",
+              "to": "16:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "17:40",
+              "to": "18:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A038",
+          "from": "16:30",
+          "to": "19:20",
+          "availableUnits": 43,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "16:30",
+              "to": "16:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:50",
+              "to": "19:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A046",
+          "from": "17:30",
+          "to": "19:50",
+          "availableUnits": 68,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "17:30",
+              "to": "18:00"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:30",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D10A049",
+          "from": "17:40",
+          "to": "19:30",
+          "availableUnits": 63,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "17:40",
+              "to": "18:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:10",
+              "to": "19:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-16T02:19:34.983Z"
     },
     {
       "date": "2026-08-17",
@@ -34,13 +287,556 @@
       "totalCapacity": 588,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
-      "timeSlots": null,
-      "slotsFetchedAt": null
+      "timeSlots": [
+        {
+          "variantCode": "E4SFR03D57A035",
+          "from": "09:40",
+          "to": "18:50",
+          "availableUnits": 30,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "18:30",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A037",
+          "from": "09:40",
+          "to": "17:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "17:30",
+              "to": "17:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A040",
+          "from": "09:40",
+          "to": "15:10",
+          "availableUnits": 24,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "14:50",
+              "to": "15:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A030",
+          "from": "10:10",
+          "to": "19:30",
+          "availableUnits": 29,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "10:10",
+              "to": "10:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A025",
+          "from": "10:20",
+          "to": "17:50",
+          "availableUnits": 9,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:20",
+              "to": "10:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "17:30",
+              "to": "17:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A032",
+          "from": "10:20",
+          "to": "14:30",
+          "availableUnits": 10,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:20",
+              "to": "10:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "14:10",
+              "to": "14:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A034",
+          "from": "10:20",
+          "to": "16:10",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:20",
+              "to": "10:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "15:50",
+              "to": "16:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A038",
+          "from": "10:40",
+          "to": "16:10",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:40",
+              "to": "11:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "15:50",
+              "to": "16:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A052",
+          "from": "11:10",
+          "to": "16:20",
+          "availableUnits": 11,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "11:10",
+              "to": "11:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "15:50",
+              "to": "16:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A029",
+          "from": "11:40",
+          "to": "13:30",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "11:40",
+              "to": "12:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "13:10",
+              "to": "13:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A047",
+          "from": "11:50",
+          "to": "18:10",
+          "availableUnits": 29,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "11:50",
+              "to": "12:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "17:40",
+              "to": "18:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A044",
+          "from": "12:10",
+          "to": "15:20",
+          "availableUnits": 23,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "12:10",
+              "to": "12:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A039",
+          "from": "12:30",
+          "to": "19:50",
+          "availableUnits": 30,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:30",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A033",
+          "from": "13:10",
+          "to": "16:50",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "16:30",
+              "to": "16:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A041",
+          "from": "13:10",
+          "to": "20:10",
+          "availableUnits": 14,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:50",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A053",
+          "from": "13:10",
+          "to": "17:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "17:30",
+              "to": "17:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A045",
+          "from": "13:30",
+          "to": "18:00",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "13:30",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "17:30",
+              "to": "18:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A046",
+          "from": "13:40",
+          "to": "19:30",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:10",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A026",
+          "from": "13:50",
+          "to": "15:30",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:50",
+              "to": "14:20"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "15:10",
+              "to": "15:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A049",
+          "from": "13:50",
+          "to": "19:40",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "13:50",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A031",
+          "from": "14:30",
+          "to": "17:20",
+          "availableUnits": 30,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "14:30",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "16:50",
+              "to": "17:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A024",
+          "from": "14:40",
+          "to": "19:30",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "14:40",
+              "to": "15:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:10",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A036",
+          "from": "14:40",
+          "to": "17:30",
+          "availableUnits": 30,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "14:40",
+              "to": "15:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "17:10",
+              "to": "17:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A042",
+          "from": "14:40",
+          "to": "17:10",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "14:40",
+              "to": "15:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "16:50",
+              "to": "17:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A050",
+          "from": "15:20",
+          "to": "20:10",
+          "availableUnits": 17,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "15:20",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "19:50",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A051",
+          "from": "15:30",
+          "to": "17:20",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "15:30",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "16:50",
+              "to": "17:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A027",
+          "from": "15:40",
+          "to": "19:10",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "15:40",
+              "to": "16:10"
+            },
+            {
+              "code": "EXP_JJK",
+              "from": "18:50",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A048",
+          "from": "17:30",
+          "to": "19:20",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "17:30",
+              "to": "17:50"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:50",
+              "to": "19:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A043",
+          "from": "17:50",
+          "to": "19:40",
+          "availableUnits": 31,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "17:50",
+              "to": "18:10"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4SFR03D57A028",
+          "from": "18:10",
+          "to": "19:40",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_JJK",
+              "from": "18:10",
+              "to": "18:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-16T02:07:32.986Z"
     }
   ],
   "attractionNames": {
     "EXP_SFR": "スペース・ファンタジー・ザ・ライド",
-    "EXP_CLS": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～"
+    "EXP_CLS": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～",
+    "EXP_JJK": "呪術廻戦・ザ・リアル 4-D ～廻る時計台～",
+    "EXP_VLC": "ミニオン・ハチャメチャ・ミッション ～大悪党への道～"
   },
   "nonTimedAttractions": [
     "EXP_CLS",

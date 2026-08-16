@@ -449,8 +449,8 @@
     }
 
     function slotsHtml(src, day, people, slots) {
-      // No slot data at all: either the pass is off the watchlist, or the date
-      // sits outside the window the fetcher looks slots up for.
+      // No slot data at all: either the pass has no timed attraction to have
+      // slots for, or the date sits outside the window the fetcher looks up.
       if (!day.timeSlots) {
         const names = src.attractionNames || {};
         const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
@@ -458,7 +458,7 @@
           <div class="no-slots">
             ${src.deep
               ? '此日期不在時段查詢範圍內（僅查詢最新開放日前一個月）。'
-              : '此票種未查詢時段資料，僅提供日期、價格與是否售完。'}
+              : '此票種不限時段入場，無需指定時段。'}
             ${nonTimed.length ? `<br><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}` : ''}
           </div>`;
       }
@@ -585,7 +585,7 @@
 
       return `
         <div class="card" data-code="${esc(src.code)}">
-          <div class="product-code">${esc(src.code)} ｜ ${esc(src.currency)}${src.deep ? '' : ' ｜ 無時段資料'}</div>
+          <div class="product-code">${esc(src.code)} ｜ ${esc(src.currency)}${src.deep ? '' : ' ｜ 不限時段'}</div>
           <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(title)} ↗</a>` : esc(title)}</div>
           ${stale || summary?.stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
           ${summary?.error ? `<div class="error-box">⚠ 上次抓取失敗：${esc(summary.error)}</div>` : ''}
@@ -631,7 +631,7 @@
         const sorted = items.slice().sort((a, b) => (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity));
         const opts = sorted.map(p => {
           const price = p.fromPrice != null ? ` ${money(p.fromPrice, p.currency || 'JPY')}起` : '';
-          const mark = p.deep ? ' ｜含時段' : '';
+          const mark = p.deep ? ' ｜含時段' : ' ｜不限時段';
           const sold = p.availableDateCount === 0 ? ' ｜已售完' : '';
           return `<option value="${esc(p.code)}">${esc(p.name || p.code)}${price}${mark}${sold}</option>`;
         }).join('');
@@ -647,7 +647,7 @@
           </div>
           <div id="picker-host">
             <div class="picker"><select id="product-select">${options}</select></div>
-            <div class="picker-note">「含時段」的票種另有每個時段的剩餘張數，可依人數篩選。</div>
+            <div class="picker-note">「含時段」的票種另有每個時段的剩餘張數，可依人數篩選；「不限時段」的票種整天自由入場，沒有時段可選。</div>
           </div>
         </div>`;
     }

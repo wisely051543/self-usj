@@ -234,7 +234,7 @@ async function main() {
     const lastSeenAt = entry.carriedOver ? previous?.lastSeenAt ?? nowIso : nowIso;
 
     try {
-      const result = await source.fetchProduct(entry, range, source.isDeep(entry.code), readProduct(entry.code));
+      const result = await source.fetchProduct(entry, range, readProduct(entry.code));
       const trimmed = dropPastDates(result, start);
       if (writeProduct(trimmed)) written++;
       summaries.push(summarize(trimmed, lastSeenAt));
@@ -250,7 +250,7 @@ async function main() {
           ? { ...previous, lastSeenAt, stale: true, error: message }
           : {
               code: entry.code, name: entry.name, eyebrow: entry.eyebrow, imageUrl: entry.imageUrl,
-              url: '', fromPrice: entry.fromPrice, currency: '', deep: source.isDeep(entry.code),
+              url: '', fromPrice: entry.fromPrice, currency: '', deep: false,
               latestDate: '', availableDateCount: 0, slotDateCount: 0,
               fetchedAt: nowIso, lastSeenAt, error: message,
             },

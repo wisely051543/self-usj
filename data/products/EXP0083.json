@@ -7,8 +7,8 @@
   "url": "https://www.usj.co.jp/web/ja/jp/%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%97%E3%83%AC%E3%82%B9%E3%83%BB%E3%83%91%E3%82%B9/%EF%BD%9E%E3%83%90%E3%83%83%E3%82%AF%E3%83%89%E3%83%AD%E3%83%83%E3%83%97%EF%BC%86%E3%83%AC%E3%83%BC%E3%82%B9%EF%BD%9E/p/EXP0083",
   "currency": "JPY",
   "people": 1,
-  "deep": false,
-  "fetchedAt": "2026-08-16T01:12:20.009Z",
+  "deep": true,
+  "fetchedAt": "2026-08-16T02:28:47.729Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-08-17",
@@ -17,31 +17,1232 @@
       "date": "2026-08-16",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 564,
-      "maxAvailable": 34,
-      "totalCapacity": 564,
+      "availableUnits": 316,
+      "maxAvailable": 32,
+      "totalCapacity": 316,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
-      "timeSlots": null,
-      "slotsFetchedAt": null
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC44D10A146",
+          "from": "12:30",
+          "to": "15:40",
+          "availableUnits": 9,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:40",
+              "to": "15:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:40",
+              "to": "15:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A144",
+          "from": "12:50",
+          "to": "18:50",
+          "availableUnits": 25,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "12:50",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A150",
+          "from": "12:50",
+          "to": "20:10",
+          "availableUnits": 32,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:10",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A167",
+          "from": "12:50",
+          "to": "18:20",
+          "availableUnits": 9,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "12:50",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A171",
+          "from": "13:10",
+          "to": "18:30",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:30",
+              "to": "18:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:30",
+              "to": "18:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A166",
+          "from": "13:30",
+          "to": "18:40",
+          "availableUnits": 18,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "13:30",
+              "to": "14:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:40",
+              "to": "18:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:40",
+              "to": "18:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A156",
+          "from": "14:10",
+          "to": "20:10",
+          "availableUnits": 23,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "14:10",
+              "to": "14:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:10",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A163",
+          "from": "14:30",
+          "to": "18:50",
+          "availableUnits": 25,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "14:30",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:50",
+              "to": "18:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A161",
+          "from": "15:50",
+          "to": "20:10",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "15:50",
+              "to": "16:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:10",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A170",
+          "from": "16:40",
+          "to": "20:10",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "16:40",
+              "to": "17:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:10",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A172",
+          "from": "18:00",
+          "to": "20:20",
+          "availableUnits": 18,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "18:00",
+              "to": "18:30"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:20",
+              "to": "20:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:20",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D10A148",
+          "from": "18:10",
+          "to": "19:40",
+          "availableUnits": 31,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:10",
+              "to": "19:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:10",
+              "to": "18:40"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-16T02:28:51.088Z"
     },
     {
       "date": "2026-08-17",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 823,
+      "availableUnits": 820,
       "maxAvailable": 32,
-      "totalCapacity": 823,
+      "totalCapacity": 820,
       "pricePerPerson": 20800,
       "formattedPrice": "¥20,800",
-      "timeSlots": null,
-      "slotsFetchedAt": null
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC44D57A291",
+          "from": "09:40",
+          "to": "20:40",
+          "availableUnits": 29,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A314",
+          "from": "09:40",
+          "to": "19:30",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "09:40",
+              "to": "10:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A304",
+          "from": "09:50",
+          "to": "15:50",
+          "availableUnits": 18,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "09:50",
+              "to": "10:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A310",
+          "from": "09:50",
+          "to": "13:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "09:50",
+              "to": "10:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "09:50",
+              "to": "10:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "13:20",
+              "to": "13:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A317",
+          "from": "09:50",
+          "to": "15:10",
+          "availableUnits": 11,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "09:50",
+              "to": "10:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "09:50",
+              "to": "10:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "14:40",
+              "to": "15:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A309",
+          "from": "10:00",
+          "to": "13:30",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:00",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:00",
+              "to": "10:30"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "13:00",
+              "to": "13:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A312",
+          "from": "10:00",
+          "to": "19:00",
+          "availableUnits": 3,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:00",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:00",
+              "to": "10:30"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "18:30",
+              "to": "19:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A294",
+          "from": "10:10",
+          "to": "18:40",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "10:10",
+              "to": "10:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:40",
+              "to": "18:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:40",
+              "to": "18:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A295",
+          "from": "10:10",
+          "to": "12:10",
+          "availableUnits": 13,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:10",
+              "to": "11:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:10",
+              "to": "10:40"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "11:40",
+              "to": "12:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A319",
+          "from": "10:10",
+          "to": "13:10",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:10",
+              "to": "11:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:10",
+              "to": "10:40"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "12:40",
+              "to": "13:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A299",
+          "from": "10:40",
+          "to": "20:40",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "10:40",
+              "to": "11:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A300",
+          "from": "10:50",
+          "to": "19:00",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:50",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:50",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "18:30",
+              "to": "19:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A308",
+          "from": "10:50",
+          "to": "19:20",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:50",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:50",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "18:50",
+              "to": "19:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A315",
+          "from": "10:50",
+          "to": "20:00",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:50",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:50",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A321",
+          "from": "10:50",
+          "to": "19:50",
+          "availableUnits": 9,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:50",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:50",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:20",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A323",
+          "from": "10:50",
+          "to": "20:20",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:50",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:50",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:50",
+              "to": "20:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A326",
+          "from": "11:20",
+          "to": "20:30",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "11:20",
+              "to": "11:50"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:30",
+              "to": "20:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A325",
+          "from": "11:30",
+          "to": "18:50",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "11:30",
+              "to": "12:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:50",
+              "to": "18:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A313",
+          "from": "12:00",
+          "to": "19:00",
+          "availableUnits": 7,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:00",
+              "to": "12:30"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:00",
+              "to": "19:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:00",
+              "to": "18:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A298",
+          "from": "12:10",
+          "to": "20:30",
+          "availableUnits": 27,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:10",
+              "to": "12:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:30",
+              "to": "20:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A297",
+          "from": "12:20",
+          "to": "19:20",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:20",
+              "to": "12:50"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:20",
+              "to": "19:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A328",
+          "from": "12:30",
+          "to": "18:30",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:30",
+              "to": "18:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:30",
+              "to": "18:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A292",
+          "from": "12:50",
+          "to": "19:10",
+          "availableUnits": 32,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:10",
+              "to": "19:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:10",
+              "to": "18:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A296",
+          "from": "12:50",
+          "to": "15:20",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "12:50",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A316",
+          "from": "13:10",
+          "to": "15:50",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A324",
+          "from": "13:10",
+          "to": "20:30",
+          "availableUnits": 6,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:10",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "20:00",
+              "to": "20:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A322",
+          "from": "13:30",
+          "to": "15:50",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "13:30",
+              "to": "14:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A302",
+          "from": "13:40",
+          "to": "19:10",
+          "availableUnits": 24,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:10",
+              "to": "19:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:10",
+              "to": "18:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A329",
+          "from": "13:40",
+          "to": "19:10",
+          "availableUnits": 23,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:40",
+              "to": "14:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "18:40",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A293",
+          "from": "14:00",
+          "to": "17:20",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "14:00",
+              "to": "14:30"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "16:20",
+              "to": "17:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "16:20",
+              "to": "16:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A301",
+          "from": "14:20",
+          "to": "20:30",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "14:20",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:30",
+              "to": "20:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A311",
+          "from": "14:30",
+          "to": "18:50",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "14:30",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:50",
+              "to": "18:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A307",
+          "from": "14:50",
+          "to": "20:10",
+          "availableUnits": 26,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:50",
+              "to": "15:20"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A330",
+          "from": "15:50",
+          "to": "20:20",
+          "availableUnits": 29,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "15:50",
+              "to": "16:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:20",
+              "to": "20:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:20",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A306",
+          "from": "16:40",
+          "to": "20:40",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "16:40",
+              "to": "17:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A320",
+          "from": "16:40",
+          "to": "18:20",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "16:40",
+              "to": "17:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "16:40",
+              "to": "17:10"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A305",
+          "from": "16:50",
+          "to": "19:00",
+          "availableUnits": 24,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "16:50",
+              "to": "17:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:00",
+              "to": "19:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:00",
+              "to": "18:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A303",
+          "from": "18:00",
+          "to": "19:40",
+          "availableUnits": 24,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "18:00",
+              "to": "19:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "18:00",
+              "to": "18:30"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A327",
+          "from": "18:10",
+          "to": "21:00",
+          "availableUnits": 28,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "18:10",
+              "to": "18:40"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "20:00",
+              "to": "21:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "20:00",
+              "to": "20:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4MKC44D57A318",
+          "from": "18:20",
+          "to": "20:30",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "18:20",
+              "to": "18:50"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:30",
+              "to": "20:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-16T02:28:51.088Z"
     }
   ],
   "attractionNames": {
     "EXP_FBJ": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
     "EXP_FLD": "ザ・フライング・ダイナソー",
-    "EXP_SFR": "スペース・ファンタジー・ザ・ライド"
+    "EXP_SFR": "スペース・ファンタジー・ザ・ライド",
+    "EXP_BDR": "ハリウッド・ドリーム・ザ・ライド ～バックドロップ～",
+    "EXP_A_SNW": "スーパー・ニンテンドー・ワールド™",
+    "EXP_MKC": "マリオカート ～クッパの挑戦状～™"
   },
   "nonTimedAttractions": [
     "EXP_FBJ",

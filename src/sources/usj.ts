@@ -7,7 +7,7 @@ import {
   Source,
   TimeSlot,
 } from '../types';
-import { everyNthDay, nextDay, shiftMonths } from '../dates';
+import { everyNthDay, shiftMonths } from '../dates';
 import { budgetExhausted, limitedFetch, mapLimit } from '../limiter';
 
 /**
@@ -25,19 +25,20 @@ const SITE_BASE = 'https://www.usj.co.jp/web/ja/jp';
 const FALLBACK_PAGE_URL = `${SITE_BASE}/tickets-and-passes/express-pass`;
 
 /**
- * Products worth the per-slot inventory calls. Every other product still gets
- * its calendar, price and sold-out state — this only decides who is expensive
- * enough to warrant one request per slot per date, which is the whole cost of a
- * run. It does NOT decide which products exist: that comes from listProducts.
- */
-const WATCHLIST = new Set(['EXP0079', 'EXP0068', 'EXP0081', 'EXP0069', 'EXP0009']);
-
-/**
- * How far back from the latest on-sale date time slots are looked up. Slots
- * cost one request per date, so this bounds the run at roughly a month of
- * on-sale dates instead of the whole six-month calendar.
+ * How far back from the latest released date time slots are looked up. USJ
+ * opens dates on a rolling horizon, roughly one new date a day, so the month
+ * behind the latest one is the month most recently put on sale — the band where
+ * stock is fullest and moves fastest. The slot list costs one request per date,
+ * which is what keeps this a window rather than the whole six-month calendar.
  */
 const SLOT_WINDOW_MONTHS = 1;
+
+/**
+ * How many (date, variant) pairs go into one inventory request. The store
+ * answers several hundred without complaint; a hundred keeps any single
+ * response near 110KB and any single failure cheap to retry.
+ */
+const STOCK_BATCH_SIZE = 100;
 
 /**
  * The catalogue is asked about one date at a time, so it is sampled rather than
@@ -77,45 +78,57 @@ interface CalendarDate {
   }>;
 }
 
+interface Availability {
+  partNumber: string;
+  calendarDates: CalendarDate[];
+}
+
 interface CalendarResponse {
-  eventAvailability: Array<{
-    calendarDates: CalendarDate[];
-  }>;
+  eventAvailability: Availability[];
+}
+
+/** One part number over one date range, as the inventory endpoint wants it. */
+interface InventoryQuery {
+  startDate: string;             // YYYY-MM-DD
+  endDate: string;               // YYYY-MM-DD
+  partNumber: string;
 }
 
 /**
- * Inventory for one part number over a date range. partNumber is the product
- * code for whole-day totals, or a variant code for a single time slot — the
- * store answers the same shape either way, which is the only route to a
- * per-slot remaining count.
+ * Inventory for any number of part numbers. partNumber is the product code for
+ * whole-day totals, or a variant code for a single time slot — the store
+ * answers the same shape either way, which is the only route to a per-slot
+ * remaining count.
+ *
+ * The endpoint takes a list, and each answer names its own part number, so
+ * hundreds of slots spanning many dates come back in one round trip instead of
+ * one request each. That is what makes per-slot counts affordable for every
+ * pass rather than a hand-picked few.
  */
-async function fetchCalendar(
-  startDate: string,
-  endDate: string,
-  partNumber: string,
-): Promise<CalendarResponse> {
+async function fetchInventory(queries: InventoryQuery[]): Promise<Availability[]> {
   const url = `${API_BASE}/products/fetchCalendarDatesWithPriceAndInventory?lang=ja&curr=${CURRENCY}`;
-  const body = {
+  const payload = {
     currency: CURRENCY,
-    events: {
-      startDate: `${startDate} 00:00:01`,
-      endDate,
-      partNumber,
+    events: queries.map(q => ({
+      startDate: `${q.startDate} 00:00:01`,
+      endDate: q.endDate,
+      partNumber: q.partNumber,
       quantity: PEOPLE,
-    },
+    })),
   };
 
   const res = await limitedFetch(url, {
     method: 'POST',
     headers: HEADERS,
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     throw new Error(`Calendar API returned ${res.status}: ${await res.text()}`);
   }
 
-  return res.json() as Promise<CalendarResponse>;
+  const body = (await res.json()) as CalendarResponse;
+  return body.eventAvailability ?? [];
 }
 
 export function parseCalendarDate(cd: CalendarDate): DateSlot {
@@ -224,34 +237,63 @@ async function fetchTimeSlots(
 }
 
 /**
- * Fill in each slot's remaining units. One request per slot, so this is the
- * expensive part of a run — but it is what lets the page answer party-size
- * questions offline, since a slot fits a party exactly when enough is left.
+ * Fill in every slot's remaining units across the dates handed in.
+ *
+ * This is what lets the page answer party-size questions offline, since a slot
+ * fits a party exactly when enough is left. Batching matters: a month of dates
+ * for one pass is a few hundred slots, which used to be a few hundred requests
+ * and is now two or three.
  */
-async function fetchSlotStock(date: string, slots: TimeSlot[]): Promise<void> {
-  await mapLimit(slots, async slot => {
+async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
+  const pairs = dates.flatMap(date => (date.timeSlots ?? []).map(slot => ({ date: date.date, slot })));
+  if (pairs.length === 0) return;
+
+  const batches: Array<typeof pairs> = [];
+  for (let i = 0; i < pairs.length; i += STOCK_BATCH_SIZE) {
+    batches.push(pairs.slice(i, i + STOCK_BATCH_SIZE));
+  }
+
+  await mapLimit(batches, async batch => {
     try {
-      const data = await fetchCalendar(date, nextDay(date), slot.variantCode);
-      const day = (data.eventAvailability?.[0]?.calendarDates ?? []).find(d => d.date === date);
-      const units = day?.inventoryEvents?.[0]?.availableUnits;
-      slot.availableUnits = units == null ? null : parseInt(units, 10);
+      const availability = await fetchInventory(
+        batch.map(p => ({ startDate: p.date, endDate: p.date, partNumber: p.slot.variantCode })),
+      );
+
+      // Answers carry their own part number, so they are matched by key rather
+      // than by position — the store is free to reorder or drop entries.
+      const units = new Map<string, number>();
+      for (const entry of availability) {
+        for (const day of entry.calendarDates ?? []) {
+          const raw = day.inventoryEvents?.[0]?.availableUnits;
+          if (raw != null) units.set(`${entry.partNumber}@${day.date}`, parseInt(raw, 10));
+        }
+      }
+
+      for (const p of batch) {
+        p.slot.availableUnits = units.get(`${p.slot.variantCode}@${p.date}`) ?? null;
+      }
     } catch (err) {
-      // A missing count only costs this slot its party-size filter.
-      console.error(`[usj]   ${date} ${slot.variantCode} stock failed: ${err instanceof Error ? err.message : err}`);
+      // A missing count only costs these slots their party-size filter.
+      const span = `${batch[0].date}..${batch[batch.length - 1].date}`;
+      console.error(`[usj]   stock batch ${span} failed: ${err instanceof Error ? err.message : err}`);
     }
   });
 }
 
 /**
- * The base product carries two things the calendar and variant lookups do not:
- * the attractions covered with no fixed entry window (the variant lookup only
- * returns TIMED entries), and the store's own path for this product — the only
- * reliable way to link to it, since the paths are Japanese slugs.
+ * The base product carries three things the calendar does not: which of its
+ * attractions have a fixed entry window and which do not, and the store's own
+ * path for this product — the only reliable way to link to it, since the paths
+ * are Japanese slugs.
+ *
+ * The timed/non-timed split is what decides whether a pass is worth the slot
+ * lookups at all. A pass with no TIMED attraction is a walk-up-any-time pass:
+ * it has no slots to look up, and asking would waste a request per date.
  */
 async function fetchProductInfo(
   productCode: string,
   names: Record<string, string>,
-): Promise<{ nonTimed: string[]; pageUrl: string }> {
+): Promise<{ timed: string[]; nonTimed: string[]; pageUrl: string }> {
   const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=ja&curr=${CURRENCY}`;
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
@@ -259,17 +301,18 @@ async function fetchProductInfo(
   }
 
   const body = (await res.json()) as { attractions?: { events?: VariantEvent[] }; url?: string };
-  const codes: string[] = [];
+  const timed: string[] = [];
+  const nonTimed: string[] = [];
 
   for (const e of body.attractions?.events ?? []) {
-    if (e.maingroup === 'TIMED') continue;
     const code = baseEventCode(e.eventCode);
     names[code] ??= e.eventName;
-    codes.push(code);
+    (e.maingroup === 'TIMED' ? timed : nonTimed).push(code);
   }
 
   return {
-    nonTimed: codes.sort(),
+    timed: timed.sort(),
+    nonTimed: nonTimed.sort(),
     pageUrl: body.url ? `${SITE_BASE}${body.url}` : FALLBACK_PAGE_URL,
   };
 }
@@ -336,10 +379,6 @@ export const usjSource: Source = {
   id: 'usj',
   label: 'USJ 官網',
 
-  isDeep(code: string): boolean {
-    return WATCHLIST.has(code);
-  },
-
   async listProducts(range: DateRange, known: string[]): Promise<CatalogEntry[]> {
     const samples = everyNthDay(range.start, range.end, CATALOG_SAMPLE_DAYS);
     const byCode = new Map<string, CatalogEntry>();
@@ -392,12 +431,12 @@ export const usjSource: Source = {
   async fetchProduct(
     entry: CatalogEntry,
     range: DateRange,
-    deep: boolean,
     previous: ProductResult | null,
   ): Promise<ProductResult> {
-    const data = await fetchCalendar(range.start, range.end, entry.code);
-    const calDates = data.eventAvailability?.[0]?.calendarDates ?? [];
-    const dates = calDates.map(parseCalendarDate);
+    const [availability] = await fetchInventory([
+      { startDate: range.start, endDate: range.end, partNumber: entry.code },
+    ]);
+    const dates = (availability?.calendarDates ?? []).map(parseCalendarDate);
 
     const availableDates = dates.filter(d => d.available);
     const latestDate =
@@ -408,9 +447,14 @@ export const usjSource: Source = {
     const attractionNames: Record<string, string> = { ...(previous?.attractionNames ?? {}) };
     let nonTimedAttractions = previous?.nonTimedAttractions ?? [];
     let pageUrl = previous?.url || FALLBACK_PAGE_URL;
+    // Falling back to the last run's answer keeps a blocked product-info call
+    // from silently downgrading a slotted pass to "no slots" for a whole run.
+    let deep = previous?.deep ?? false;
 
     try {
-      ({ nonTimed: nonTimedAttractions, pageUrl } = await fetchProductInfo(entry.code, attractionNames));
+      const info = await fetchProductInfo(entry.code, attractionNames);
+      ({ nonTimed: nonTimedAttractions, pageUrl } = info);
+      deep = info.timed.length > 0;
     } catch (err) {
       console.error(`[usj] ${entry.code} product info failed: ${err instanceof Error ? err.message : err}`);
     }
@@ -438,16 +482,24 @@ export const usjSource: Source = {
 
     if (!deep || !latestDate) return result;
 
-    // Time slots need one request per date, so they are looked up only for the
-    // on-sale dates in the month leading up to the latest one — the window
-    // worth watching. Dates outside it keep timeSlots: null, which the UI
-    // renders as "not fetched".
+    // Slots are looked up for the month leading up to the latest released date.
+    // The latest date itself goes first: it is the newest on sale, so it is
+    // both the fullest and the fastest-moving, and putting it at the head means
+    // a run that exhausts its budget has already fetched it. Dates outside the
+    // window keep timeSlots: null, which the UI renders as "not fetched".
     const windowStart = shiftMonths(latestDate, -SLOT_WINDOW_MONTHS);
-    const targets = dates.filter(d => d.available && d.date >= windowStart && d.date <= latestDate);
+    const latest = availableDates.find(d => d.date === latestDate);
+    const targets = [
+      ...(latest ? [latest] : []),
+      ...availableDates.filter(d => d.date >= windowStart && d.date < latestDate),
+    ];
+
     const previousByDate = new Map((previous?.dates ?? []).map(d => [d.date, d]));
     const now = Date.now();
 
-    let refreshed = 0;
+    // Slot lists come one date at a time; the remaining counts underneath them
+    // are collected here and looked up in bulk once the lists are in.
+    const pending: DateSlot[] = [];
     let carried = 0;
 
     for (const target of targets) {
@@ -473,9 +525,7 @@ export const usjSource: Source = {
 
       try {
         target.timeSlots = await fetchTimeSlots(entry.code, target.date, attractionNames);
-        await fetchSlotStock(target.date, target.timeSlots);
-        target.slotsFetchedAt = new Date().toISOString();
-        refreshed++;
+        pending.push(target);
       } catch (err) {
         // Losing one date's slot lookup must not lose the rest of the run.
         console.error(`[usj]   ${entry.code} ${target.date} failed: ${err instanceof Error ? err.message : err}`);
@@ -486,9 +536,16 @@ export const usjSource: Source = {
       }
     }
 
+    await fetchSlotStock(pending);
+    // Stamped after the counts land, but from one clock reading: these dates
+    // were all refreshed by the same pass, and staggering the stamps would only
+    // stagger their next forced backfill.
+    const stamp = new Date().toISOString();
+    for (const target of pending) target.slotsFetchedAt = stamp;
+
     console.log(
       `[usj] ${entry.code}: ${availableDates.length}/${dates.length} dates available, ` +
-      `slots refreshed ${refreshed}, carried ${carried} of ${targets.length}`,
+      `slots refreshed ${pending.length}, carried ${carried} of ${targets.length}`,
     );
 
     return result;

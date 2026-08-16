@@ -164,12 +164,14 @@ export interface Source {
    * between samples.
    */
   listProducts(range: DateRange, known: string[]): Promise<CatalogEntry[]>;
+  /**
+   * One product's availability. Whether it is worth the per-slot inventory
+   * calls is the source's own call — only it knows whether the pass has timed
+   * attractions at all — and lands in ProductResult.deep.
+   */
   fetchProduct(
     entry: CatalogEntry,
     range: DateRange,
-    deep: boolean,
     previous: ProductResult | null,
   ): Promise<ProductResult>;
-  /** Whether this product is worth the per-slot inventory calls. */
-  isDeep(code: string): boolean;
 }
