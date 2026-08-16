@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T15:51:45.064Z",
+  "fetchedAt": "2026-08-16T16:51:46.162Z",
   "calendarStart": "2026-08-17",
   "calendarEnd": "2027-02-17",
   "latestDate": "2026-08-17",
@@ -17,9 +17,9 @@
       "date": "2026-08-17",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 719,
+      "availableUnits": 716,
       "maxAvailable": 32,
-      "totalCapacity": 719,
+      "totalCapacity": 716,
       "pricePerPerson": 20800,
       "formattedPrice": "¥20,800",
       "timeSlots": [
@@ -576,10 +576,33 @@
           ]
         },
         {
+          "variantCode": "E4MKC44D57A324",
+          "from": "13:10",
+          "to": "20:30",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:10",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "20:00",
+              "to": "20:30"
+            }
+          ]
+        },
+        {
           "variantCode": "E4MKC44D57A322",
           "from": "13:30",
           "to": "15:50",
-          "availableUnits": 27,
+          "availableUnits": 24,
           "events": [
             {
               "code": "EXP_BDR",
@@ -625,7 +648,7 @@
           "variantCode": "E4MKC44D57A329",
           "from": "13:40",
           "to": "19:10",
-          "availableUnits": 13,
+          "availableUnits": 9,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -740,7 +763,7 @@
           "variantCode": "E4MKC44D57A330",
           "from": "15:50",
           "to": "20:20",
-          "availableUnits": 14,
+          "availableUnits": 18,
           "events": [
             {
               "code": "EXP_BDR",
@@ -898,7 +921,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T15:51:47.518Z"
+      "slotsFetchedAt": "2026-08-16T16:51:48.788Z"
     }
   ],
   "attractionNames": {
