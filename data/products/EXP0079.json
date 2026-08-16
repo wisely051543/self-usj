@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T02:23:59.278Z",
+  "fetchedAt": "2026-08-16T02:44:17.305Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-10-17",
@@ -963,9 +963,9 @@
       "date": "2026-10-08",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 5,
+      "availableUnits": 6,
       "maxAvailable": 2,
-      "totalCapacity": 5,
+      "totalCapacity": 6,
       "pricePerPerson": 29900,
       "formattedPrice": "¥29,900",
       "timeSlots": [
@@ -1120,9 +1120,47 @@
               "to": "16:30"
             }
           ]
+        },
+        {
+          "variantCode": "E8DKT03Z01A063",
+          "from": "11:50",
+          "to": "17:30",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "11:50",
+              "to": "12:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:00",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:00",
+              "to": "14:30"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "14:30",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "15:00",
+              "to": "15:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "17:00",
+              "to": "17:30"
+            }
+          ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:24:03.999Z"
+      "slotsFetchedAt": "2026-08-16T02:44:19.602Z"
     },
     {
       "date": "2026-10-09",
@@ -1687,9 +1725,9 @@
       "date": "2026-10-17",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 103,
+      "availableUnits": 99,
       "maxAvailable": 20,
-      "totalCapacity": 103,
+      "totalCapacity": 99,
       "pricePerPerson": 31900,
       "formattedPrice": "¥31,900",
       "timeSlots": [
@@ -2115,7 +2153,7 @@
           "variantCode": "E8DKT03Z01A064",
           "from": "12:00",
           "to": "17:00",
-          "availableUnits": 11,
+          "availableUnits": 7,
           "events": [
             {
               "code": "EXP_VLC",
@@ -2150,7 +2188,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:24:03.999Z"
+      "slotsFetchedAt": "2026-08-16T02:44:19.602Z"
     }
   ],
   "attractionNames": {
