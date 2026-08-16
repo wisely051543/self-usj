@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T19:48:50.455Z",
+  "fetchedAt": "2026-08-16T20:25:39.569Z",
   "calendarStart": "2026-08-17",
   "calendarEnd": "2027-02-17",
   "latestDate": "2026-10-18",
@@ -1258,7 +1258,7 @@
           "variantCode": "E4HDR01D57A001",
           "from": "14:20",
           "to": "20:00",
-          "availableUnits": 4,
+          "availableUnits": 2,
           "events": [
             {
               "code": "EXP_BIO",
@@ -1273,10 +1273,28 @@
           ]
         },
         {
+          "variantCode": "E4HDR01D57A016",
+          "from": "14:20",
+          "to": "19:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "14:20",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_JPD",
+              "from": "19:20",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
           "variantCode": "E4HDR01D57A019",
           "from": "14:30",
           "to": "20:00",
-          "availableUnits": 25,
+          "availableUnits": 27,
           "events": [
             {
               "code": "EXP_BIO",
@@ -1597,7 +1615,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T14:03:34.413Z"
+      "slotsFetchedAt": "2026-08-16T20:25:44.517Z"
     },
     {
       "date": "2026-09-20",
@@ -11204,9 +11222,9 @@
       "date": "2026-10-03",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 431,
+      "availableUnits": 432,
       "maxAvailable": 68,
-      "totalCapacity": 431,
+      "totalCapacity": 432,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -11412,7 +11430,7 @@
           "variantCode": "E4HDR01D57A058",
           "from": "14:40",
           "to": "19:40",
-          "availableUnits": 14,
+          "availableUnits": 15,
           "events": [
             {
               "code": "EXP_BIO",
@@ -11607,7 +11625,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T19:48:57.045Z"
+      "slotsFetchedAt": "2026-08-16T20:25:44.517Z"
     },
     {
       "date": "2026-10-04",
@@ -17821,7 +17839,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T14:03:34.413Z"
+      "slotsFetchedAt": "2026-08-16T20:25:44.517Z"
     },
     {
       "date": "2026-10-14",
