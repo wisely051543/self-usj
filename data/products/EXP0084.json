@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T14:53:17.879Z",
-  "calendarStart": "2026-08-16",
-  "calendarEnd": "2027-02-16",
-  "latestDate": "2026-10-17",
+  "fetchedAt": "2026-08-16T15:25:20.573Z",
+  "calendarStart": "2026-08-17",
+  "calendarEnd": "2027-02-17",
+  "latestDate": "2026-10-18",
   "dates": [
     {
       "date": "2026-08-18",
@@ -979,6 +979,42 @@
         }
       ],
       "slotsFetchedAt": "2026-08-16T14:53:22.945Z"
+    },
+    {
+      "date": "2026-10-18",
+      "dayOfWeek": 0,
+      "available": true,
+      "availableUnits": 36,
+      "maxAvailable": 36,
+      "totalCapacity": 36,
+      "pricePerPerson": 18800,
+      "formattedPrice": "¥18,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC45D49A046",
+          "from": "19:40",
+          "to": "20:40",
+          "availableUnits": 36,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-16T15:25:21.407Z"
     }
   ],
   "attractionNames": {
