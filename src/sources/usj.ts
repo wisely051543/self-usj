@@ -19,10 +19,13 @@ import { budgetExhausted, limitedFetch, mapLimit } from '../limiter';
 const PEOPLE = 1;
 const CURRENCY = 'JPY';
 const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
-/** Store front the b2cportal API belongs to; product paths hang off it. */
-const SITE_BASE = 'https://www.usj.co.jp/web/ja/jp';
-/** Used when the product API does not hand back its own path. */
-const FALLBACK_PAGE_URL = `${SITE_BASE}/tickets-and-passes/express-pass`;
+/**
+ * Where a pass is actually bought. The product API hands back a path on the
+ * marketing site, which describes the pass but cannot sell it; the store page
+ * is keyed by the same product code, so it is built rather than fetched.
+ */
+const STORE_BASE = 'https://store.usj.co.jp/ja/jp/store/c/expresspass';
+const storeUrl = (code: string) => `${STORE_BASE}/${code}`;
 
 /**
  * How far back from the latest released date time slots are looked up. USJ
@@ -293,14 +296,14 @@ async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
 async function fetchProductInfo(
   productCode: string,
   names: Record<string, string>,
-): Promise<{ timed: string[]; nonTimed: string[]; pageUrl: string }> {
+): Promise<{ timed: string[]; nonTimed: string[] }> {
   const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=ja&curr=${CURRENCY}`;
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
     throw new Error(`Product API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
 
-  const body = (await res.json()) as { attractions?: { events?: VariantEvent[] }; url?: string };
+  const body = (await res.json()) as { attractions?: { events?: VariantEvent[] } };
   const timed: string[] = [];
   const nonTimed: string[] = [];
 
@@ -310,11 +313,7 @@ async function fetchProductInfo(
     (e.maingroup === 'TIMED' ? timed : nonTimed).push(code);
   }
 
-  return {
-    timed: timed.sort(),
-    nonTimed: nonTimed.sort(),
-    pageUrl: body.url ? `${SITE_BASE}${body.url}` : FALLBACK_PAGE_URL,
-  };
+  return { timed: timed.sort(), nonTimed: nonTimed.sort() };
 }
 
 interface SearchProduct {
@@ -435,7 +434,6 @@ export const usjSource: Source = {
   ): Promise<ProductResult> {
     const attractionNames: Record<string, string> = { ...(previous?.attractionNames ?? {}) };
     let nonTimedAttractions = previous?.nonTimedAttractions ?? [];
-    let pageUrl = previous?.url || FALLBACK_PAGE_URL;
     // Falling back to the last run's answer keeps a blocked product-info call
     // from silently downgrading a slotted pass to "no slots" for a whole run.
     let deep = previous?.deep ?? false;
@@ -443,7 +441,7 @@ export const usjSource: Source = {
 
     try {
       const info = await fetchProductInfo(entry.code, attractionNames);
-      ({ nonTimed: nonTimedAttractions, pageUrl } = info);
+      ({ nonTimed: nonTimedAttractions } = info);
       deep = info.timed.length > 0;
       classified = true;
     } catch (err) {
@@ -477,7 +475,7 @@ export const usjSource: Source = {
       eyebrow: entry.eyebrow || previous?.eyebrow || '',
       imageUrl: entry.imageUrl || previous?.imageUrl || '',
       legalDesc: entry.legalDesc || previous?.legalDesc || '',
-      url: pageUrl,
+      url: storeUrl(entry.code),
       currency: CURRENCY,
       people: PEOPLE,
       deep,
