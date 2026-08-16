@@ -183,6 +183,57 @@
     .picker select:focus { outline: none; border-color: #79c0ff; }
     .picker-note { font-size: 11px; color: #484f58; margin-top: 8px; }
 
+    /* View switch — the same data read either pass-first or day-first. */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 3px;
+      margin: 12px 0;
+    }
+    .tabs button {
+      flex: 1;
+      background: none; border: none; border-radius: 6px;
+      color: #8b949e; font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 7px 10px; cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+    .tabs button:hover:not(.active) { background: #21262d; color: #e6edf3; }
+    .tabs button.active { background: #1f6feb33; color: #79c0ff; }
+
+    /* Day-first list — one row per pass on sale that day. */
+    .day-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 11px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      color: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .day-row:hover { background: #2d333b; border-color: #484f58; }
+    .day-row .info { flex: 1; min-width: 0; }
+    .day-row .eyebrow { font-size: 11px; color: #8b949e; }
+    .day-row .title { font-size: 14px; color: #e6edf3; line-height: 1.4; }
+    .day-row .tail { flex: none; text-align: right; }
+    .day-row .price { font-size: 14px; font-weight: 600; color: #79c0ff; font-variant-numeric: tabular-nums; }
+    .day-row .sub { font-size: 11px; color: #484f58; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .day-row .sub.few { color: #f0883e; }
+    .day-row.tight { opacity: 0.45; }
+    .day-row .slot-tag {
+      font-size: 10px; color: #3fb950; border: 1px solid #3fb95055; background: #3fb9501a;
+      border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+    }
+
     .empty { color: #f85149; font-size: 14px; padding: 8px 0; }
     .unknown-slots { color: #8b949e; font-size: 13px; padding: 8px 0; }
     .no-slots {
@@ -231,6 +282,12 @@
     const productCache = new Map();
     let catalog = null;
     let currentCode = null;
+    /** data/days.json, fetched the first time the day-first view is opened. */
+    let calendar = null;
+    /** 'product' — pick a pass, then a date. 'date' — pick a date, then a pass. */
+    let view = 'product';
+    /** Day-first view state; the party size is shared with the product view. */
+    const dayState = { date: null, people: 2 };
 
     /**
      * A slot fits a party exactly when enough tickets are left in it — that is
@@ -295,12 +352,19 @@
       return Number.isInteger(n) && n >= 1 && n <= MAX_PEOPLE ? n : null;
     }
 
+    /** ?view=date opens the day-first list instead of a single pass. */
+    function queryView() {
+      const value = new URLSearchParams(location.search).get('view');
+      return value === 'date' || value === 'product' ? value : null;
+    }
+
     /** Keep the URL in sync so the current view is copy-pasteable. */
     function syncQuery(code, date, people) {
       const q = new URLSearchParams(location.search);
-      q.set('product', code);
+      if (code) q.set('product', code); else q.delete('product');
       q.set('date', date);
       q.set('people', String(people));
+      q.set('view', view);
       history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
     }
 
@@ -577,9 +641,223 @@
       return `
         <div class="card">
           <div class="source-label">USJ 官網 ｜ 快通票種 (${products.length})</div>
-          <div class="picker"><select id="product-select">${options}</select></div>
-          <div class="picker-note">「含時段」的票種另有每個時段的剩餘張數，可依人數篩選。</div>
+          <div class="tabs">
+            <button type="button" data-view="product">依票種</button>
+            <button type="button" data-view="date">依日期</button>
+          </div>
+          <div id="picker-host">
+            <div class="picker"><select id="product-select">${options}</select></div>
+            <div class="picker-note">「含時段」的票種另有每個時段的剩餘張數，可依人數篩選。</div>
+          </div>
         </div>`;
+    }
+
+    /**
+     * The day-first view. USJ sells a different line-up almost every day, so
+     * "what can I buy on the 20th" is a question the pass-first view cannot
+     * answer without opening all 28 files — data/days.json is that same data
+     * transposed, and one download covers the whole calendar.
+     */
+    async function loadCalendar() {
+      if (calendar) return calendar;
+      const res = await fetch(`./data/days.json?t=${catalog.updatedAt}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      calendar = await res.json();
+      return calendar;
+    }
+
+    /** Passes that still have room for the party, given the day-level count. */
+    function fitsParty(entry, people) {
+      return (entry.products || []).filter(p => p.units == null || p.units >= people);
+    }
+
+    function dayRowHtml(item) {
+      const summary = catalog.products.find(p => p.code === item.code);
+      const eyebrow = summary?.eyebrow || '';
+      const name = summary?.name || item.code;
+      const tight = item.units != null && item.units < dayState.people;
+
+      const units = item.units != null
+        ? `剩 ${item.units} 張`
+        : '剩餘張數未公開';
+      const slots = item.slots != null ? `<span class="slot-tag">${item.slots} 時段</span>` : '';
+      const total = item.price != null
+        ? `<div class="sub">${dayState.people} 人 ${money(item.price * dayState.people, summary?.currency || 'JPY')}</div>`
+        : '';
+
+      return `
+        <button class="day-row${tight ? ' tight' : ''}" type="button" data-code="${esc(item.code)}">
+          <div class="info">
+            <div class="eyebrow">${esc(eyebrow)}</div>
+            <div class="title">${esc(name)}${slots}</div>
+            <div class="sub${item.units != null && item.units <= 5 ? ' few' : ''}">${units}</div>
+          </div>
+          <div class="tail">
+            <div class="price">${esc(money(item.price, summary?.currency || 'JPY'))}</div>
+            ${total}
+          </div>
+        </button>`;
+    }
+
+    /** Redraw the pass list and the strip counts for the chosen day. */
+    function paintDay(card) {
+      const entry = calendar.days[dayState.date];
+      if (!entry) return;
+
+      card.querySelectorAll('.date-pill').forEach(pill => {
+        pill.classList.toggle('selected', pill.dataset.date === dayState.date);
+        const day = calendar.days[pill.dataset.date];
+        const n = day ? fitsParty(day, dayState.people).length : 0;
+        const cell = pill.querySelector('.n');
+        cell.textContent = `${n} 種`;
+        cell.className = n === 0 ? 'n none' : n <= 2 ? 'n few' : 'n';
+      });
+
+      card.querySelector('.people .count').textContent = `${dayState.people} 人`;
+      card.querySelector('.people .minus').disabled = dayState.people <= 1;
+      card.querySelector('.people .plus').disabled = dayState.people >= MAX_PEOPLE;
+
+      const fitting = fitsParty(entry, dayState.people);
+      const hidden = entry.products.length - fitting.length;
+      card.querySelector('.people-note').textContent = hidden > 0
+        ? `另有 ${hidden} 種剩餘張數不足 ${dayState.people} 人`
+        : '依當日剩餘張數篩選';
+
+      card.querySelector('.selected-badge').innerHTML = `
+        <div class="label">已選日期</div>
+        <div class="date">
+          ${fmtDate(dayState.date)}
+          <span class="${dowClass(entry.dayOfWeek)}">${DAY_NAMES[entry.dayOfWeek]}</span>
+        </div>
+        <div class="detail">當日 ${entry.products.length} 種快通可買${hidden > 0 ? `，其中 ${fitting.length} 種夠 ${dayState.people} 人` : ''}</div>`;
+
+      const body = card.querySelector('.slot-body');
+      // Rows that do not fit stay visible but dimmed — a sold-down pass is
+      // still an answer to "what is on sale that day".
+      body.innerHTML = entry.products.length
+        ? `<div class="section-title">當日快通 (${entry.products.length})</div>` +
+          entry.products.map(dayRowHtml).join('')
+        : '<div class="empty">這天沒有可買的快通</div>';
+
+      body.querySelectorAll('.day-row').forEach(row => {
+        row.addEventListener('click', () => {
+          // Hand the date over to the pass-first view so the click lands on
+          // the day the user was looking at, not on that pass's own default.
+          writePref(`date:${row.dataset.code}`, dayState.date);
+          setView('product', row.dataset.code);
+        });
+      });
+    }
+
+    function selectDay(card, date) {
+      if (dayState.date === date) return;
+      dayState.date = date;
+      queryConsumed = true;
+      writePref('day', date);
+      syncQuery(null, date, dayState.people);
+      paintDay(card);
+    }
+
+    function selectDayPeople(card, people) {
+      const next = Math.min(MAX_PEOPLE, Math.max(1, people));
+      if (dayState.people === next) return;
+      dayState.people = next;
+      writePref('people', String(next));
+      syncQuery(null, dayState.date, next);
+      paintDay(card);
+    }
+
+    function renderDay() {
+      const host = document.getElementById('product-root');
+      const dates = Object.keys(calendar.days);
+
+      if (dates.length === 0) {
+        host.innerHTML = '<div class="card"><div class="error-box">目前沒有任何可訂日期。</div></div>';
+        return;
+      }
+
+      const pills = dates.map(date => {
+        const entry = calendar.days[date];
+        return `
+          <div class="date-pill" data-date="${esc(date)}">
+            <div class="d">${fmtShort(date)}</div>
+            <div class="${dowWordClass(entry.dayOfWeek)}">${DAY_NAMES[entry.dayOfWeek]}</div>
+            <div class="n"></div>
+          </div>`;
+      }).join('');
+
+      host.innerHTML = `
+        <div class="card">
+          <div class="date-strip">${pills}</div>
+          <div class="controls">
+            <div class="people">
+              <button class="minus" type="button" aria-label="減少人數">−</button>
+              <span class="count"></span>
+              <button class="plus" type="button" aria-label="增加人數">+</button>
+            </div>
+            <span class="people-note"></span>
+          </div>
+          <div class="selected-badge"></div>
+          <div class="slot-body"></div>
+          <div class="picker-note">點任一票種可切到該票種的時段畫面。</div>
+        </div>`;
+
+      const card = host.querySelector('.card');
+      card.querySelectorAll('.date-pill').forEach(pill => {
+        pill.addEventListener('click', () => selectDay(card, pill.dataset.date));
+      });
+      card.querySelector('.people .minus').addEventListener('click', () => {
+        selectDayPeople(card, dayState.people - 1);
+      });
+      card.querySelector('.people .plus').addEventListener('click', () => {
+        selectDayPeople(card, dayState.people + 1);
+      });
+
+      const has = d => !!d && dates.includes(d);
+      dayState.date = [queryDate(), readPref('day')].find(has) || dates[0];
+
+      const savedPeople = Number(readPref('people'));
+      dayState.people = queryPeople()
+        || (savedPeople >= 1 && savedPeople <= MAX_PEOPLE ? savedPeople : dayState.people);
+
+      writePref('day', dayState.date);
+      writePref('people', String(dayState.people));
+      syncQuery(null, dayState.date, dayState.people);
+      queryConsumed = true;
+
+      paintDay(card);
+      card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+
+    /** Switch between the pass-first and day-first views. */
+    async function setView(next, code) {
+      view = next;
+      writePref('view', next);
+
+      document.querySelectorAll('.tabs button').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === next);
+      });
+      document.getElementById('picker-host').hidden = next !== 'product';
+
+      if (next === 'product') {
+        const select = document.getElementById('product-select');
+        if (code) select.value = code;
+        // selectProduct short-circuits on the current code, so a return trip to
+        // an already-loaded pass would leave the day card on screen.
+        currentCode = null;
+        await selectProduct(select.value);
+        return;
+      }
+
+      document.getElementById('product-root').innerHTML =
+        '<div class="card"><div class="loading">載入日曆中...</div></div>';
+      try {
+        await loadCalendar();
+      } catch (err) {
+        showProductError(err.message);
+        return;
+      }
+      if (view === 'date') renderDay();
     }
 
     function showProductError(message) {
@@ -673,13 +951,17 @@
       const select = document.getElementById('product-select');
       select.addEventListener('change', () => selectProduct(select.value));
 
+      document.querySelectorAll('.tabs button').forEach(b => {
+        b.addEventListener('click', () => setView(b.dataset.view));
+      });
+
       const has = c => !!c && products.some(p => p.code === c);
       const code = [queryProduct(), readPref('product')].find(has)
         || products.find(p => p.deep && p.availableDateCount > 0)?.code
         || products[0].code;
 
       select.value = code;
-      selectProduct(code);
+      setView(queryView() || readPref('view') || 'product');
     }
 
     fetch('./data/index.json?t=' + Date.now())

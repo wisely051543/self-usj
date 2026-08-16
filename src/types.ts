@@ -110,6 +110,34 @@ export interface ProductSummary {
   error?: string;
 }
 
+/**
+ * One pass on one day, as the day-first view needs it. Deliberately tiny: this
+ * is the same fact the product files already hold, transposed, and the whole
+ * calendar has to fit in one download.
+ */
+export interface DayProduct {
+  code: string;
+  price: number | null;          // per person, that day
+  units: number | null;          // tickets left that day; null = not exposed
+  slots: number | null;          // time slots known for that day; null = not fetched
+}
+
+export interface DayEntry {
+  dayOfWeek: number;             // 0=Sun … 6=Sat
+  products: DayProduct[];        // only passes on sale that day, cheapest first
+}
+
+/**
+ * data/days.json — the product files transposed by date, so "which passes can I
+ * buy on the 20th" is one fetch instead of every product file. Carries no
+ * timestamp of its own: it is written only when the answer changes, which is
+ * what keeps it out of most commits.
+ */
+export interface Days {
+  schemaVersion: 1;
+  days: Record<string, DayEntry>;
+}
+
 export interface Index {
   schemaVersion: 4;
   updatedAt: string;             // ISO8601 — last time the index was written

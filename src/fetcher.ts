@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { CatalogEntry, DateRange, Index, ProductResult, ProductSummary } from './types';
+import { CatalogEntry, DateRange, DayEntry, Days, Index, ProductResult, ProductSummary } from './types';
 import { shiftMonths, todayJST } from './dates';
 import { usjSource } from './sources/usj';
 import { budgetExhausted, requestCount } from './limiter';
@@ -9,6 +9,7 @@ const source = usjSource;
 const MONTHS_AHEAD = 6;
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
+const DAYS_PATH = path.join(DATA_DIR, 'days.json');
 const PRODUCTS_DIR = path.join(DATA_DIR, 'products');
 
 /**
@@ -112,6 +113,83 @@ function sweepDelisted(products: ProductSummary[], now: Date): ProductSummary[] 
   });
 }
 
+/**
+ * Transpose the product files into a date -> passes map.
+ *
+ * The line-up changes day to day, and answering "what can I buy on the 20th"
+ * from the product files alone would mean downloading all of them. Built from
+ * disk rather than from this run's results so a partial run (--product=) still
+ * emits the full calendar.
+ */
+function buildDays(products: ProductSummary[]): Days {
+  const days: Record<string, DayEntry> = {};
+
+  for (const summary of products) {
+    const result = readProduct(summary.code);
+    if (!result) continue;
+
+    for (const date of result.dates) {
+      if (!date.available) continue;
+
+      const entry = days[date.date] ?? (days[date.date] = { dayOfWeek: date.dayOfWeek, products: [] });
+      entry.products.push({
+        code: result.code,
+        price: date.pricePerPerson,
+        units: date.availableUnits,
+        slots: date.timeSlots ? date.timeSlots.length : null,
+      });
+    }
+  }
+
+  // Cheapest first within a day, and the days themselves in date order — a
+  // plain object preserves insertion order for these string keys, and the UI
+  // should not have to re-sort what the fetcher already knows.
+  const ordered: Record<string, DayEntry> = {};
+  for (const date of Object.keys(days).sort()) {
+    days[date].products.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity) || a.code.localeCompare(b.code));
+    ordered[date] = days[date];
+  }
+
+  return { schemaVersion: 1, days: ordered };
+}
+
+/**
+ * One line per pass-on-a-day, rather than the six that JSON.stringify's indent
+ * would spend on it. This file is rewritten whenever any ticket count moves —
+ * roughly every run — so keeping a changed count to a one-line diff is what
+ * stops it dominating the repo's growth.
+ */
+function serializeDays(days: Days): string {
+  const dates = Object.keys(days.days);
+  const out = ['{', `  "schemaVersion": ${days.schemaVersion},`, '  "days": {'];
+
+  dates.forEach((date, i) => {
+    const entry = days.days[date];
+    out.push(`    ${JSON.stringify(date)}: {`);
+    out.push(`      "dayOfWeek": ${entry.dayOfWeek},`);
+    out.push('      "products": [');
+    entry.products.forEach((product, j) => {
+      out.push(`        ${JSON.stringify(product)}${j < entry.products.length - 1 ? ',' : ''}`);
+    });
+    out.push('      ]');
+    out.push(`    }${i < dates.length - 1 ? ',' : ''}`);
+  });
+
+  out.push('  }', '}');
+  return out.join('\n') + '\n';
+}
+
+/** Same "content unchanged, stay out of git" rule as the product files. */
+function writeDays(days: Days): boolean {
+  const next = serializeDays(days);
+  try {
+    if (fs.readFileSync(DAYS_PATH, 'utf-8') === next) return false;
+  } catch { /* no file yet */ }
+
+  fs.writeFileSync(DAYS_PATH, next, 'utf-8');
+  return true;
+}
+
 async function main() {
   const wanted = process.argv
     .filter(a => a.startsWith('--product='))
@@ -195,6 +273,13 @@ async function main() {
   };
 
   fs.writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2), 'utf-8');
+
+  const days = buildDays(products);
+  const daysWritten = writeDays(days);
+  console.log(
+    `[fetch] calendar: ${Object.keys(days.days).length} days with stock` +
+    `${daysWritten ? '' : ' (unchanged)'}`,
+  );
 
   const seconds = (Date.now() - startedAt) / 1000;
   console.log(
