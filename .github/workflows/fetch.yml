@@ -2,13 +2,16 @@ name: Fetch Express Pass Availability
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Every 30 min. A run is rate-limited to 5 req/s against the store, so a
+    # cold run takes ~10 min; a warm one, which only refreshes the dates whose
+    # totals moved, takes well under a minute.
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: write
 
@@ -24,19 +27,22 @@ jobs:
 
       - run: npm run fetch
 
-      - name: Flag failed sources
+      - name: Flag failed products
         if: always()
         run: |
           node -e "
-            const r = JSON.parse(require('fs').readFileSync('data/results.json','utf8'));
-            for (const s of r.sources.filter(s => s.error)) {
-              console.log('::warning title=' + s.id + ' fetch failed::' + s.error);
+            const r = JSON.parse(require('fs').readFileSync('data/index.json','utf8'));
+            for (const p of r.products.filter(p => p.error)) {
+              console.log('::warning title=' + p.code + ' fetch failed::' + p.error);
+            }
+            if (r.budgetExhausted) {
+              console.log('::warning title=request budget::Run hit its request cap; some slot data was carried over.');
             }
           "
 
-      # Runs even when one source failed, so the healthy source's fresh data
+      # Runs even when one product failed, so the healthy products' fresh data
       # still lands in git. Only a total outage reddens the run (npm run fetch
-      # exits non-zero when every source failed).
+      # exits non-zero when every product failed).
       - name: Commit results
         if: always()
         run: |

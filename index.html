@@ -166,8 +166,32 @@
     .slot-note { font-size: 12px; color: #8b949e; margin-top: 14px; line-height: 1.6; }
     .slot-note .k { color: #484f58; }
 
+    /* Product picker — one entry per pass in the catalogue. */
+    .picker { width: 100%; }
+    .picker select {
+      width: 100%;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #e6edf3;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 10px 12px;
+      cursor: pointer;
+      appearance: none;
+    }
+    .picker select:focus { outline: none; border-color: #79c0ff; }
+    .picker-note { font-size: 11px; color: #484f58; margin-top: 8px; }
+
     .empty { color: #f85149; font-size: 14px; padding: 8px 0; }
     .unknown-slots { color: #8b949e; font-size: 13px; padding: 8px 0; }
+    .no-slots {
+      background: #21262d; border: 1px solid #30363d; border-radius: 8px;
+      padding: 12px 14px; font-size: 13px; color: #8b949e; line-height: 1.6;
+    }
+    .legal { font-size: 12px; color: #8b949e; margin-top: 14px; line-height: 1.7; }
+    .legal ul { margin: 4px 0 0 18px; }
+    .legal sup { font-size: 9px; }
 
     .loading { color: #8b949e; text-align: center; padding: 60px 0; font-size: 14px; }
     .error-box {
@@ -196,13 +220,17 @@
 
   <script>
     const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
-    // Fetcher runs every 15 min; an hour of silence means something is wrong.
-    const STALE_MS = 60 * 60 * 1000;
-    const STORE_PREFIX = 'usj-selected-date:';
+    // Fetcher runs every 30 min; 90 minutes of silence means something is wrong.
+    const STALE_MS = 90 * 60 * 1000;
+    const STORE_PREFIX = 'usj:';
     const MAX_PEOPLE = 10;
 
-    /** Per-source view state: which date, and for how many people. */
+    /** Per-product view state: which date, and for how many people. */
     const state = new Map();
+    /** Product files are pulled on demand and kept for the rest of the visit. */
+    const productCache = new Map();
+    let catalog = null;
+    let currentCode = null;
 
     /**
      * A slot fits a party exactly when enough tickets are left in it — that is
@@ -219,6 +247,20 @@
       return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     }
 
+    /**
+     * The store ships the covered-attractions blurb as HTML, so it is the one
+     * field that cannot simply be escaped. It is third-party markup on its way
+     * into innerHTML: keep the handful of tags it actually uses, drop every
+     * attribute, and let anything else through as nothing.
+     */
+    const RICH_TAGS = new Set(['ul', 'ol', 'li', 'br', 'sup', 'sub', 'b', 'strong', 'em', 'p', 'span']);
+    function richText(html) {
+      return String(html ?? '').replace(/<(\/?)([a-zA-Z0-9]+)[^>]*>/g, (_, slash, name) => {
+        const tag = name.toLowerCase();
+        return RICH_TAGS.has(tag) ? `<${slash}${tag}>` : '';
+      });
+    }
+
     // localStorage throws in private mode / blocked-cookie setups; a lost
     // preference must never take the page down with it.
     function readPref(key) {
@@ -229,26 +271,35 @@
     }
 
     /**
-     * ?date=YYYY-MM-DD picks the date for every source; ?<sourceId>=YYYY-MM-DD
-     * overrides it for one. A shared link must win over whatever the recipient
-     * picked last, so the query string outranks the stored preference.
+     * ?date=YYYY-MM-DD. A shared link must win over whatever the recipient
+     * picked last, so the query string outranks the stored preference — but
+     * only on the first paint, since it describes the link, not later clicks.
      */
-    function queryDate(sourceId) {
-      const q = new URLSearchParams(location.search);
-      const value = q.get(sourceId) || q.get('date');
+    let queryConsumed = false;
+
+    function queryDate() {
+      if (queryConsumed) return null;
+      const value = new URLSearchParams(location.search).get('date');
       return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : null;
     }
 
-    /** ?people=N, shared by every source. */
+    /** ?product=CODE — which pass the link opens. */
+    function queryProduct() {
+      const value = new URLSearchParams(location.search).get('product');
+      return /^[A-Z0-9_]+$/.test(value || '') ? value : null;
+    }
+
+    /** ?people=N, shared by every product. */
     function queryPeople() {
       const n = Number(new URLSearchParams(location.search).get('people'));
       return Number.isInteger(n) && n >= 1 && n <= MAX_PEOPLE ? n : null;
     }
 
     /** Keep the URL in sync so the current view is copy-pasteable. */
-    function syncQuery(sourceId, date, people) {
+    function syncQuery(code, date, people) {
       const q = new URLSearchParams(location.search);
-      q.set(q.has(sourceId) ? sourceId : 'date', date);
+      q.set('product', code);
+      q.set('date', date);
       q.set('people', String(people));
       history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
     }
@@ -306,12 +357,13 @@
     }
 
     /**
-     * The selectable dates are exactly those the fetcher looked slots up for —
-     * the month leading to the latest on-sale date. timeSlots === null means
-     * the lookup never ran, so such a date has nothing to show.
+     * Every on-sale date is selectable, including the ones with no slot data.
+     * Only the passes on the fetcher's watchlist get slots looked up, and even
+     * for those only the month leading to the latest on-sale date — but a date
+     * still carries a price and a sold-out state worth showing.
      */
     function pickableDates(src) {
-      return (src.dates || []).filter(d => d.timeSlots);
+      return (src.dates || []).filter(d => d.available);
     }
 
     function badgeHtml(src, day, people) {
@@ -333,6 +385,20 @@
     }
 
     function slotsHtml(src, day, people, slots) {
+      // No slot data at all: either the pass is off the watchlist, or the date
+      // sits outside the window the fetcher looks slots up for.
+      if (!day.timeSlots) {
+        const names = src.attractionNames || {};
+        const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
+        return `
+          <div class="no-slots">
+            ${src.deep
+              ? '此日期不在時段查詢範圍內（僅查詢最新開放日前一個月）。'
+              : '此票種未查詢時段資料，僅提供日期、價格與是否售完。'}
+            ${nonTimed.length ? `<br><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}` : ''}
+          </div>`;
+      }
+
       if (slots.length === 0) {
         const all = day.timeSlots ? day.timeSlots.length : 0;
         return `<div class="empty">${all > 0
@@ -357,7 +423,7 @@
 
     /** Redraw everything that depends on the selected date or party size. */
     function paint(card, src) {
-      const st = state.get(src.id);
+      const st = state.get(src.code);
       const day = (src.dates || []).find(d => d.date === st.date);
       if (!day) return;
 
@@ -366,15 +432,27 @@
       card.querySelectorAll('.date-pill').forEach(pill => {
         pill.classList.toggle('selected', pill.dataset.date === st.date);
         const pillDay = (src.dates || []).find(d => d.date === pill.dataset.date);
-        const n = slotsFor(pillDay, st.people).length;
         const cell = pill.querySelector('.n');
+        // A date with no slot data is not a date with no slots; say so rather
+        // than showing a zero the fetcher never established.
+        if (!pillDay || !pillDay.timeSlots) {
+          cell.textContent = '—';
+          cell.className = 'n';
+          return;
+        }
+        const n = slotsFor(pillDay, st.people).length;
         cell.textContent = `${n} 時段`;
         cell.className = n === 0 ? 'n none' : n <= 3 ? 'n few' : 'n';
       });
 
+      // Party size only filters slots, so it is meaningless without them.
+      const hasSlots = !!day.timeSlots;
       card.querySelector('.people .count').textContent = `${st.people} 人`;
-      card.querySelector('.people .minus').disabled = st.people <= 1;
-      card.querySelector('.people .plus').disabled = st.people >= MAX_PEOPLE;
+      card.querySelector('.people .minus').disabled = !hasSlots || st.people <= 1;
+      card.querySelector('.people .plus').disabled = !hasSlots || st.people >= MAX_PEOPLE;
+      card.querySelector('.people-note').textContent = hasSlots
+        ? '只列出還剩得下這麼多人的時段'
+        : '此日期無時段資料，人數不影響結果';
       card.querySelector('.selected-badge').innerHTML = badgeHtml(src, day, st.people);
 
       const body = card.querySelector('.slot-body');
@@ -404,34 +482,26 @@
     }
 
     function selectDate(card, src, date) {
-      const st = state.get(src.id);
+      const st = state.get(src.code);
       if (st.date === date) return;
       st.date = date;
-      writePref(src.id, date);
-      syncQuery(src.id, date, st.people);
+      queryConsumed = true;
+      writePref(`date:${src.code}`, date);
+      syncQuery(src.code, date, st.people);
       paint(card, src);
     }
 
     function selectPeople(card, src, people) {
-      const st = state.get(src.id);
+      const st = state.get(src.code);
       const next = Math.min(MAX_PEOPLE, Math.max(1, people));
       if (st.people === next) return;
       st.people = next;
-      writePref(`${src.id}:people`, String(next));
-      syncQuery(src.id, st.date, next);
+      writePref('people', String(next));
+      syncQuery(src.code, st.date, next);
       paint(card, src);
     }
 
-    function sourceCard(src) {
-      if (src.error) {
-        return `
-          <div class="card">
-            <div class="source-label">${esc(src.label || src.id)}</div>
-            <div class="error-box">⚠ 抓取失敗：${esc(src.error)}</div>
-            <div class="updated">最後嘗試：${fmtUpdated(src.fetchedAt)}</div>
-          </div>`;
-      }
-
+    function productCard(src, summary) {
       const stale = src.fetchedAt && (Date.now() - new Date(src.fetchedAt).getTime() > STALE_MS);
       const dates = pickableDates(src);
 
@@ -443,85 +513,176 @@
             <div class="n"></div>
           </div>`).join('');
 
-      const picker = dates.length
+      const datePicker = dates.length
         ? `<div class="date-strip">${pills}</div>`
-        : '<div class="unknown-slots">尚無已查詢時段的日期</div>';
+        : '<div class="unknown-slots">此票種目前沒有可訂日期</div>';
+
+      const title = [src.eyebrow, src.name].filter(Boolean).join(' ');
 
       return `
-        <div class="card" data-src="${esc(src.id)}">
-          <div class="source-label">${esc(src.label || src.id)}</div>
-          <div class="product-code">${esc(src.productCode)} ｜ ${esc(src.currency)}</div>
-          <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.productName)} ↗</a>` : esc(src.productName)}</div>
-          ${stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
-          ${picker}
+        <div class="card" data-code="${esc(src.code)}">
+          <div class="product-code">${esc(src.code)} ｜ ${esc(src.currency)}${src.deep ? '' : ' ｜ 無時段資料'}</div>
+          <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(title)} ↗</a>` : esc(title)}</div>
+          ${stale || summary?.stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
+          ${summary?.error ? `<div class="error-box">⚠ 上次抓取失敗：${esc(summary.error)}</div>` : ''}
+          ${datePicker}
           <div class="controls">
             <div class="people">
               <button class="minus" type="button" aria-label="減少人數">−</button>
               <span class="count"></span>
               <button class="plus" type="button" aria-label="增加人數">+</button>
             </div>
-            <span class="people-note">只列出還剩得下這麼多人的時段</span>
+            <span class="people-note"></span>
           </div>
           <div class="selected-badge"></div>
           <div class="slot-body"></div>
+          ${src.legalDesc ? `<div class="legal">${richText(src.legalDesc)}</div>` : ''}
           <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
         </div>`;
     }
 
-    function render(data) {
-      const root = document.getElementById('root');
-      const sources = data.sources || [];
+    /**
+     * Passes are grouped by the store's own display prefix ("…パス 4"), biggest
+     * pass first, so the list reads the way the store presents it rather than
+     * by product code.
+     */
+    function groupRank(eyebrow) {
+      const n = /(\d+)(\s*\+\s*\d+)?\s*$/.exec(eyebrow || '');
+      return n ? Number(n[1]) : 99;   // プレミアム and friends carry no number
+    }
 
-      if (sources.length === 0) {
-        root.innerHTML = '<div class="card"><div class="error-box">結果檔中沒有任何來源。</div></div>';
+    function pickerHtml(products) {
+      const groups = new Map();
+      for (const p of products) {
+        const key = p.eyebrow || 'その他';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(p);
+      }
+
+      const ordered = [...groups.entries()].sort(
+        (a, b) => groupRank(b[0]) - groupRank(a[0]) || a[0].localeCompare(b[0]),
+      );
+
+      const options = ordered.map(([label, items]) => {
+        const sorted = items.slice().sort((a, b) => (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity));
+        const opts = sorted.map(p => {
+          const price = p.fromPrice != null ? ` ${money(p.fromPrice, p.currency || 'JPY')}起` : '';
+          const mark = p.deep ? ' ｜含時段' : '';
+          const sold = p.availableDateCount === 0 ? ' ｜已售完' : '';
+          return `<option value="${esc(p.code)}">${esc(p.name || p.code)}${price}${mark}${sold}</option>`;
+        }).join('');
+        return `<optgroup label="${esc(label)}">${opts}</optgroup>`;
+      }).join('');
+
+      return `
+        <div class="card">
+          <div class="source-label">USJ 官網 ｜ 快通票種 (${products.length})</div>
+          <div class="picker"><select id="product-select">${options}</select></div>
+          <div class="picker-note">「含時段」的票種另有每個時段的剩餘張數，可依人數篩選。</div>
+        </div>`;
+    }
+
+    function showProductError(message) {
+      document.getElementById('product-root').innerHTML =
+        `<div class="card"><div class="error-box">無法載入票種資料：${esc(message)}</div></div>`;
+    }
+
+    function renderProduct(src, summary) {
+      const host = document.getElementById('product-root');
+      host.innerHTML = productCard(src, summary);
+
+      const card = host.querySelector('.card');
+      const dates = pickableDates(src);
+      if (dates.length === 0) return;
+
+      card.querySelectorAll('.date-pill').forEach(pill => {
+        pill.addEventListener('click', () => selectDate(card, src, pill.dataset.date));
+      });
+      card.querySelector('.people .minus').addEventListener('click', () => {
+        selectPeople(card, src, state.get(src.code).people - 1);
+      });
+      card.querySelector('.people .plus').addEventListener('click', () => {
+        selectPeople(card, src, state.get(src.code).people + 1);
+      });
+
+      // Query string, then last choice — each only while that date is still on
+      // sale, since the calendar slides forward daily. The latest date is the
+      // fallback, being the one that just opened and sells out first.
+      const has = d => !!d && dates.some(x => x.date === d);
+      const wanted = [queryDate(), readPref(`date:${src.code}`)].find(has);
+      const date = wanted
+        || (has(src.latestDate) ? src.latestDate : dates[dates.length - 1].date);
+
+      const savedPeople = Number(readPref('people'));
+      const people = queryPeople()
+        || (savedPeople >= 1 && savedPeople <= MAX_PEOPLE ? savedPeople : 2);
+
+      state.set(src.code, { date, people });
+      writePref(`date:${src.code}`, date);
+      writePref('people', String(people));
+      syncQuery(src.code, date, people);
+
+      paint(card, src);
+      card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+
+      // ?date= describes the pass the link opened, and syncQuery has just
+      // rewritten it anyway — every later pass falls back to its own memory.
+      queryConsumed = true;
+    }
+
+    async function selectProduct(code) {
+      if (currentCode === code) return;
+      currentCode = code;
+      writePref('product', code);
+
+      const summary = catalog.products.find(p => p.code === code);
+
+      if (!productCache.has(code)) {
+        document.getElementById('product-root').innerHTML =
+          '<div class="card"><div class="loading">載入票種中...</div></div>';
+        try {
+          const res = await fetch(`./data/products/${encodeURIComponent(code)}.json?t=${catalog.updatedAt}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          productCache.set(code, await res.json());
+        } catch (err) {
+          showProductError(err.message);
+          return;
+        }
+      }
+
+      // A slower earlier load must not paint over a later pick.
+      if (currentCode !== code) return;
+      renderProduct(productCache.get(code), summary);
+    }
+
+    function render(index) {
+      catalog = index;
+      const root = document.getElementById('root');
+      const products = index.products || [];
+
+      if (products.length === 0) {
+        root.innerHTML = '<div class="card"><div class="error-box">索引檔中沒有任何票種。</div></div>';
         return;
       }
 
       root.innerHTML = `
-        ${sources.map(sourceCard).join('')}
-        <div class="updated">最後更新：${fmtUpdated(data.updatedAt)}</div>`;
+        ${pickerHtml(products)}
+        <div id="product-root"></div>
+        <div class="updated">最後更新：${fmtUpdated(index.updatedAt)}</div>`;
 
-      for (const src of sources) {
-        if (src.error) continue;
-        // Matched by property rather than a built selector — source ids come
-        // from the data file and need no escaping this way.
-        const card = [...root.querySelectorAll('.card')].find(c => c.dataset.src === src.id);
-        const dates = pickableDates(src);
-        if (!card || dates.length === 0) continue;
+      const select = document.getElementById('product-select');
+      select.addEventListener('change', () => selectProduct(select.value));
 
-        card.querySelectorAll('.date-pill').forEach(pill => {
-          pill.addEventListener('click', () => selectDate(card, src, pill.dataset.date));
-        });
-        card.querySelector('.people .minus').addEventListener('click', () => {
-          selectPeople(card, src, state.get(src.id).people - 1);
-        });
-        card.querySelector('.people .plus').addEventListener('click', () => {
-          selectPeople(card, src, state.get(src.id).people + 1);
-        });
+      const has = c => !!c && products.some(p => p.code === c);
+      const code = [queryProduct(), readPref('product')].find(has)
+        || products.find(p => p.deep && p.availableDateCount > 0)?.code
+        || products[0].code;
 
-        // Query string, then last choice — each only while that date is still
-        // in the fetched window, since the window slides forward daily. The
-        // latest date is the fallback.
-        const has = d => !!d && dates.some(x => x.date === d);
-        const wanted = [queryDate(src.id), readPref(src.id)].find(has);
-        const date = wanted
-          || (has(src.latestDate) ? src.latestDate : dates[dates.length - 1].date);
-
-        const savedPeople = Number(readPref(`${src.id}:people`));
-        const people = queryPeople()
-          || (savedPeople >= 1 && savedPeople <= MAX_PEOPLE ? savedPeople : 2);
-
-        state.set(src.id, { date, people });
-        writePref(src.id, date);
-        writePref(`${src.id}:people`, String(people));
-        syncQuery(src.id, date, people);
-
-        paint(card, src);
-        card.querySelector('.date-pill.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
-      }
+      select.value = code;
+      selectProduct(code);
     }
 
-    fetch('./data/results.json?t=' + Date.now())
+    fetch('./data/index.json?t=' + Date.now())
       .then(r => r.json())
       .then(render)
       .catch(err => {

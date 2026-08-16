@@ -1,5 +1,3 @@
-export type SourceId = 'usj';
-
 /** One attraction's entry window inside a time slot. */
 export interface SlotEvent {
   code: string;                  // attraction code, e.g. 'EXP_MKC' — see attractionNames
@@ -10,7 +8,7 @@ export interface SlotEvent {
 /**
  * A bookable time slot for a given date. The store sells each slot as its own
  * product variant, and only still-purchasable variants come back — so a slot
- * appearing here means it is available. There is no per-slot unit count.
+ * appearing here means it is available.
  */
 export interface TimeSlot {
   variantCode: string;           // e.g. 'E4DKT23D10A093'
@@ -36,18 +34,47 @@ export interface DateSlot {
   pricePerPerson: number | null;
   formattedPrice: string;        // platform's own string, e.g. "¥26,800"
   timeSlots: TimeSlot[] | null;  // null = not fetched for this date (e.g. sold out)
+  /**
+   * When timeSlots was last looked up, so a run can tell fresh slot data from
+   * data it is carrying over. null whenever timeSlots is null.
+   */
+  slotsFetchedAt: string | null;  // ISO8601
 }
 
-export interface SourceResult {
-  id: SourceId;
-  label: string;                 // display name, e.g. 'USJ 官網'
+/**
+ * A product as the catalogue lists it, before any availability is looked up.
+ * Everything here comes from the search endpoint.
+ */
+export interface CatalogEntry {
+  code: string;                  // e.g. 'EXP0069'
+  name: string;                  // e.g. '～トロッコ＆ジョーズ～'
+  eyebrow: string;               // e.g. 'ユニバーサル・エクスプレス・パス 4'
+  imageUrl: string;
+  legalDesc: string;             // HTML — the covered-attractions blurb
+  fromPrice: number | null;      // cheapest listed price; the calendar has the per-date truth
+  /**
+   * True when this product came from an earlier run rather than from the
+   * listing. It is still fetched, but it does not count as seen — otherwise
+   * carrying it forward would keep resetting the clock that eventually
+   * delists it.
+   */
+  carriedOver?: boolean;
+}
+
+/** One product's availability over the fetched range. */
+export interface ProductResult {
+  code: string;
+  name: string;
+  eyebrow: string;
+  imageUrl: string;
+  legalDesc: string;
   url: string;                   // public page for this ticket
-  productName: string;
-  productCode: string;           // platform's product id, e.g. 'EXP0069'
-  currency: string;              // ISO 4217, e.g. 'JPY' / 'TWD'
+  currency: string;              // ISO 4217, e.g. 'JPY'
   /** Party size the snapshot was fetched at — 1, so nothing is filtered out. */
   people: number;
-  fetchedAt: string;             // ISO8601 — per source, not per file
+  /** Whether time slots were looked up at all — see WATCHLIST in sources/usj.ts. */
+  deep: boolean;
+  fetchedAt: string;             // ISO8601
   calendarStart: string;         // YYYY-MM-DD
   calendarEnd: string;           // YYYY-MM-DD
   latestDate: string;            // YYYY-MM-DD — latest date still on sale
@@ -59,10 +86,36 @@ export interface SourceResult {
   error?: string;
 }
 
-export interface Results {
-  schemaVersion: 3;
-  updatedAt: string;             // ISO8601 — last time the file was written
-  sources: SourceResult[];
+/**
+ * The index's per-product row. Deliberately small: the page loads this for
+ * every product to draw the picker, then pulls one product file on demand.
+ */
+export interface ProductSummary {
+  code: string;
+  name: string;
+  eyebrow: string;
+  imageUrl: string;
+  url: string;
+  fromPrice: number | null;
+  currency: string;
+  deep: boolean;
+  latestDate: string;
+  availableDateCount: number;
+  slotDateCount: number;         // dates whose slots are known
+  fetchedAt: string;             // ISO8601
+  /** Last run that saw this product in the catalogue — drives the delisting sweep. */
+  lastSeenAt: string;            // ISO8601
+  /** True when this run did not refresh the product and its file is a carry-over. */
+  stale?: boolean;
+  error?: string;
+}
+
+export interface Index {
+  schemaVersion: 4;
+  updatedAt: string;             // ISO8601 — last time the index was written
+  /** True when the run hit its request backstop and left some slot data unrefreshed. */
+  budgetExhausted?: boolean;
+  products: ProductSummary[];
 }
 
 export interface DateRange {
@@ -70,8 +123,25 @@ export interface DateRange {
   end: string;                   // YYYY-MM-DD
 }
 
+/**
+ * A ticketing platform. One source lists many products; which of them get the
+ * expensive time-slot treatment is the fetcher's call, not the source's.
+ */
 export interface Source {
-  id: SourceId;
+  id: string;                    // 'usj'
   label: string;
-  run(range: DateRange): Promise<SourceResult>;
+  /**
+   * The catalogue over `range`. `known` seeds it with codes seen on earlier
+   * runs, since the listing is date-sampled and a short-lived product can fall
+   * between samples.
+   */
+  listProducts(range: DateRange, known: string[]): Promise<CatalogEntry[]>;
+  fetchProduct(
+    entry: CatalogEntry,
+    range: DateRange,
+    deep: boolean,
+    previous: ProductResult | null,
+  ): Promise<ProductResult>;
+  /** Whether this product is worth the per-slot inventory calls. */
+  isDeep(code: string): boolean;
 }

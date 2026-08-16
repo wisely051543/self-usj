@@ -5,11 +5,23 @@ export function todayJST(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date());
 }
 
+/** Shift a date by whole days. */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return t.toISOString().slice(0, 10);
+}
+
 /** The day after `date` — the calendar API's end bound is exclusive-ish. */
 export function nextDay(date: string): string {
-  const [y, m, d] = date.split('-').map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + 1));
-  return t.toISOString().slice(0, 10);
+  return addDays(date, 1);
+}
+
+/** Every `step`-th day from `start` up to and including `end`. */
+export function everyNthDay(start: string, end: string, step: number): string[] {
+  const out: string[] = [];
+  for (let d = start; d <= end; d = addDays(d, step)) out.push(d);
+  return out;
 }
 
 /**
