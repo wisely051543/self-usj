@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T02:48:44.423Z",
+  "fetchedAt": "2026-08-16T03:47:15.339Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-10-17",
@@ -17,9 +17,9 @@
       "date": "2026-09-11",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 324,
+      "availableUnits": 322,
       "maxAvailable": 25,
-      "totalCapacity": 324,
+      "totalCapacity": 322,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": null,
@@ -2859,9 +2859,9 @@
       "date": "2026-09-21",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 189,
+      "availableUnits": 192,
       "maxAvailable": 17,
-      "totalCapacity": 189,
+      "totalCapacity": 192,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -3049,7 +3049,7 @@
           "variantCode": "E4HDR02D66A011",
           "from": "13:50",
           "to": "20:30",
-          "availableUnits": 13,
+          "availableUnits": 16,
           "events": [
             {
               "code": "EXP_FOF",
@@ -3118,7 +3118,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:48:45.440Z"
+      "slotsFetchedAt": "2026-08-16T03:47:16.585Z"
     },
     {
       "date": "2026-09-22",
@@ -19786,10 +19786,22 @@
     }
   ],
   "attractionNames": {
-    "EXP_CSM": "チェンソーマン・ザ・カオス 4-D",
-    "EXP_HDR": "ハリウッド・ドリーム・ザ・ライド",
-    "EXP_FOF": "ファクトリー・オブ・フィアー ～絶望のゾンビ・ツアー～",
-    "EXP_JPD": "ジュラシック・パーク・ザ・ライド ～イン・ザ・ダーク～"
+    "EXP_CSM": {
+      "ja": "チェンソーマン・ザ・カオス 4-D",
+      "en": "Chainsaw Man: The Chaos 4-D"
+    },
+    "EXP_HDR": {
+      "ja": "ハリウッド・ドリーム・ザ・ライド",
+      "en": "Hollywood Dream - The Ride"
+    },
+    "EXP_FOF": {
+      "ja": "ファクトリー・オブ・フィアー ～絶望のゾンビ・ツアー～",
+      "en": "Factory of Fear: Zombie Tour"
+    },
+    "EXP_JPD": {
+      "ja": "ジュラシック・パーク・ザ・ライド ～イン・ザ・ダーク～",
+      "en": "Jurassic Park - The Ride in the Dark"
+    }
   },
   "nonTimedAttractions": [
     "EXP_CSM",

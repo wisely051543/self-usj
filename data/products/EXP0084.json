@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T02:51:10.670Z",
+  "fetchedAt": "2026-08-16T03:44:39.019Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-10-17",
@@ -341,9 +341,9 @@
       "date": "2026-10-01",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 19,
-      "maxAvailable": 19,
-      "totalCapacity": 19,
+      "availableUnits": 21,
+      "maxAvailable": 21,
+      "totalCapacity": 21,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
       "timeSlots": [
@@ -351,7 +351,7 @@
           "variantCode": "E4MKC45D49A045",
           "from": "19:40",
           "to": "20:40",
-          "availableUnits": 19,
+          "availableUnits": 21,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -371,7 +371,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:51:10.979Z"
+      "slotsFetchedAt": "2026-08-16T03:44:39.326Z"
     },
     {
       "date": "2026-10-02",
@@ -994,12 +994,30 @@
     }
   ],
   "attractionNames": {
-    "EXP_FBJ": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
-    "EXP_CLS": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～",
-    "EXP_MNR": "ミニオン・ハチャメチャ・ライド",
-    "EXP_A_SNW": "スーパー・ニンテンドー・ワールド™",
-    "EXP_MKC": "マリオカート ～クッパの挑戦状～™",
-    "EXP_YSA": "ヨッシー・アドベンチャー™"
+    "EXP_FBJ": {
+      "ja": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+      "en": "Harry Potter and the Forbidden Journey"
+    },
+    "EXP_CLS": {
+      "ja": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～",
+      "en": "Detective Conan 4-D Live Show: Jewel Under the Starry Sky"
+    },
+    "EXP_MNR": {
+      "ja": "ミニオン・ハチャメチャ・ライド",
+      "en": "Despicable Me: Minion Mayhem"
+    },
+    "EXP_A_SNW": {
+      "ja": "スーパー・ニンテンドー・ワールド™",
+      "en": "SUPER NINTENDO WORLD"
+    },
+    "EXP_MKC": {
+      "ja": "マリオカート ～クッパの挑戦状～™",
+      "en": "Mario Kart: Koopa's Challenge"
+    },
+    "EXP_YSA": {
+      "ja": "ヨッシー・アドベンチャー™",
+      "en": "Yoshi's Adventure"
+    }
   },
   "nonTimedAttractions": [
     "EXP_CLS",

@@ -1,3 +1,18 @@
+/**
+ * A store string in every language the store actually translates.
+ *
+ * The API localizes attraction names and nothing else: a pass's name, its
+ * display prefix and its covered-attractions blurb come back in Japanese
+ * whatever `lang` is asked for. Those are translated in the page instead, from
+ * the term tables in i18n/ — so this type exists for the fields the store does
+ * translate, and `en` is optional because a lookup can fail without costing the
+ * Japanese one.
+ */
+export interface Localized {
+  ja: string;
+  en?: string;
+}
+
 /** One attraction's entry window inside a time slot. */
 export interface SlotEvent {
   code: string;                  // attraction code, e.g. 'EXP_MKC' — see attractionNames
@@ -83,8 +98,8 @@ export interface ProductResult {
   calendarEnd: string;           // YYYY-MM-DD
   latestDate: string;            // YYYY-MM-DD — latest date still on sale
   dates: DateSlot[];
-  /** Attraction code -> display name, hoisted out of the slots to keep them small. */
-  attractionNames: Record<string, string>;
+  /** Attraction code -> display name per language, hoisted out of the slots to keep them small. */
+  attractionNames: Record<string, Localized>;
   /** Attractions the pass covers with no fixed entry window. */
   nonTimedAttractions: string[];
   error?: string;
@@ -144,7 +159,7 @@ export interface Days {
 }
 
 export interface Index {
-  schemaVersion: 4;
+  schemaVersion: 5;
   updatedAt: string;             // ISO8601 — last time the index was written
   /** True when the run hit its request backstop and left some slot data unrefreshed. */
   budgetExhausted?: boolean;

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "fetch": "ts-node src/fetcher.ts",
+    "i18n:check": "ts-node src/i18n-check.ts",
     "build": "tsc"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import {
   CatalogEntry,
   DateRange,
   DateSlot,
+  Localized,
   ProductResult,
   SlotEvent,
   Source,
@@ -19,6 +20,20 @@ import { budgetExhausted, limitedFetch, mapLimit } from '../limiter';
 const PEOPLE = 1;
 const CURRENCY = 'JPY';
 const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
+
+/**
+ * The languages the store answers in. `ja` is the source of truth — it is the
+ * only one where the catalogue carries a pass's name, its display prefix and
+ * its blurb at all; asking in English returns the bare product code for those.
+ * What English does carry is attraction names, which is why it is fetched: they
+ * are the one localized string worth having from the store rather than from the
+ * hand-kept term tables in i18n/.
+ *
+ * Chinese is not here because the API rejects it outright
+ * (`UnsupportedLanguageError`); zh-TW is served entirely from the term tables.
+ */
+const PRIMARY_LANG = 'ja';
+const NAME_LANGS = ['en'] as const;
 /**
  * Where a pass is actually bought. The product API hands back a path on the
  * marketing site, which describes the pass but cannot sell it; the store page
@@ -173,6 +188,17 @@ interface VariantProduct {
   attractions: { events: VariantEvent[] };
 }
 
+/**
+ * The store ships some strings decomposed: ジ arrives as シ plus a combining
+ * dakuten rather than as the single precomposed character. The two render
+ * identically and compare unequal, so a term table written the normal way
+ * silently fails to match those products. Everything text-shaped is folded to
+ * NFC on the way in, which is the one place that can fix it for good.
+ */
+function nfc(s: string): string {
+  return (s ?? '').normalize('NFC');
+}
+
 /** The API mixes 'HH:MM' and 'HH:MM:SS'. */
 function normalizeTime(t: string): string {
   return (t ?? '').slice(0, 5);
@@ -197,12 +223,12 @@ function toMMDDYYYY(isoDate: string): string {
 async function fetchTimeSlots(
   productCode: string,
   date: string,
-  names: Record<string, string>,
+  names: Record<string, Localized>,
 ): Promise<TimeSlot[]> {
   const url =
     `${API_BASE}/products/getExpressPassVariantDetails` +
     `?baseProductCode=${productCode}&selectedDate=${toMMDDYYYY(date)}` +
-    `&selectedQty=${PEOPLE}&lang=ja&curr=${CURRENCY}`;
+    `&selectedQty=${PEOPLE}&lang=${PRIMARY_LANG}&curr=${CURRENCY}`;
 
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
@@ -217,7 +243,9 @@ async function fetchTimeSlots(
 
     for (const e of product.attractions?.events ?? []) {
       const code = baseEventCode(e.eventCode);
-      names[code] ??= e.eventName;
+      // Slots are only ever fetched in the primary language, so this fills the
+      // Japanese name and leaves the translations to fetchProductInfo.
+      (names[code] ??= { ja: nfc(e.eventName) }).ja ||= nfc(e.eventName);
 
       if (e.maingroup !== 'TIMED') continue;
       events.push({ code, from: normalizeTime(e.selectionFromTime), to: normalizeTime(e.selectionToTime) });
@@ -295,9 +323,10 @@ async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
  */
 async function fetchProductInfo(
   productCode: string,
-  names: Record<string, string>,
+  names: Record<string, Localized>,
+  lang: string,
 ): Promise<{ timed: string[]; nonTimed: string[] }> {
-  const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=ja&curr=${CURRENCY}`;
+  const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=${lang}&curr=${CURRENCY}`;
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
     throw new Error(`Product API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -309,11 +338,27 @@ async function fetchProductInfo(
 
   for (const e of body.attractions?.events ?? []) {
     const code = baseEventCode(e.eventCode);
-    names[code] ??= e.eventName;
+    const entry = (names[code] ??= { ja: '' });
+    if (lang === PRIMARY_LANG) entry.ja ||= nfc(e.eventName);
+    else if (e.eventName) entry[lang as 'en'] = nfc(e.eventName);
     (e.maingroup === 'TIMED' ? timed : nonTimed).push(code);
   }
 
   return { timed: timed.sort(), nonTimed: nonTimed.sort() };
+}
+
+/**
+ * Carry the previous run's names forward, whichever schema wrote them. Before
+ * translations landed these were plain strings, and a run that read one as a
+ * Localized would spread its characters into an object of digit keys.
+ */
+function normalizeNames(previous: unknown): Record<string, Localized> {
+  const out: Record<string, Localized> = {};
+  for (const [code, value] of Object.entries((previous ?? {}) as Record<string, unknown>)) {
+    if (typeof value === 'string') out[code] = { ja: value };
+    else if (value && typeof value === 'object') out[code] = { ...(value as Localized) };
+  }
+  return out;
 }
 
 interface SearchProduct {
@@ -333,7 +378,7 @@ function parseTridion(raw: string | undefined): { eyebrow: string; imageUrl: str
   try {
     const data = (JSON.parse(raw ?? '[]') as Array<{ data?: any }>)[0]?.data ?? {};
     return {
-      eyebrow: String(data.eyebrow ?? ''),
+      eyebrow: nfc(String(data.eyebrow ?? '')),
       imageUrl: String(data.image?.[0]?.desktop ?? ''),
     };
   } catch {
@@ -397,10 +442,10 @@ export const usjSource: Source = {
         const { eyebrow, imageUrl } = parseTridion(p.tridionContent);
         byCode.set(p.code, {
           code: p.code,
-          name: p.name ?? p.code,
+          name: nfc(p.name ?? p.code),
           eyebrow,
           imageUrl,
-          legalDesc: p.legalDesc ?? '',
+          legalDesc: nfc(p.legalDesc ?? ''),
           fromPrice: p.price?.value ?? null,
         });
       }
@@ -432,7 +477,7 @@ export const usjSource: Source = {
     range: DateRange,
     previous: ProductResult | null,
   ): Promise<ProductResult> {
-    const attractionNames: Record<string, string> = { ...(previous?.attractionNames ?? {}) };
+    const attractionNames = normalizeNames(previous?.attractionNames);
     let nonTimedAttractions = previous?.nonTimedAttractions ?? [];
     // Falling back to the last run's answer keeps a blocked product-info call
     // from silently downgrading a slotted pass to "no slots" for a whole run.
@@ -440,12 +485,24 @@ export const usjSource: Source = {
     let classified = false;
 
     try {
-      const info = await fetchProductInfo(entry.code, attractionNames);
+      const info = await fetchProductInfo(entry.code, attractionNames, PRIMARY_LANG);
       ({ nonTimed: nonTimedAttractions } = info);
       deep = info.timed.length > 0;
       classified = true;
     } catch (err) {
       console.error(`[usj] ${entry.code} product info failed: ${err instanceof Error ? err.message : err}`);
+    }
+
+    // The same call again per translated language, for its attraction names
+    // alone — the timed/non-timed split is language-independent and already
+    // settled above. A failure here costs the page a translated name, which it
+    // renders by falling back to the Japanese one, so it is never fatal.
+    for (const lang of NAME_LANGS) {
+      try {
+        await fetchProductInfo(entry.code, attractionNames, lang);
+      } catch (err) {
+        console.error(`[usj] ${entry.code} ${lang} names failed: ${err instanceof Error ? err.message : err}`);
+      }
     }
 
     // A pass with no timed attraction is walk-up-any-time: it has no slots to

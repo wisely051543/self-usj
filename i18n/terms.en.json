@@ -1,0 +1,48 @@
+{
+  "verified": "Pass-name tokens are best-effort: USJ coins them for the passes only, and its English site does not publish them. The one that was checked and corrected is 残像, which the store calls Lights Out: Nightmare Isolation rather than any transliteration. Attraction names are not listed here at all — the API's own English is authoritative and the page merges it in.",
+  "note": "Japanese -> English, for the strings the store does NOT translate: a pass's name, its display prefix, and its covered-attractions blurb. Attraction names are not listed here — the API returns those in English and the page merges them into this table at load time, so they stay correct on their own. Same longest-key-first substring replacement as the other tables; keys carry no ™ so they also match the blurb, where the store wraps it in <sup>. Angle brackets are avoided in the values: the blurb goes through innerHTML and a bare <…> would be eaten as a tag.",
+  "terms": {
+    "ユニバーサル・エクスプレス・パス": "Universal Express Pass",
+
+    "ハリー・ポッター・アンド・ザ・フォービ ドゥン・ジャーニー": "Harry Potter and the Forbidden Journey",
+    "ジュラシック・パーク・ザ・ライト": "Jurassic Park - The Ride",
+
+    "ファクトリー・オブ・フィアー": "Factory of Fear",
+    "絶望のゾンビ・ツアー": "Zombie Tour",
+    "アドベンチャースペシャル": "Adventure Special",
+    "ライドセレクション": "Ride Selection",
+    "ミニオンスペシャル": "Minion Special",
+    "トロッコスペシャル": "Mine Cart Special",
+    "ハロウィーン・セット": "Halloween Set",
+    "ワンモアレース": "One More Race",
+    "スペース・ファンタジー": "Space Fantasy",
+    "フライング・ダイナソー": "Flying Dinosaur",
+    "ジュラシック・パーク": "Jurassic Park",
+    "スリル・マックス": "Thrill Max",
+    "バックドロップ": "Backdrop",
+    "セレクション": "Selection",
+    "アンリミテッド": "Unlimited",
+    "プレミアム": "Premium",
+    "ミニオン": "Minion",
+    "トロッコ": "Mine Cart",
+    "シアター": "Theater",
+    "レース": "Race",
+    "残像": "Lights Out: Nightmare Isolation",
+
+    "＜対象アトラクション＞": "Eligible attractions:",
+    "※必ず「詳細を見る」で対象アトラクションなどをご確認ください": "* Check the eligible attractions under \"See details\" before buying",
+    "※入場日によって価格が異なります": "* The price varies by admission date",
+    "※当日お渡しする誓約書に同意の方のみ体験ができます": "* Requires signing the waiver handed out on the day",
+    "※年齢制限あり：非常に過激な内容を含むため、17歳以下の方は体験できません": "* Age restricted: extremely intense content; guests aged 17 and under may not participate",
+    "年齢制限あり：過激な内容を含むため、14歳以下のお子さま、あるいは中学生以下は体験できません": "Age restricted: intense content; children aged 14 and under, and junior high students and younger, may not participate",
+    "※一部、身長107cm以上の方のみ利用できます。（身長107cm以上122cm未満の方には、付き添い者が必要）": "* Some attractions require a height of 107cm or more (guests between 107cm and 122cm must be accompanied by an adult)",
+    "※一部、身長102cm以上の方のみ利用できます。（身長102cm以上122cm未満の方には、付き添い者が必要）": "* Some attractions require a height of 102cm or more (guests between 102cm and 122cm must be accompanied by an adult)",
+    "cm以上の方のみ利用できます": "cm or more",
+    "※一部、身長": "* Some attractions require a height of ",
+    "（いずれか1つ）": " (choose one)",
+    "（どちらか1つ）": " (choose one)",
+    "（どちらか１つ）": " (choose one)",
+    "(どちらか１つ)": " (choose one)",
+    "（2回体験）": " (2 rides)"
+  }
+}

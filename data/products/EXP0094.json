@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T02:52:57.984Z",
+  "fetchedAt": "2026-08-16T03:40:08.402Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-08-17",
@@ -17,102 +17,12 @@
       "date": "2026-08-16",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 638,
+      "availableUnits": 553,
       "maxAvailable": 68,
-      "totalCapacity": 638,
+      "totalCapacity": 553,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
-        {
-          "variantCode": "E4SFR03D10A054",
-          "from": "12:50",
-          "to": "19:10",
-          "availableUnits": 46,
-          "events": [
-            {
-              "code": "EXP_JJK",
-              "from": "12:50",
-              "to": "13:10"
-            },
-            {
-              "code": "EXP_VLC",
-              "from": "18:40",
-              "to": "19:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4SFR03D10A032",
-          "from": "13:10",
-          "to": "19:30",
-          "availableUnits": 45,
-          "events": [
-            {
-              "code": "EXP_JJK",
-              "from": "13:10",
-              "to": "13:30"
-            },
-            {
-              "code": "EXP_VLC",
-              "from": "19:00",
-              "to": "19:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4SFR03D10A034",
-          "from": "13:20",
-          "to": "18:30",
-          "availableUnits": 42,
-          "events": [
-            {
-              "code": "EXP_VLC",
-              "from": "13:20",
-              "to": "13:50"
-            },
-            {
-              "code": "EXP_JJK",
-              "from": "18:10",
-              "to": "18:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4SFR03D10A037",
-          "from": "13:20",
-          "to": "14:50",
-          "availableUnits": 26,
-          "events": [
-            {
-              "code": "EXP_VLC",
-              "from": "13:20",
-              "to": "13:50"
-            },
-            {
-              "code": "EXP_JJK",
-              "from": "14:30",
-              "to": "14:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4SFR03D10A029",
-          "from": "13:40",
-          "to": "19:10",
-          "availableUnits": 46,
-          "events": [
-            {
-              "code": "EXP_VLC",
-              "from": "13:40",
-              "to": "14:10"
-            },
-            {
-              "code": "EXP_JJK",
-              "from": "18:50",
-              "to": "19:10"
-            }
-          ]
-        },
         {
           "variantCode": "E4SFR03D10A047",
           "from": "14:50",
@@ -258,15 +168,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:47:45.642Z"
+      "slotsFetchedAt": "2026-08-16T03:40:10.826Z"
     },
     {
       "date": "2026-08-17",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 585,
+      "availableUnits": 588,
       "maxAvailable": 31,
-      "totalCapacity": 585,
+      "totalCapacity": 588,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -382,7 +292,7 @@
           "variantCode": "E4SFR03D57A034",
           "from": "10:20",
           "to": "16:10",
-          "availableUnits": 1,
+          "availableUnits": 4,
           "events": [
             {
               "code": "EXP_VLC",
@@ -811,14 +721,26 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:53:00.015Z"
+      "slotsFetchedAt": "2026-08-16T03:40:10.826Z"
     }
   ],
   "attractionNames": {
-    "EXP_SFR": "スペース・ファンタジー・ザ・ライド",
-    "EXP_CLS": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～",
-    "EXP_JJK": "呪術廻戦・ザ・リアル 4-D ～廻る時計台～",
-    "EXP_VLC": "ミニオン・ハチャメチャ・ミッション ～大悪党への道～"
+    "EXP_SFR": {
+      "ja": "スペース・ファンタジー・ザ・ライド",
+      "en": "Space Fantasy - The Ride"
+    },
+    "EXP_CLS": {
+      "ja": "名探偵コナン 4-D ライブ・ショー ～星空の宝石（ジュエル）～",
+      "en": "Detective Conan 4-D Live Show: Jewel Under the Starry Sky"
+    },
+    "EXP_JJK": {
+      "ja": "呪術廻戦・ザ・リアル 4-D ～廻る時計台～",
+      "en": "Jujutsu Kaisen: The Real 4-D"
+    },
+    "EXP_VLC": {
+      "ja": "ミニオン・ハチャメチャ・ミッション ～大悪党への道～",
+      "en": "Illumination™s Villain-Con Minion Blast"
+    }
   },
   "nonTimedAttractions": [
     "EXP_CLS",

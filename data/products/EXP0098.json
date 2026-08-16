@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-16T02:49:42.859Z",
+  "fetchedAt": "2026-08-16T03:42:03.219Z",
   "calendarStart": "2026-08-16",
   "calendarEnd": "2027-02-16",
   "latestDate": "2026-10-17",
@@ -53,9 +53,9 @@
       "date": "2026-08-21",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 44,
+      "availableUnits": 42,
       "maxAvailable": 18,
-      "totalCapacity": 44,
+      "totalCapacity": 42,
       "pricePerPerson": 26900,
       "formattedPrice": "¥26,900",
       "timeSlots": null,
@@ -482,9 +482,9 @@
       "date": "2026-09-18",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 91,
+      "availableUnits": 87,
       "maxAvailable": 25,
-      "totalCapacity": 91,
+      "totalCapacity": 87,
       "pricePerPerson": 26900,
       "formattedPrice": "¥26,900",
       "timeSlots": [
@@ -538,7 +538,7 @@
           "variantCode": "E5MKC10Z01A003",
           "from": "15:00",
           "to": "16:00",
-          "availableUnits": 25,
+          "availableUnits": 21,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -581,7 +581,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-16T02:21:53.572Z"
+      "slotsFetchedAt": "2026-08-16T03:42:03.910Z"
     },
     {
       "date": "2026-09-19",
@@ -3515,12 +3515,30 @@
     }
   ],
   "attractionNames": {
-    "EXP_FLD": "ザ・フライング・ダイナソー",
-    "EXP_HDR": "ハリウッド・ドリーム・ザ・ライド",
-    "EXP_FBJ": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
-    "EXP_MKC": "マリオカート ～クッパの挑戦状～™",
-    "EXP_A_SNW": "スーパー・ニンテンドー・ワールド™",
-    "EXP_MKC2": "マリオカート ～クッパの挑戦状～™"
+    "EXP_FLD": {
+      "ja": "ザ・フライング・ダイナソー",
+      "en": "The Flying Dinosaur"
+    },
+    "EXP_HDR": {
+      "ja": "ハリウッド・ドリーム・ザ・ライド",
+      "en": "Hollywood Dream - The Ride"
+    },
+    "EXP_FBJ": {
+      "ja": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+      "en": "Harry Potter and the Forbidden Journey"
+    },
+    "EXP_MKC": {
+      "ja": "マリオカート ～クッパの挑戦状～™",
+      "en": "Mario Kart: Koopa's Challenge"
+    },
+    "EXP_A_SNW": {
+      "ja": "スーパー・ニンテンドー・ワールド™",
+      "en": "SUPER NINTENDO WORLD"
+    },
+    "EXP_MKC2": {
+      "ja": "マリオカート ～クッパの挑戦状～™",
+      "en": "Mario Kart: Koopa's Challenge™"
+    }
   },
   "nonTimedAttractions": [
     "EXP_FBJ",

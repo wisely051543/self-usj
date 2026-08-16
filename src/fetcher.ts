@@ -282,7 +282,7 @@ async function main() {
   const products = wanted.length ? merged : sweepDelisted(merged, now);
 
   const index: Index = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     updatedAt: nowIso,
     ...(budgetExhausted() ? { budgetExhausted: true } : {}),
     products,

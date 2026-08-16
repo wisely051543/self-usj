@@ -28,6 +28,19 @@
       margin-bottom: 16px;
     }
 
+    /* Language switch — sits beside the source label, above the tabs. */
+    .head-row { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
+    .head-row .source-label { flex: 1; min-width: 0; margin-bottom: 0; }
+    .langs { display: flex; flex: none; gap: 2px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 2px; }
+    .langs button {
+      background: none; border: none; border-radius: 6px;
+      color: #8b949e; font-family: inherit; font-size: 12px; font-weight: 600;
+      padding: 4px 9px; cursor: pointer; white-space: nowrap;
+      transition: background 0.12s, color 0.12s;
+    }
+    .langs button:hover:not(.active) { background: #21262d; color: #e6edf3; }
+    .langs button.active { background: #1f6feb33; color: #79c0ff; }
+
     .source-label { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
     .product-code { font-size: 12px; color: #484f58; margin-bottom: 4px; font-family: monospace; }
     .product-name { font-size: 14px; color: #8b949e; margin-bottom: 16px; line-height: 1.4; }
@@ -266,15 +279,346 @@
 </head>
 <body>
   <div class="container">
-    <div id="root"><div class="card"><div class="loading">載入中...</div></div></div>
+    <div id="root"><div class="card"><div class="loading"></div></div></div>
   </div>
 
   <script>
-    const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
     // Fetcher runs every 30 min; 90 minutes of silence means something is wrong.
     const STALE_MS = 90 * 60 * 1000;
     const STORE_PREFIX = 'usj:';
     const MAX_PEOPLE = 10;
+
+    /* ---------------------------------------------------------------------
+     * Localisation.
+     *
+     * Two separate problems, solved separately. The page's own wording is a
+     * plain string table, keyed and interpolated. The store's wording is not
+     * ours to write: its API translates attraction names and nothing else, so
+     * pass names, display prefixes and the covered-attractions blurb come back
+     * in Japanese whatever language is asked for. Those go through the term
+     * tables in i18n/, which are hand-kept and fall back to Japanese for
+     * anything they do not cover — a missing translation must cost a phrase,
+     * never a page.
+     * ------------------------------------------------------------------- */
+
+    const LOCALES = ['zh-TW', 'ja', 'en'];
+    const LOCALE_LABELS = { 'zh-TW': '繁中', ja: '日本語', en: 'EN' };
+    /** BCP 47 tags for Intl, which does not take our short keys as-is. */
+    const INTL_LOCALE = { 'zh-TW': 'zh-TW', ja: 'ja-JP', en: 'en-US' };
+    /** The store keeps a parallel site per language, keyed by the same code. */
+    const STORE_PATH = { 'zh-TW': '/zh/tw/', ja: '/ja/jp/', en: '/en/us/' };
+
+    const STRINGS = {
+      'zh-TW': {
+        title: 'USJ Express Pass 時段查詢',
+        dayNames: ['日', '一', '二', '三', '四', '五', '六'],
+        loading: '載入中...',
+        loadingProduct: '載入票種中...',
+        loadingCalendar: '載入日曆中...',
+        loadFailed: m => `無法載入資料：${m}`,
+        productLoadFailed: m => `無法載入票種資料：${m}`,
+        emptyIndex: '索引檔中沒有任何票種。',
+        emptyCalendar: '目前沒有任何可訂日期。',
+
+        catalogLabel: n => `USJ 官網 ｜ 快通票種 (${n})`,
+        tabProduct: '依票種',
+        tabDate: '依日期',
+        pickerNote: '只收錄需要指定時段的快通票種，每個時段附剩餘張數，可依人數篩選。整天自由入場的プレミアム等票種不在此列。',
+        fromPrice: p => ` ${p}起`,
+        soldOut: ' ｜已售完',
+        otherGroup: '其他',
+
+        minus: '減少人數',
+        plus: '增加人數',
+        people: n => `${n} 人`,
+        peopleNote: '只列出還剩得下這麼多人的時段',
+        peopleNoteNoSlots: '此日期無時段資料，人數不影響結果',
+        peopleNoteDay: '依當日剩餘張數篩選',
+        peopleNoteDayHidden: (n, p) => `另有 ${n} 種剩餘張數不足 ${p} 人`,
+
+        latestDate: '最新開放日',
+        selectedDate: '已選日期',
+        latestTag: '最新',
+        unitsLeft: n => `剩餘 ${n} 張 ｜ `,
+        perPerson: '/人',
+        partyTotal: (p, m) => ` ｜ ${p} 人合計 ${m}`,
+        noPickableDates: '此票種目前沒有可訂日期',
+
+        slotCount: n => `${n} 時段`,
+        slotsTitle: n => `可選時段 (${n})`,
+        slotLeft: n => `剩 ${n}`,
+        slotLeftLong: n => ` ｜ 剩 ${n} 張`,
+        outOfWindow: '此日期不在時段查詢範圍內（僅查詢最新開放日前一個月）。',
+        nonTimed: '不限時段：',
+        nonTimedJoin: '、',
+        noneFitParty: (all, p) => `此日的 ${all} 個時段都不足 ${p} 人`,
+        noSlotsLeft: '此日已無可選時段',
+
+        passCount: n => `${n} 種`,
+        dayTitle: n => `當日快通 (${n})`,
+        dayDetail: n => `當日 ${n} 種快通可買`,
+        dayDetailFit: (n, p) => `，其中 ${n} 種夠 ${p} 人`,
+        dayEmpty: '這天沒有可買的快通',
+        dayUnits: n => `剩 ${n} 張`,
+        dayUnitsUnknown: '剩餘張數未公開',
+        dayPartyTotal: (p, m) => `${p} 人 ${m}`,
+        dayNote: '點任一票種可切到該票種的時段畫面。',
+
+        staleWarning: '⚠ 資料可能過期',
+        fetchError: m => `⚠ 上次抓取失敗：${m}`,
+        updated: t => `更新：${t}`,
+        lastUpdated: t => `最後更新：${t}`,
+      },
+
+      ja: {
+        title: 'USJ エクスプレス・パス 時間帯検索',
+        dayNames: ['日', '月', '火', '水', '木', '金', '土'],
+        loading: '読み込み中...',
+        loadingProduct: 'パスを読み込み中...',
+        loadingCalendar: 'カレンダーを読み込み中...',
+        loadFailed: m => `データを読み込めませんでした：${m}`,
+        productLoadFailed: m => `パスのデータを読み込めませんでした：${m}`,
+        emptyIndex: 'インデックスにパスがありません。',
+        emptyCalendar: '購入できる日付がありません。',
+
+        catalogLabel: n => `USJ 公式 ｜ エクスプレス・パス (${n})`,
+        tabProduct: 'パスから',
+        tabDate: '日付から',
+        pickerNote: '時間帯の指定が必要なエクスプレス・パスのみを収録しています。各時間帯の残り枚数付きで、人数で絞り込めます。終日利用のプレミアムなどは対象外です。',
+        fromPrice: p => ` ${p}〜`,
+        soldOut: ' ｜完売',
+        otherGroup: 'その他',
+
+        minus: '人数を減らす',
+        plus: '人数を増やす',
+        people: n => `${n} 名`,
+        peopleNote: 'この人数がまだ入る時間帯だけを表示します',
+        peopleNoteNoSlots: 'この日は時間帯データがないため、人数は結果に影響しません',
+        peopleNoteDay: '当日の残り枚数で絞り込み',
+        peopleNoteDayHidden: (n, p) => `残り枚数が ${p} 名に足りないパスが他に ${n} 種あります`,
+
+        latestDate: '最新開放日',
+        selectedDate: '選択中の日付',
+        latestTag: '最新',
+        unitsLeft: n => `残り ${n} 枚 ｜ `,
+        perPerson: '/名',
+        partyTotal: (p, m) => ` ｜ ${p} 名合計 ${m}`,
+        noPickableDates: 'このパスは現在購入できる日付がありません',
+
+        slotCount: n => `${n} 枠`,
+        slotsTitle: n => `選べる時間帯 (${n})`,
+        slotLeft: n => `残 ${n}`,
+        slotLeftLong: n => ` ｜ 残り ${n} 枚`,
+        outOfWindow: 'この日付は時間帯の取得範囲外です（最新開放日から 1 か月前までを取得）。',
+        nonTimed: '時間指定なし：',
+        nonTimedJoin: '、',
+        noneFitParty: (all, p) => `この日の ${all} 枠はいずれも ${p} 名に足りません`,
+        noSlotsLeft: 'この日に選べる時間帯はありません',
+
+        passCount: n => `${n} 種`,
+        dayTitle: n => `この日のパス (${n})`,
+        dayDetail: n => `この日は ${n} 種のパスを購入できます`,
+        dayDetailFit: (n, p) => `。うち ${n} 種が ${p} 名分あります`,
+        dayEmpty: 'この日に購入できるパスはありません',
+        dayUnits: n => `残り ${n} 枚`,
+        dayUnitsUnknown: '残り枚数は非公開',
+        dayPartyTotal: (p, m) => `${p} 名 ${m}`,
+        dayNote: 'パスをタップすると、そのパスの時間帯表示に切り替わります。',
+
+        staleWarning: '⚠ データが古い可能性があります',
+        fetchError: m => `⚠ 前回の取得に失敗：${m}`,
+        updated: t => `更新：${t}`,
+        lastUpdated: t => `最終更新：${t}`,
+      },
+
+      en: {
+        title: 'USJ Express Pass time slots',
+        dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        loading: 'Loading…',
+        loadingProduct: 'Loading pass…',
+        loadingCalendar: 'Loading calendar…',
+        loadFailed: m => `Could not load the data: ${m}`,
+        productLoadFailed: m => `Could not load this pass: ${m}`,
+        emptyIndex: 'The index lists no passes.',
+        emptyCalendar: 'No bookable dates right now.',
+
+        catalogLabel: n => `USJ official ｜ Express Passes (${n})`,
+        tabProduct: 'By pass',
+        tabDate: 'By date',
+        pickerNote: 'Only passes that require picking a time slot are listed. Each slot shows how many tickets are left, so the list can be filtered by party size. All-day passes such as Premium are not included.',
+        fromPrice: p => ` from ${p}`,
+        soldOut: ' ｜ sold out',
+        otherGroup: 'Other',
+
+        minus: 'Fewer guests',
+        plus: 'More guests',
+        people: n => (n === 1 ? '1 guest' : `${n} guests`),
+        peopleNote: 'Only slots that still fit this many guests',
+        peopleNoteNoSlots: 'No slot data for this date, so party size changes nothing',
+        peopleNoteDay: 'Filtered by tickets left that day',
+        peopleNoteDayHidden(n, p) { return `${n} more with too few tickets left for ${this.people(p)}`; },
+
+        latestDate: 'Newest date on sale',
+        selectedDate: 'Selected date',
+        latestTag: 'newest',
+        unitsLeft: n => `${n} left ｜ `,
+        perPerson: ' per guest',
+        partyTotal(p, m) { return ` ｜ ${m} for ${this.people(p)}`; },
+        noPickableDates: 'This pass has no bookable dates right now',
+
+        slotCount: n => (n === 1 ? '1 slot' : `${n} slots`),
+        slotsTitle: n => `Time slots (${n})`,
+        slotLeft: n => `${n} left`,
+        slotLeftLong: n => ` ｜ ${n} left`,
+        outOfWindow: 'Slots are not looked up for this date — only the month before the newest date on sale is fetched.',
+        nonTimed: 'Any time: ',
+        nonTimedJoin: ', ',
+        noneFitParty(all, p) { return `None of this day's ${all} slots fit ${this.people(p)}`; },
+        noSlotsLeft: 'No slots left on this date',
+
+        passCount: n => (n === 1 ? '1 pass' : `${n} passes`),
+        dayTitle: n => `Passes on sale (${n})`,
+        dayDetail: n => `${n} passes on sale that day`,
+        dayDetailFit(n, p) { return `, ${n} of them enough for ${this.people(p)}`; },
+        dayEmpty: 'No passes on sale this day',
+        dayUnits: n => `${n} left`,
+        dayUnitsUnknown: 'Tickets left not published',
+        dayPartyTotal(p, m) { return `${m} for ${this.people(p)}`; },
+        dayNote: 'Tap any pass to jump to its time slots.',
+
+        staleWarning: '⚠ This data may be out of date',
+        fetchError: m => `⚠ Last fetch failed: ${m}`,
+        updated: t => `Updated ${t}`,
+        lastUpdated: t => `Last updated ${t}`,
+      },
+    };
+
+    /**
+     * The visitor's language, in order of how deliberate the signal is: the
+     * link they followed, then the choice they made here before, then what
+     * their browser asks for. Any Chinese lands on zh-TW, since it is the only
+     * Chinese this page has.
+     */
+    function detectLocale() {
+      const asked = new URLSearchParams(location.search).get('lang');
+      if (LOCALES.includes(asked)) return asked;
+
+      let saved = null;
+      try { saved = localStorage.getItem(STORE_PREFIX + 'lang'); } catch { /* ignore */ }
+      if (LOCALES.includes(saved)) return saved;
+
+      for (const tag of navigator.languages || [navigator.language || '']) {
+        const lower = String(tag).toLowerCase();
+        if (lower.startsWith('zh')) return 'zh-TW';
+        if (lower.startsWith('ja')) return 'ja';
+        if (lower.startsWith('en')) return 'en';
+      }
+      return 'zh-TW';
+    }
+
+    let locale = detectLocale();
+    const S = () => STRINGS[locale];
+
+    /**
+     * Look up one of the page's own strings; function entries take arguments.
+     * They are called against their own table so a phrase can reuse a sibling
+     * — English needs `people` inside half its sentences to get the plural
+     * right, and Chinese and Japanese do not need it anywhere.
+     */
+    function t(key, ...args) {
+      const table = S();
+      const value = table[key];
+      return typeof value === 'function' ? value.apply(table, args) : value;
+    }
+
+    /* --- Store wording ------------------------------------------------- */
+
+    /** Hand-kept ja -> target, from i18n/terms.<locale>.json. */
+    let staticTerms = new Map();
+    /** ja -> en, harvested from the attraction names the API does translate. */
+    const apiTerms = new Map();
+    /** Both, longest key first — the order the substring pass depends on. */
+    let termIndex = [];
+
+    // Term keys are written without ™ so one key covers both the attraction
+    // name, which carries a bare ™, and the blurb, which wraps it in <sup>.
+    const stripTm = s => String(s ?? '').replace(/™/g, '');
+
+    function rebuildTerms() {
+      const merged = new Map(staticTerms);
+      // The tables win over the API: they are where the store's own typos get
+      // corrected, and an API name would quietly reinstate them.
+      if (locale === 'en') {
+        for (const [ja, en] of apiTerms) if (!merged.has(ja)) merged.set(ja, en);
+      }
+      termIndex = [...merged].sort((a, b) => b[0].length - a[0].length);
+    }
+
+    /** Feed a loaded product's translated attraction names into the table. */
+    function harvestTerms(src) {
+      let added = false;
+      for (const entry of Object.values(src.attractionNames || {})) {
+        if (!entry || typeof entry !== 'object' || !entry.en || !entry.ja) continue;
+        const key = stripTm(entry.ja);
+        if (apiTerms.get(key) === stripTm(entry.en)) continue;
+        apiTerms.set(key, stripTm(entry.en));
+        added = true;
+      }
+      if (added) rebuildTerms();
+    }
+
+    async function loadTerms() {
+      staticTerms = new Map();
+      if (locale !== 'ja') {
+        try {
+          const res = await fetch(`./i18n/terms.${locale}.json`);
+          if (res.ok) staticTerms = new Map(Object.entries((await res.json()).terms || {}));
+        } catch { /* an untranslated page still works */ }
+      }
+      rebuildTerms();
+    }
+
+    /**
+     * Translate a store string by replacing every term the table knows,
+     * longest first so a full attraction name is never shredded by one of the
+     * short tokens inside it. Whatever is left over stays Japanese, which is
+     * the honest fallback: a partly-translated blurb still reads.
+     */
+    function term(text) {
+      // The store ships some strings decomposed — ジ as シ plus a combining
+      // dakuten — which renders identically and compares unequal, so a whole
+      // product's blurb would silently miss every key. The fetcher folds new
+      // data to NFC; this covers whatever is already published.
+      const source = String(text ?? '').normalize('NFC');
+      if (locale === 'ja' || !source) return source;
+      let out = source;
+      for (const [ja, target] of termIndex) {
+        if (out.includes(ja)) out = out.split(ja).join(target);
+      }
+      return out;
+    }
+
+    /** One attraction's name: from the API where it has one, else translated. */
+    function attractionName(entry, code) {
+      if (entry == null) return code ?? '';
+      // Files written before translations landed hold a bare Japanese string.
+      if (typeof entry === 'string') return term(entry);
+      if (locale === 'ja') return entry.ja || code || '';
+      if (locale === 'en' && entry.en) return entry.en;
+      return term(entry.ja) || code || '';
+    }
+
+    /** The store sells the same pass off a per-language path. */
+    function localizedStoreUrl(url) {
+      return url ? url.replace(STORE_PATH.ja, STORE_PATH[locale]) : url;
+    }
+
+    function applyLocaleChrome() {
+      document.documentElement.lang = locale;
+      document.title = t('title');
+      const loading = document.querySelector('#root .loading');
+      if (loading) loading.textContent = t('loading');
+    }
 
     /** Per-product view state: which date, and for how many people. */
     const state = new Map();
@@ -365,6 +709,8 @@
       q.set('date', date);
       q.set('people', String(people));
       q.set('view', view);
+      // A shared link should open in the language it was read in.
+      q.set('lang', locale);
       history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
     }
 
@@ -382,7 +728,7 @@
     function fmtUpdated(iso) {
       if (!iso) return '—';
       try {
-        return new Date(iso).toLocaleString('zh-TW', {
+        return new Date(iso).toLocaleString(INTL_LOCALE[locale], {
           timeZone: 'Asia/Tokyo',
           year: 'numeric', month: '2-digit', day: '2-digit',
           hour: '2-digit', minute: '2-digit'
@@ -405,7 +751,7 @@
     function money(amount, currency) {
       if (amount == null) return '—';
       try {
-        return new Intl.NumberFormat('zh-TW', {
+        return new Intl.NumberFormat(INTL_LOCALE[locale], {
           style: 'currency', currency: currency || 'JPY', maximumFractionDigits: 0
         }).format(amount);
       } catch {
@@ -431,57 +777,61 @@
     }
 
     function badgeHtml(src, day, people) {
-      const units = day.availableUnits != null ? `剩餘 ${day.availableUnits} 張 ｜ ` : '';
+      const units = day.availableUnits != null ? t('unitsLeft', day.availableUnits) : '';
       const perPerson = priceText(day, src);
       const total = day.pricePerPerson != null
-        ? ` ｜ ${people} 人合計 ${money(day.pricePerPerson * people, src.currency)}`
+        ? t('partyTotal', people, money(day.pricePerPerson * people, src.currency))
         : '';
       const isLatest = day.date === src.latestDate;
 
       return `
-        <div class="label">${isLatest ? '最新開放日' : '已選日期'}</div>
+        <div class="label">${esc(isLatest ? t('latestDate') : t('selectedDate'))}</div>
         <div class="date">
           ${fmtDate(day.date)}
-          <span class="${dowClass(day.dayOfWeek)}">${DAY_NAMES[day.dayOfWeek]}</span>
-          ${isLatest ? '<span class="latest-tag">最新</span>' : ''}
+          <span class="${dowClass(day.dayOfWeek)}">${esc(t('dayNames')[day.dayOfWeek])}</span>
+          ${isLatest ? `<span class="latest-tag">${esc(t('latestTag'))}</span>` : ''}
         </div>
-        <div class="detail">${units}${esc(perPerson)} /人${total}</div>`;
+        <div class="detail">${esc(units)}${esc(perPerson)}${esc(t('perPerson'))}${esc(total)}</div>`;
     }
 
     function slotsHtml(src, day, people, slots) {
       // No slot data at all: the date sits outside the window the fetcher looks
       // up. Every pass here has timed attractions — walk-up passes are dropped
       // by the fetcher, not hidden here.
+      const names = src.attractionNames || {};
+      const nonTimed = (src.nonTimedAttractions || [])
+        .map(c => attractionName(names[c], c))
+        .join(t('nonTimedJoin'));
+      const nonTimedHtml = nonTimed
+        ? `<span class="k">${esc(t('nonTimed'))}</span>${esc(nonTimed)}`
+        : '';
+
       if (!day.timeSlots) {
-        const names = src.attractionNames || {};
-        const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
         return `
           <div class="no-slots">
-            此日期不在時段查詢範圍內（僅查詢最新開放日前一個月）。
-            ${nonTimed.length ? `<br><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}` : ''}
+            ${esc(t('outOfWindow'))}
+            ${nonTimedHtml ? `<br>${nonTimedHtml}` : ''}
           </div>`;
       }
 
       if (slots.length === 0) {
         const all = day.timeSlots ? day.timeSlots.length : 0;
-        return `<div class="empty">${all > 0
-          ? `此日的 ${all} 個時段都不足 ${people} 人`
-          : '此日已無可選時段'}</div>`;
+        return `<div class="empty">${esc(all > 0
+          ? t('noneFitParty', all, people)
+          : t('noSlotsLeft'))}</div>`;
       }
 
-      const names = src.attractionNames || {};
       const chips = slots.map((ts, i) => {
         const n = ts.availableUnits;
-        const left = n == null ? '' : `<span class="left${n <= 5 ? ' few' : ''}">剩 ${n}</span>`;
+        const left = n == null ? '' : `<span class="left${n <= 5 ? ' few' : ''}">${esc(t('slotLeft', n))}</span>`;
         return `<div class="slot-chip" data-i="${i}">${esc(ts.from)}–${esc(ts.to)}${left}</div>`;
       }).join('');
-      const nonTimed = (src.nonTimedAttractions || []).map(c => names[c] || c);
 
       return `
-        <div class="section-title">可選時段 (${slots.length})</div>
+        <div class="section-title">${esc(t('slotsTitle', slots.length))}</div>
         <div class="slot-grid">${chips}</div>
         <div class="slot-detail" hidden></div>
-        ${nonTimed.length ? `<div class="slot-note"><span class="k">不限時段：</span>${esc(nonTimed.join('、'))}</div>` : ''}`;
+        ${nonTimedHtml ? `<div class="slot-note">${nonTimedHtml}</div>` : ''}`;
     }
 
     /** Redraw everything that depends on the selected date or party size. */
@@ -504,18 +854,18 @@
           return;
         }
         const n = slotsFor(pillDay, st.people).length;
-        cell.textContent = `${n} 時段`;
+        cell.textContent = t('slotCount', n);
         cell.className = n === 0 ? 'n none' : n <= 3 ? 'n few' : 'n';
       });
 
       // Party size only filters slots, so it is meaningless without them.
       const hasSlots = !!day.timeSlots;
-      card.querySelector('.people .count').textContent = `${st.people} 人`;
+      card.querySelector('.people .count').textContent = t('people', st.people);
       card.querySelector('.people .minus').disabled = !hasSlots || st.people <= 1;
       card.querySelector('.people .plus').disabled = !hasSlots || st.people >= MAX_PEOPLE;
       card.querySelector('.people-note').textContent = hasSlots
-        ? '只列出還剩得下這麼多人的時段'
-        : '此日期無時段資料，人數不影響結果';
+        ? t('peopleNote')
+        : t('peopleNoteNoSlots');
       card.querySelector('.selected-badge').innerHTML = badgeHtml(src, day, st.people);
 
       const body = card.querySelector('.slot-body');
@@ -532,10 +882,10 @@
           const ts = slots[Number(chip.dataset.i)];
           chip.classList.add('open');
           detail.innerHTML = `
-            <div class="head">${esc(ts.from)}–${esc(ts.to)}${ts.availableUnits != null ? ` ｜ 剩 ${ts.availableUnits} 張` : ''}</div>
+            <div class="head">${esc(ts.from)}–${esc(ts.to)}${ts.availableUnits != null ? esc(t('slotLeftLong', ts.availableUnits)) : ''}</div>
             ${(ts.events || []).map(e => `
               <div class="ev">
-                <span>${esc(names[e.code] || e.code)}</span>
+                <span>${esc(attractionName(names[e.code], e.code))}</span>
                 <span class="time">${esc(e.from)}–${esc(e.to)}</span>
               </div>`).join('')}
             <div class="code">${esc(ts.variantCode)}</div>`;
@@ -572,35 +922,36 @@
       const pills = dates.map(d => `
           <div class="date-pill" data-date="${esc(d.date)}">
             <div class="d">${fmtShort(d.date)}</div>
-            <div class="${dowWordClass(d.dayOfWeek)}">${DAY_NAMES[d.dayOfWeek]}</div>
+            <div class="${dowWordClass(d.dayOfWeek)}">${esc(t('dayNames')[d.dayOfWeek])}</div>
             <div class="n"></div>
           </div>`).join('');
 
       const datePicker = dates.length
         ? `<div class="date-strip">${pills}</div>`
-        : '<div class="unknown-slots">此票種目前沒有可訂日期</div>';
+        : `<div class="unknown-slots">${esc(t('noPickableDates'))}</div>`;
 
-      const title = [src.eyebrow, src.name].filter(Boolean).join(' ');
+      const title = [term(src.eyebrow), term(src.name)].filter(Boolean).join(' ');
+      const url = localizedStoreUrl(src.url);
 
       return `
         <div class="card" data-code="${esc(src.code)}">
           <div class="product-code">${esc(src.code)} ｜ ${esc(src.currency)}</div>
-          <div class="product-name">${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(title)} ↗</a>` : esc(title)}</div>
-          ${stale || summary?.stale ? '<div class="stale">⚠ 資料可能過期</div>' : ''}
-          ${summary?.error ? `<div class="error-box">⚠ 上次抓取失敗：${esc(summary.error)}</div>` : ''}
+          <div class="product-name">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(title)} ↗</a>` : esc(title)}</div>
+          ${stale || summary?.stale ? `<div class="stale">${esc(t('staleWarning'))}</div>` : ''}
+          ${summary?.error ? `<div class="error-box">${esc(t('fetchError', summary.error))}</div>` : ''}
           ${datePicker}
           <div class="controls">
             <div class="people">
-              <button class="minus" type="button" aria-label="減少人數">−</button>
+              <button class="minus" type="button" aria-label="${esc(t('minus'))}">−</button>
               <span class="count"></span>
-              <button class="plus" type="button" aria-label="增加人數">+</button>
+              <button class="plus" type="button" aria-label="${esc(t('plus'))}">+</button>
             </div>
             <span class="people-note"></span>
           </div>
           <div class="selected-badge"></div>
           <div class="slot-body"></div>
-          ${src.legalDesc ? `<div class="legal">${richText(src.legalDesc)}</div>` : ''}
-          <div class="updated">更新：${fmtUpdated(src.fetchedAt)}</div>
+          ${src.legalDesc ? `<div class="legal">${richText(term(src.legalDesc))}</div>` : ''}
+          <div class="updated">${esc(t('updated', fmtUpdated(src.fetchedAt)))}</div>
         </div>`;
     }
 
@@ -617,7 +968,9 @@
     function pickerHtml(products) {
       const groups = new Map();
       for (const p of products) {
-        const key = p.eyebrow || 'その他';
+        // Grouped by the Japanese prefix so the ranking below stays stable, and
+        // translated only on the way into the label.
+        const key = p.eyebrow || '';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(p);
       }
@@ -626,26 +979,34 @@
         (a, b) => groupRank(b[0]) - groupRank(a[0]) || a[0].localeCompare(b[0]),
       );
 
-      const options = ordered.map(([label, items]) => {
+      const options = ordered.map(([key, items]) => {
+        const label = key ? term(key) : t('otherGroup');
         const sorted = items.slice().sort((a, b) => (a.fromPrice ?? Infinity) - (b.fromPrice ?? Infinity));
         const opts = sorted.map(p => {
-          const price = p.fromPrice != null ? ` ${money(p.fromPrice, p.currency || 'JPY')}起` : '';
-          const sold = p.availableDateCount === 0 ? ' ｜已售完' : '';
-          return `<option value="${esc(p.code)}">${esc(p.name || p.code)}${price}${sold}</option>`;
+          const price = p.fromPrice != null ? t('fromPrice', money(p.fromPrice, p.currency || 'JPY')) : '';
+          const sold = p.availableDateCount === 0 ? t('soldOut') : '';
+          return `<option value="${esc(p.code)}">${esc(term(p.name) || p.code)}${esc(price)}${esc(sold)}</option>`;
         }).join('');
         return `<optgroup label="${esc(label)}">${opts}</optgroup>`;
       }).join('');
 
+      const langs = LOCALES.map(code => `
+            <button type="button" data-lang="${esc(code)}" lang="${esc(code)}"
+              class="${code === locale ? 'active' : ''}">${esc(LOCALE_LABELS[code])}</button>`).join('');
+
       return `
         <div class="card">
-          <div class="source-label">USJ 官網 ｜ 快通票種 (${products.length})</div>
+          <div class="head-row">
+            <div class="source-label">${esc(t('catalogLabel', products.length))}</div>
+            <div class="langs">${langs}</div>
+          </div>
           <div class="tabs">
-            <button type="button" data-view="product">依票種</button>
-            <button type="button" data-view="date">依日期</button>
+            <button type="button" data-view="product">${esc(t('tabProduct'))}</button>
+            <button type="button" data-view="date">${esc(t('tabDate'))}</button>
           </div>
           <div id="picker-host">
             <div class="picker"><select id="product-select">${options}</select></div>
-            <div class="picker-note">只收錄需要指定時段的快通票種，每個時段附剩餘張數，可依人數篩選。整天自由入場的プレミアム等票種不在此列。</div>
+            <div class="picker-note">${esc(t('pickerNote'))}</div>
           </div>
         </div>`;
     }
@@ -671,16 +1032,16 @@
 
     function dayRowHtml(item) {
       const summary = catalog.products.find(p => p.code === item.code);
-      const eyebrow = summary?.eyebrow || '';
-      const name = summary?.name || item.code;
+      const eyebrow = term(summary?.eyebrow || '');
+      const name = term(summary?.name || '') || item.code;
       const tight = item.units != null && item.units < dayState.people;
 
       const units = item.units != null
-        ? `剩 ${item.units} 張`
-        : '剩餘張數未公開';
-      const slots = item.slots != null ? `<span class="slot-tag">${item.slots} 時段</span>` : '';
+        ? t('dayUnits', item.units)
+        : t('dayUnitsUnknown');
+      const slots = item.slots != null ? `<span class="slot-tag">${esc(t('slotCount', item.slots))}</span>` : '';
       const total = item.price != null
-        ? `<div class="sub">${dayState.people} 人 ${money(item.price * dayState.people, summary?.currency || 'JPY')}</div>`
+        ? `<div class="sub">${esc(t('dayPartyTotal', dayState.people, money(item.price * dayState.people, summary?.currency || 'JPY')))}</div>`
         : '';
 
       return `
@@ -688,7 +1049,7 @@
           <div class="info">
             <div class="eyebrow">${esc(eyebrow)}</div>
             <div class="title">${esc(name)}${slots}</div>
-            <div class="sub${item.units != null && item.units <= 5 ? ' few' : ''}">${units}</div>
+            <div class="sub${item.units != null && item.units <= 5 ? ' few' : ''}">${esc(units)}</div>
           </div>
           <div class="tail">
             <div class="price">${esc(money(item.price, summary?.currency || 'JPY'))}</div>
@@ -707,35 +1068,36 @@
         const day = calendar.days[pill.dataset.date];
         const n = day ? fitsParty(day, dayState.people).length : 0;
         const cell = pill.querySelector('.n');
-        cell.textContent = `${n} 種`;
+        cell.textContent = t('passCount', n);
         cell.className = n === 0 ? 'n none' : n <= 2 ? 'n few' : 'n';
       });
 
-      card.querySelector('.people .count').textContent = `${dayState.people} 人`;
+      card.querySelector('.people .count').textContent = t('people', dayState.people);
       card.querySelector('.people .minus').disabled = dayState.people <= 1;
       card.querySelector('.people .plus').disabled = dayState.people >= MAX_PEOPLE;
 
       const fitting = fitsParty(entry, dayState.people);
       const hidden = entry.products.length - fitting.length;
       card.querySelector('.people-note').textContent = hidden > 0
-        ? `另有 ${hidden} 種剩餘張數不足 ${dayState.people} 人`
-        : '依當日剩餘張數篩選';
+        ? t('peopleNoteDayHidden', hidden, dayState.people)
+        : t('peopleNoteDay');
 
       card.querySelector('.selected-badge').innerHTML = `
-        <div class="label">已選日期</div>
+        <div class="label">${esc(t('selectedDate'))}</div>
         <div class="date">
           ${fmtDate(dayState.date)}
-          <span class="${dowClass(entry.dayOfWeek)}">${DAY_NAMES[entry.dayOfWeek]}</span>
+          <span class="${dowClass(entry.dayOfWeek)}">${esc(t('dayNames')[entry.dayOfWeek])}</span>
         </div>
-        <div class="detail">當日 ${entry.products.length} 種快通可買${hidden > 0 ? `，其中 ${fitting.length} 種夠 ${dayState.people} 人` : ''}</div>`;
+        <div class="detail">${esc(t('dayDetail', entry.products.length))}${
+          hidden > 0 ? esc(t('dayDetailFit', fitting.length, dayState.people)) : ''}</div>`;
 
       const body = card.querySelector('.slot-body');
       // Rows that do not fit stay visible but dimmed — a sold-down pass is
       // still an answer to "what is on sale that day".
       body.innerHTML = entry.products.length
-        ? `<div class="section-title">當日快通 (${entry.products.length})</div>` +
+        ? `<div class="section-title">${esc(t('dayTitle', entry.products.length))}</div>` +
           entry.products.map(dayRowHtml).join('')
-        : '<div class="empty">這天沒有可買的快通</div>';
+        : `<div class="empty">${esc(t('dayEmpty'))}</div>`;
 
       body.querySelectorAll('.day-row').forEach(row => {
         row.addEventListener('click', () => {
@@ -770,7 +1132,7 @@
       const dates = Object.keys(calendar.days);
 
       if (dates.length === 0) {
-        host.innerHTML = '<div class="card"><div class="error-box">目前沒有任何可訂日期。</div></div>';
+        host.innerHTML = `<div class="card"><div class="error-box">${esc(t('emptyCalendar'))}</div></div>`;
         return;
       }
 
@@ -779,7 +1141,7 @@
         return `
           <div class="date-pill" data-date="${esc(date)}">
             <div class="d">${fmtShort(date)}</div>
-            <div class="${dowWordClass(entry.dayOfWeek)}">${DAY_NAMES[entry.dayOfWeek]}</div>
+            <div class="${dowWordClass(entry.dayOfWeek)}">${esc(t('dayNames')[entry.dayOfWeek])}</div>
             <div class="n"></div>
           </div>`;
       }).join('');
@@ -789,15 +1151,15 @@
           <div class="date-strip">${pills}</div>
           <div class="controls">
             <div class="people">
-              <button class="minus" type="button" aria-label="減少人數">−</button>
+              <button class="minus" type="button" aria-label="${esc(t('minus'))}">−</button>
               <span class="count"></span>
-              <button class="plus" type="button" aria-label="增加人數">+</button>
+              <button class="plus" type="button" aria-label="${esc(t('plus'))}">+</button>
             </div>
             <span class="people-note"></span>
           </div>
           <div class="selected-badge"></div>
           <div class="slot-body"></div>
-          <div class="picker-note">點任一票種可切到該票種的時段畫面。</div>
+          <div class="picker-note">${esc(t('dayNote'))}</div>
         </div>`;
 
       const card = host.querySelector('.card');
@@ -848,7 +1210,7 @@
       }
 
       document.getElementById('product-root').innerHTML =
-        '<div class="card"><div class="loading">載入日曆中...</div></div>';
+        `<div class="card"><div class="loading">${esc(t('loadingCalendar'))}</div></div>`;
       try {
         await loadCalendar();
       } catch (err) {
@@ -860,7 +1222,7 @@
 
     function showProductError(message) {
       document.getElementById('product-root').innerHTML =
-        `<div class="card"><div class="error-box">無法載入票種資料：${esc(message)}</div></div>`;
+        `<div class="card"><div class="error-box">${esc(t('productLoadFailed', message))}</div></div>`;
     }
 
     function renderProduct(src, summary) {
@@ -915,7 +1277,7 @@
 
       if (!productCache.has(code)) {
         document.getElementById('product-root').innerHTML =
-          '<div class="card"><div class="loading">載入票種中...</div></div>';
+          `<div class="card"><div class="loading">${esc(t('loadingProduct'))}</div></div>`;
         try {
           const res = await fetch(`./data/products/${encodeURIComponent(code)}.json?t=${catalog.updatedAt}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -928,6 +1290,9 @@
 
       // A slower earlier load must not paint over a later pick.
       if (currentCode !== code) return;
+      // The store's own English attraction names ride in with the product file,
+      // so this is where they join the term table the blurb is translated from.
+      harvestTerms(productCache.get(code));
       renderProduct(productCache.get(code), summary);
     }
 
@@ -937,20 +1302,23 @@
       const products = index.products || [];
 
       if (products.length === 0) {
-        root.innerHTML = '<div class="card"><div class="error-box">索引檔中沒有任何票種。</div></div>';
+        root.innerHTML = `<div class="card"><div class="error-box">${esc(t('emptyIndex'))}</div></div>`;
         return;
       }
 
       root.innerHTML = `
         ${pickerHtml(products)}
         <div id="product-root"></div>
-        <div class="updated">最後更新：${fmtUpdated(index.updatedAt)}</div>`;
+        <div class="updated">${esc(t('lastUpdated', fmtUpdated(index.updatedAt)))}</div>`;
 
       const select = document.getElementById('product-select');
       select.addEventListener('change', () => selectProduct(select.value));
 
       document.querySelectorAll('.tabs button').forEach(b => {
         b.addEventListener('click', () => setView(b.dataset.view));
+      });
+      document.querySelectorAll('.langs button').forEach(b => {
+        b.addEventListener('click', () => setLocale(b.dataset.lang));
       });
 
       const has = c => !!c && products.some(p => p.code === c);
@@ -962,13 +1330,43 @@
       setView(queryView() || readPref('view') || 'product');
     }
 
-    fetch('./data/index.json?t=' + Date.now())
-      .then(r => r.json())
-      .then(render)
-      .catch(err => {
+    /**
+     * Switch language and redraw from the top.
+     *
+     * Nothing fetched so far is language-specific — the product files carry
+     * every language they have, and the calendar carries none — so the caches
+     * survive and only the term table and the wording are rebuilt. The redraw
+     * goes through render(), which restores the pass, date and party size from
+     * the same preferences the last click wrote.
+     */
+    async function setLocale(next) {
+      if (next === locale || !LOCALES.includes(next)) return;
+      locale = next;
+      writePref('lang', next);
+      applyLocaleChrome();
+      await loadTerms();
+      // Every product file already loaded may carry names this language wants.
+      for (const src of productCache.values()) harvestTerms(src);
+
+      // render() paints the picker card only; the pass card below it is drawn
+      // by selectProduct, which short-circuits on the code it is already on.
+      currentCode = null;
+      render(catalog);
+    }
+
+    async function boot() {
+      applyLocaleChrome();
+      await loadTerms();
+      try {
+        const res = await fetch('./data/index.json?t=' + Date.now());
+        render(await res.json());
+      } catch (err) {
         document.getElementById('root').innerHTML =
-          `<div class="card"><div class="error-box">無法載入資料：${esc(err.message)}</div></div>`;
-      });
+          `<div class="card"><div class="error-box">${esc(t('loadFailed', err.message))}</div></div>`;
+      }
+    }
+
+    boot();
   </script>
 </body>
 </html>
