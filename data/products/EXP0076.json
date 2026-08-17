@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-17T14:55:42.254Z",
-  "calendarStart": "2026-08-17",
-  "calendarEnd": "2027-02-17",
-  "latestDate": "2026-10-18",
+  "fetchedAt": "2026-08-17T15:24:08.016Z",
+  "calendarStart": "2026-08-18",
+  "calendarEnd": "2027-02-18",
+  "latestDate": "2026-10-19",
   "dates": [
     {
       "date": "2026-08-18",
@@ -281,9 +281,9 @@
       "date": "2026-09-11",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 32,
+      "availableUnits": 34,
       "maxAvailable": 25,
-      "totalCapacity": 32,
+      "totalCapacity": 34,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
       "timeSlots": null,
@@ -346,27 +346,8 @@
       "totalCapacity": 17,
       "pricePerPerson": 20800,
       "formattedPrice": "¥20,800",
-      "timeSlots": [
-        {
-          "variantCode": "E4DKT25D49A021",
-          "from": "11:50",
-          "to": "12:50",
-          "availableUnits": 17,
-          "events": [
-            {
-              "code": "EXP_A_SNW",
-              "from": "11:50",
-              "to": "12:50"
-            },
-            {
-              "code": "EXP_DKT",
-              "from": "11:50",
-              "to": "12:20"
-            }
-          ]
-        }
-      ],
-      "slotsFetchedAt": "2026-08-17T10:32:29.824Z"
+      "timeSlots": null,
+      "slotsFetchedAt": null
     },
     {
       "date": "2026-09-19",
@@ -2158,6 +2139,55 @@
         }
       ],
       "slotsFetchedAt": "2026-08-17T12:41:29.793Z"
+    },
+    {
+      "date": "2026-10-19",
+      "dayOfWeek": 1,
+      "available": true,
+      "availableUnits": 100,
+      "maxAvailable": 88,
+      "totalCapacity": 100,
+      "pricePerPerson": 20800,
+      "formattedPrice": "¥20,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4DKT25D49A024",
+          "from": "09:20",
+          "to": "10:20",
+          "availableUnits": 88,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "09:20",
+              "to": "10:20"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "09:20",
+              "to": "09:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4DKT25D49A025",
+          "from": "14:50",
+          "to": "15:50",
+          "availableUnits": 12,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-17T15:24:08.529Z"
     }
   ],
   "attractionNames": {
