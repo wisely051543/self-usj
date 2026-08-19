@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-19T17:28:30.683Z",
+  "fetchedAt": "2026-08-19T17:55:04.691Z",
   "calendarStart": "2026-08-20",
   "calendarEnd": "2027-02-20",
   "latestDate": "2026-10-21",
@@ -801,6 +801,42 @@
       "slotsFetchedAt": "2026-08-19T14:33:31.615Z"
     },
     {
+      "date": "2026-10-16",
+      "dayOfWeek": 5,
+      "available": true,
+      "availableUnits": 4,
+      "maxAvailable": 4,
+      "totalCapacity": 4,
+      "pricePerPerson": 18800,
+      "formattedPrice": "¥18,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC45D49A046",
+          "from": "19:40",
+          "to": "20:40",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-19T17:55:05.995Z"
+    },
+    {
       "date": "2026-10-17",
       "dayOfWeek": 6,
       "available": true,
@@ -840,9 +876,9 @@
       "date": "2026-10-18",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 24,
-      "maxAvailable": 24,
-      "totalCapacity": 24,
+      "availableUnits": 16,
+      "maxAvailable": 16,
+      "totalCapacity": 16,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
       "timeSlots": [
@@ -850,7 +886,7 @@
           "variantCode": "E4MKC45D49A046",
           "from": "19:40",
           "to": "20:40",
-          "availableUnits": 24,
+          "availableUnits": 16,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -870,7 +906,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-19T14:33:31.615Z"
+      "slotsFetchedAt": "2026-08-19T17:55:05.995Z"
     },
     {
       "date": "2026-10-19",
