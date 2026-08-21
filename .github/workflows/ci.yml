@@ -1,0 +1,32 @@
+name: CI
+
+# AD-22: the rules the architecture calls "enforced by test" are only enforced
+# if something runs them. This is that something. Every check here is a gate —
+# a failure blocks the merge rather than filing a warning.
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Covers the test files too, which tsconfig.json keeps out of dist/.
+      - run: npm run typecheck
+
+      # AD-4: the throttle ceilings and the cold-start interlock.
+      - run: npm test
+
+      # AD-18: the two string tables.
+      - run: npm run i18n:check

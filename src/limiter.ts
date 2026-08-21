@@ -10,10 +10,10 @@
  */
 
 /** Sustained ceiling. Raising this is the one change that can turn the fetcher abusive. */
-const RATE_LIMIT_PER_SEC = 5;
+export const RATE_LIMIT_PER_SEC = 1;
 
 /** In-flight ceiling, so a slow reply cannot pile a queue up behind it. */
-const CONCURRENCY = 4;
+export const CONCURRENCY = 4;
 
 /** Minimum gap between two request starts. */
 const MIN_GAP_MS = 1000 / RATE_LIMIT_PER_SEC;
@@ -22,8 +22,17 @@ const MIN_GAP_MS = 1000 / RATE_LIMIT_PER_SEC;
  * Backstop for a run that would otherwise grow without bound (a catalogue that
  * suddenly doubles, a slot window that fills up). Callers check `budgetLeft()`
  * and give up the optional work rather than being cut off mid-request.
+ *
+ * Sized against the rate, not picked: at RATE_LIMIT_PER_SEC the gate spaces
+ * starts one second apart, so this ceiling is also a wall-clock ceiling of
+ * ~15 min — NFR5's "half the schedule interval". The size is what makes the
+ * carry-forward path above reachable at all. Set high enough to outlast the
+ * job's `timeout-minutes`, the run is killed mid-flight instead, and a killed
+ * job skips the commit step and discards the whole round (NFR11).
+ * A cold round is ~750 requests today, so this trips only on real growth —
+ * and it trips as a warning plus carried-over slot data, not as data loss.
  */
-const MAX_REQUESTS_PER_RUN = 6000;
+export const MAX_REQUESTS_PER_RUN = 900;
 
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
 

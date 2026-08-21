@@ -19,6 +19,13 @@ import { budgetExhausted, limitedFetch, mapLimit } from '../limiter';
  */
 const PEOPLE = 1;
 const CURRENCY = 'JPY';
+
+/**
+ * Reverse-engineered from the storefront's own network traffic, not a published
+ * integration point: no public documentation, no terms of use covering this
+ * endpoint, and no API key. It is not a stable contract and can change or
+ * disappear without notice.
+ */
 const API_BASE = 'https://comm-api.usj.co.jp/occ/v2/b2cportal';
 
 /**

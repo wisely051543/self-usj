@@ -1,0 +1,89 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 08-21-2026 00:00
+last_updated: 08-22-2026 00:00
+project: usj
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-抓取速率降至-1-req-s-並鎖定常數: done
+  1-2-禁止抓取回合重疊: backlog
+  1-3-請求標頭匿名化: backlog
+  1-4-429-5xx-退避與封鎖告警: backlog
+  1-5-完整格網快照與狀態判定: backlog
+  1-6-快照-schema-版本控制: backlog
+  1-7-分層排程回歸保護: backlog
+  1-8-kill-switch-分級開關: backlog
+  1-9-對外聯絡窗口: backlog
+  1-10-靜默失敗偵測與合理性檢查: backlog
+  1-11-私有儲存-repo-分離遷移: backlog
+  # Story 1.1 needed AD-4 的斷言真的會失敗 CI，所以 ci.yml 在此提前建立：
+  # typecheck + test + i18n:check 三道閘門已就位（AD-22）。本 story 尚欠
+  # Node 24 升級與 AD-3 裸 fetch 檢查，勿當作已完成而重建 ci.yml。
+  1-12-ci-護欄與-node-24-升級: in-progress
+  1-13-現有站台信任揭露文字: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-node-24-ssg-建置管線骨架: backlog
+  2-2-雙軸獨立可索引-url: backlog
+  2-3-三語-hreflang-canonical-meta: backlog
+  2-4-sitemap-xml-產出: backlog
+  2-5-核心內容零-js-可讀: backlog
+  2-6-json-ld-結構化資料: backlog
+  2-7-robots-txt-代理立場清單: backlog
+  2-8-跨語言實體命名穩定性: backlog
+  2-9-隱私權政策頁: backlog
+  2-10-外部送信情報揭露頁: backlog
+  2-11-同意管理平台-cmp: backlog
+  2-12-建置後-seo-揭露驗證腳本: backlog
+  2-13-舊站台揭露文字下架-cutover: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-矩陣核心呈現: backlog
+  3-2-缺席狀態推導與視覺標示: backlog
+  3-3-稀缺門檻標示: backlog
+  3-4-時段數呈現: backlog
+  3-5-行動裝置無橫捲比較: backlog
+  3-6-官方購買頁導流: backlog
+  3-7-資料新鮮度與過期標示: backlog
+  3-8-抓取失敗降級呈現: backlog
+  3-9-售罄非終局呈現: backlog
+  3-10-資料來源與非官方聲明-矩陣頁: backlog
+  3-11-core-web-vitals-與版面穩定性: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-廣告版位置入: backlog
+  epic-4-retrospective: optional
