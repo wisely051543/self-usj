@@ -133,3 +133,87 @@ source_spec: `spec-1-5-完整格網快照與狀態判定.md`
 severity: medium
 reason: 舊版 `fitsParty` 的守衛為 `p.units == null || p.units >= people`；非可購格沒有 `units` 欄位，`undefined == null` 為 true，因此每一格都會通過，售罄與尚未開賣的票種會被畫成可購列 ——正是本 story 要防的錯誤方向。`days.json` 以 `?t=${catalog.updatedAt}` 破快取，但 `index.html` 由瀏覽器獨立快取，已開啟未重載的頁面即落在此視窗內。 升版與「下游遇未識別版本須中止」由 Story 1.6 承接；惟 1.6 的規則作用於建置端， 不涵蓋瀏覽器端已載入的舊頁面，該視窗需在 1.6 或 Epic 2 cutover 時一併確認關閉。
 status: open
+
+- source_spec: `spec-1-6-快照-schema-版本控制.md`
+  summary: `src/fetcher.ts` 的 `readIndex()` 讀回上一輪 `index.json` 供合併（取得已知 `products`、`lastSeenAt`）時，從未呼叫 `assertIndexSchemaVersion()`，本 story 建立的版本守衛只用在消費端（`index.html`）與 CI 閘門，未涵蓋抓取端自己讀回舊檔這條路徑。
+  evidence: 目前無實害——`readIndex()` 只讀 `raw.products` 陣列並已有 `Array.isArray` 結構檢查，`INDEX_SCHEMA_VERSION` 本 story 未變動（維持 5），故版號不符不會腐化合併結果；但此為既有行為（1.6 之前即如此），非本 story 造成，AD-14 的精神（任何讀取此檔的消費者都應驗版）嚴格上也涵蓋這條路徑，值得未來 `index.json` 形狀真的改版時一併補上。
+
+- source_spec: `spec-1-6-快照-schema-版本控制.md`
+  summary: 逐票種快照檔（`data/products/<code>.json`，`ProductResult` 型別）完全沒有 `schemaVersion` 欄位，不在本 story 新增的任何守衛（`schema.ts`／`schema-check.ts`／`index.html`）覆蓋範圍內。
+  evidence: 本 story 的 Boundaries 明文排除變更 `products/*.json` 的結構，故不在範圍內；但 `buildDays()`／`cellStatus()` 直接讀這些檔案，AD-14 描述的「抓取端版本回滾造成無聲錯誤斷言」對這批檔案同樣成立，只是尚未發生，值得日後與 Story 1.10（靜默失敗偵測）一併評估是否也需要版本欄位。
+
+- source_spec: `spec-1-6-快照-schema-版本控制.md`
+  summary: 新增的 `.github/workflows/ci.yml` `schema:check` 步驟，實際上不會在 `fetch.yml` 排程回合自己寫入不符版號快照的當下被觸發——GitHub Actions 對預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow（反遞迴保護），而 `fetch.yml` 的 commit 步驟正是用預設 token 直接 push 到 `main`，故 `ci.yml` 的 `on: push` 不會為那些提交執行。
+  evidence: `index.html` 端的 `assertCalendarSchema`／`assertIndexSchema` 仍會在使用者瀏覽器端擋下錯誤版本（使用者不會看到無聲錯誤資料），故本 story 的 AC 仍然成立；但 CI 閘門「建置紅燈而非無聲錯誤」的敘事對排程回合這個主要情境實際上不生效，要等到下一次人工 push 或 PR 觸發 CI 才會被抓到。修正需要調整 `fetch.yml` 的推送機制（例如改用具備推送觸發權限的 token 或改走 PR），屬於既有排程／推送架構的變更，超出本 story 範圍（Boundaries 明文禁止改動抓取排程行為）。
+
+### DW-18: 瀏覽器已快取的**舊** `index.html`（其程式碼裡沒有 schema 守衛）讀到新版 `days.json` 的視窗， 本 story 無法關閉——守衛只存在於新頁面裡。
+origin: spec-deferred 167bc2813831
+location: index.html (loadCalendar / boot 的守衛只保護新載入的頁面)
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: low
+reason: 本 story 在 `index.html` 加入 `assertCalendarSchema()` / `assertIndexSchema()`，關閉的是 「新頁面讀到未識別版本」的缺口。但 DW-17 的另一半是舊頁面：使用者瀏覽器快取中的上一版 `index.html` 完全沒有這兩個函式，v3 的 `days.json` 上線時它仍會照舊渲染。沒有任何伺服器端 或建置端手段能對已下載的靜態檔補上守衛。 真正的關閉點是 Epic 2 cutover（新網址／資產指紋），屆時舊頁面不再是同一份資產。
+status: open
+
+### DW-19: 守衛只比對 `schemaVersion`，不驗證檔案的**形狀**；同一版號下欄位缺漏或型別改變仍會無聲通過。
+origin: spec-deferred e32d3792ea71
+location: src/schema.ts、src/schema-check.ts
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: medium
+reason: `src/schema.ts` 的兩個守衛與 `src/schema-check.ts` 只讀 `schemaVersion` 一個欄位。若寫入端 在不改版號的情況下漏掉 `status`、把 `price` 寫成字串，或 `days` 少了整段日期，所有閘門仍全綠。 本 story 的 AC 只要求版號守衛，逐欄位 runtime 形狀驗證屬 AD-14a 的後續提案，故明文排除 （見 Boundaries「Never」第三條）。
+status: open
+
+### DW-20: `.github/workflows/fetch.yml` 在 `npm run fetch` 之後直接 commit/push `data/`，中間沒有 schema 閘門，且 commit 步驟為 `if: always()`；被回滾的抓取端寫出的舊版快照會先發佈、CI 才紅燈。
+origin: spec-deferred b7c9f7ebcc2b
+location: .github/workflows/fetch.yml:60-68
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: medium
+reason: 本 story 的閘門只掛在 `ci.yml`（push/PR 觸發）。fetch workflow 以預設 `GITHUB_TOKEN` push， 該 push 通常不會再觸發 workflow，因此壞快照可能在無人注意下停留於已發佈的樹上，直到下一次 人為 push 才被 CI 攔下。要真正擋在寫入前，須同時改動 commit 步驟的 `if: always()` 條件—— 該條件屬 Story 1.10「零/近零結果視為失敗，不得寫入快照」的範圍，不宜在本 story 單方面更動。
+status: open
+
+### DW-21: `src/fetcher.ts` 的 `readIndex()` 讀 `data/index.json` 後直接 cast 成 `Index`， 不驗版號且把任何失敗吞成 `null`，是 AD-14 所指的靜默降級。
+origin: spec-deferred ab4970d09919
+location: src/fetcher.ts:24-31
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: medium
+reason: 本 story 為 `index.json` 在 `index.html` 與 `schema-check.ts` 兩處加了守衛，但抓取端自己 讀回上一輪 `index.json` 的路徑未納入。在此加硬守衛會讓「升版當回合」的抓取直接失敗， 需要一併決定升版時的遷移行為，超出本 story 的 AC。
+status: open
+
+### DW-22: `data/products/*.json` 完全沒有 `schemaVersion` 欄位，因此不在任何版本守衛的涵蓋範圍內。
+origin: spec-deferred 392e3fcbc717
+location: data/products/*.json、src/fetcher.ts:38-41
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: medium
+reason: AD-14 的字面要求是「`data/` 下的每一份檔案各自擁有獨立的 `schemaVersion` 序列」。 本 story 的 AC 只點名 `days.json` 與 `index.json`，產品檔連版號欄位都尚未存在， 為其引入版號屬新的結構變更，須自成一個 story。
+status: open
+
+### DW-23: `index.html` 的 `boot()` 取 `data/index.json` 時未檢查 `res.ok` 就 `res.json()`， 404/500 會以 JSON 解析錯誤的面貌出現。
+origin: spec-deferred a17edf54c60d
+location: index.html:1419-1423
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: low
+reason: 同檔的 `loadCalendar()` 有 `if (!res.ok) throw new Error('HTTP ' + res.status)`，`boot()` 沒有。 此為本 story 之前既有的不對稱（本次僅在該行之後插入版號守衛），錯誤仍會落入既有 catch 顯示 錯誤框，故非新缺陷，但錯誤訊息會誤導排查方向。
+status: open
+
+### DW-24: 沒有任何測試釘住 CI workflow 的閘門步驟本身；把 `ci.yml` 裡的 `- run: npm run schema:check` （或 i18n 閘門）整行刪掉，測試套件仍然全綠。
+origin: spec-deferred 4eadf5a0aa26
+location: .github/workflows/ci.yml:28-37
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: low
+reason: 本 story 引用 AD-22「不被執行的規則就不是規則」把閘門接上 `ci.yml`，但 `src/` 底下沒有任何 測試讀 `.github/workflows/`，三道閘門（tsc、i18n:check、schema:check）都一樣沒有保護。 這是全 repo 既有的缺口，不是本 story 造成的；要補應該一次涵蓋三道步驟，自成一個 story。
+status: open
+
+### DW-25: `src/i18n-check.ts` 讀 `data/index.json` 後直接 cast 成 `Index`，是本 story 之外 第三個未驗版的 `index.json` 消費者，既有 deferred 項目（抓取端 `readIndex()`、 `products/*.json`）都沒有涵蓋它。
+origin: spec-deferred d14807030099
+location: src/i18n-check.ts:59
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: low
+reason: `src/i18n-check.ts` 以 `JSON.parse(fs.readFileSync(...'index.json')) as Index` 讀檔後 直接走訪 `index.products`，全程不呼叫 `assertIndexSchemaVersion()`。它本身是一道 CI 閘門， 卻會對版號不符的 `index.json` 回報「翻譯缺漏」而非「版號不符」，把診斷指向錯誤方向。 目前無實害：`INDEX_SCHEMA_VERSION` 本 story 未變動，且 CI 中 `npm test` 會先於 `i18n:check` 失敗；只有單獨執行 `npm run i18n:check` 的開發者會遇到誤導訊息。 此檔為既有程式碼，本 story 未觸及，且 `src/` 下沒有任何 `i18n-check` 的測試檔， 補守衛應與該檔的測試一併處理。
+status: open
+
+### DW-26: Follow-up review still recommended for 1-6-快照-schema-版本控制 after the damping cap was spent
+origin: review-budget-followup
+location: n/a
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+severity: low
+reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-132139-136d; this entry preserves the lingering recommendation for a deliberate later review.
+status: open

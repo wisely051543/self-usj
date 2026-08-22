@@ -30,3 +30,12 @@ jobs:
 
       # AD-18: the two string tables.
       - run: npm run i18n:check
+
+      # AD-14: the snapshots committed to data/ must be versions this code
+      # knows how to read. A snapshot on any other version fails this job.
+      # Reach, honestly: this workflow runs on human pushes and pull requests.
+      # fetch.yml commits data/ with the default GITHUB_TOKEN, and GitHub does
+      # not trigger workflows for those pushes, so a scheduled round that
+      # writes a drifted snapshot is caught here only on the next human push.
+      # The page's own guards are what stop it reaching a reader before then.
+      - run: npm run schema:check

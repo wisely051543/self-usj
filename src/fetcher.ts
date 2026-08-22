@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CatalogEntry, DateRange, DateSlot, DayEntry, DayProduct, Days, Index, ProductResult, ProductSummary } from './types';
 import { dayOfWeek, everyNthDay, shiftMonths, todayJST } from './dates';
+import { DAYS_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from './schema';
 import { usjSource } from './sources/usj';
 import { BlockedError, budgetExhausted, requestCount } from './limiter';
 
@@ -205,7 +206,7 @@ export function buildDays(products: ProductSummary[], range: DateRange): Days {
     });
   }
 
-  return { schemaVersion: 1, days };
+  return { schemaVersion: DAYS_SCHEMA_VERSION, days };
 }
 
 /**
@@ -358,7 +359,7 @@ export async function main() {
   const products = wanted.length ? merged : sweepDelisted(merged, now);
 
   const index: Index = {
-    schemaVersion: 5,
+    schemaVersion: INDEX_SCHEMA_VERSION,
     updatedAt: nowIso,
     ...(budgetExhausted() ? { budgetExhausted: true } : {}),
     products,

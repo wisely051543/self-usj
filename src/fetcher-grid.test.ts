@@ -23,6 +23,7 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 import { buildDays, writeDays } from './fetcher';
+import { DAYS_SCHEMA_VERSION } from './schema';
 import type { DateRange, DateSlot, DayProduct, Days, ProductResult, ProductSummary } from './types';
 
 /** Typed so the mocks below are checked against the real signatures. */
@@ -173,7 +174,11 @@ test('the grid has a row for every date in the range and a cell for every pass i
     [2, 3, 4, 5, 6],
     '2026-09-01 through 05 are Tue–Sat: every row is labelled from its own date, including the rows no product returned',
   );
-  assert.equal(days.schemaVersion, 1, 'the version bump is Story 1.6, not this one');
+  assert.equal(
+    days.schemaVersion,
+    DAYS_SCHEMA_VERSION,
+    'the grid the writer produces is stamped with the version the readers guard on',
+  );
 });
 
 test('a row the store returned as available becomes an available cell carrying price, units and slots', (t: TestContext) => {

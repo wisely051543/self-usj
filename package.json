@@ -5,6 +5,7 @@
   "scripts": {
     "fetch": "ts-node src/fetcher.ts",
     "i18n:check": "ts-node src/i18n-check.ts",
+    "schema:check": "ts-node src/schema-check.ts",
     "test": "node --require ts-node/register --test $(find src -name '*.test.ts')",
     "typecheck": "tsc -p tsconfig.test.json",
     "build": "tsc"

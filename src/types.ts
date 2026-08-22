@@ -1,3 +1,14 @@
+// `import type`, and it must stay that way: the two snapshot interfaces below
+// pin their `schemaVersion` to the registry's literals via `typeof`, which is a
+// type position, so this module must not acquire a runtime dependency on the
+// registry. A plain value import is elided by today's config and would quietly
+// become a real one under `verbatimModuleSyntax` or a move to ESM.
+//
+// The pinning is the point: a bump is one edit in src/schema.ts, and every
+// stale `schemaVersion: 1` left in the writer becomes a type error rather than
+// a silent disagreement.
+import type { DAYS_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from './schema';
+
 /**
  * A store string in every language the store actually translates.
  *
@@ -180,12 +191,12 @@ export interface DayEntry {
  * which is what keeps it out of most commits.
  */
 export interface Days {
-  schemaVersion: 1;
+  schemaVersion: typeof DAYS_SCHEMA_VERSION;
   days: Record<string, DayEntry>;
 }
 
 export interface Index {
-  schemaVersion: 5;
+  schemaVersion: typeof INDEX_SCHEMA_VERSION;
   updatedAt: string;             // ISO8601 — last time the index was written
   /** True when the run hit its request backstop and left some slot data unrefreshed. */
   budgetExhausted?: boolean;

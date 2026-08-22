@@ -288,6 +288,15 @@
     const STORE_PREFIX = 'usj:';
     const MAX_PEOPLE = 10;
 
+    // The snapshot versions this page knows how to read, copied from
+    // src/schema.ts — this file has no build step, so it cannot import them.
+    // src/schema.test.ts reads these two literals back out of the HTML and
+    // compares them to the registry, so the copy cannot drift unnoticed. Two
+    // separate declarations on purpose: the two files version independently,
+    // and neither number is derived from the other.
+    const DAYS_SCHEMA_VERSION = 2;
+    const INDEX_SCHEMA_VERSION = 5;
+
     /* ---------------------------------------------------------------------
      * Localisation.
      *
@@ -1017,11 +1026,44 @@
      * answer without opening all 28 files — data/days.json is that same data
      * transposed, and one download covers the whole calendar.
      */
+    /**
+     * Stop before rendering a snapshot this page does not understand (AD-14).
+     *
+     * The grid's shape changed in Story 1.5 without the number moving, which is
+     * the shape of the accident worth guarding: a v1 file has no `status` on
+     * any cell, so `onSale()` returns nothing and every day renders as sold
+     * out — a plausible-looking page that is simply wrong. Comparison is
+     * `!==`, not "at least": a fetcher rolled *back* a version is the case that
+     * renders wrongly, and a "newer is fine" test is exactly what lets it
+     * through. Throwing here lands in the caller's existing catch, which shows
+     * the error box and draws no cells at all.
+     */
+    function assertCalendarSchema(doc) {
+      const got = doc && doc.schemaVersion;
+      if (got !== DAYS_SCHEMA_VERSION) {
+        throw new Error('days.json schemaVersion is ' + JSON.stringify(got) + ', expected ' + DAYS_SCHEMA_VERSION);
+      }
+      return doc;
+    }
+
+    /** The same check for index.json, deliberately its own number and its own test. */
+    function assertIndexSchema(doc) {
+      const got = doc && doc.schemaVersion;
+      if (got !== INDEX_SCHEMA_VERSION) {
+        throw new Error('index.json schemaVersion is ' + JSON.stringify(got) + ', expected ' + INDEX_SCHEMA_VERSION);
+      }
+      return doc;
+    }
+
     async function loadCalendar() {
       if (calendar) return calendar;
       const res = await fetch(`./data/days.json?t=${catalog.updatedAt}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      calendar = await res.json();
+      const doc = await res.json();
+      // Before the assignment, so a rejected snapshot is never cached as the
+      // calendar and never reaches a renderer.
+      assertCalendarSchema(doc);
+      calendar = doc;
       return calendar;
     }
 
@@ -1377,7 +1419,9 @@
       await loadTerms();
       try {
         const res = await fetch('./data/index.json?t=' + Date.now());
-        render(await res.json());
+        const doc = await res.json();
+        assertIndexSchema(doc);
+        render(doc);
       } catch (err) {
         document.getElementById('root').innerHTML =
           `<div class="card"><div class="error-box">${esc(t('loadFailed', err.message))}</div></div>`;
