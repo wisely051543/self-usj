@@ -112,7 +112,9 @@ location: n/a
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-132139-136d; this entry preserves the lingering recommendation for a deliberate later review.
-status: open
+status: done 2026-08-22
+resolution: closed by human decision: 該 review 的具體發現已以 DW-8～DW-13 六筆進入帳本，且本次 sweep 已逐筆對照現行程式碼重新驗證；再跑一次只會重新推導同一批項目。
+decision: 2026-08-22 關閉，已由具體項目承接 — 該 review 的具體發現已以 DW-8～DW-13 六筆進入帳本，且本次 sweep 已逐筆對照現行程式碼重新驗證；再跑一次只會重新推導同一批項目。
 
 ### DW-15: `buildDays()` 不讀 `ProductSummary` 的 `stale` / `error` 旗標，因此本回合抓取失敗或被 `--product=` 跳過的票種，其舊檔中不存在的日期會被以與新鮮資料相同的信心斷言為 `sold-out`。
 origin: spec-deferred d0a5552c6e70
