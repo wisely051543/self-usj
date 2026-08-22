@@ -15,6 +15,14 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
+# Prevents overlapping fetch rounds (NFR5.1): if a round is still running when
+# the next schedule fires, the new run queues instead of racing the store in
+# parallel. cancel-in-progress must stay false -- cancelling a running round
+# would kill it mid-write and violate data-integrity (NFR11).
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   fetch:
     runs-on: ubuntu-latest

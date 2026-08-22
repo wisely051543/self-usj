@@ -87,6 +87,18 @@ function jobTimeoutMin(): number {
   return Number(timeout[1]);
 }
 
+/** The workflow-level overlap guard: group binding and cancel-in-progress flag. */
+function concurrencyBlock(): { group: string; cancelInProgress: string } {
+  const yml = readFileSync(join(REPO_ROOT, '.github/workflows/fetch.yml'), 'utf8');
+  const block = /^concurrency:\n((?:^ {2}.*\n?)+)/m.exec(yml);
+  assert.ok(block, 'no workflow-level concurrency block found in .github/workflows/fetch.yml');
+  const group = /^\s*group:\s*(.+?)\s*$/m.exec(block[1]);
+  const cancelInProgress = /^\s*cancel-in-progress:\s*(\S+)/m.exec(block[1]);
+  assert.ok(group, 'no group found in the concurrency block');
+  assert.ok(cancelInProgress, 'no cancel-in-progress found in the concurrency block');
+  return { group: group[1], cancelInProgress: cancelInProgress[1] };
+}
+
 /** How old the site lets data get before it calls it stale, in minutes. */
 function staleThresholdMin(): number {
   const html = readFileSync(join(REPO_ROOT, 'index.html'), 'utf8');
@@ -149,6 +161,30 @@ test('a cold round finishes inside half the schedule interval', () => {
     `cold round is ~${minutes(estimateSec)} at rate=${RATE_LIMIT_PER_SEC}/s ` +
       `concurrency=${CONCURRENCY}; the '*/${intervalMin}' schedule allows ` +
       `${intervalMin / 2} min. Recompute the interlock group (AD-4).`,
+  );
+});
+
+/**
+ * Overlapping rounds double the request rate against the store and can race
+ * on the commit step (NFR5.1 / NFR11). This is what actually enforces the
+ * overlap guard: the workflow's `concurrency` block must queue a new run
+ * behind an in-progress one rather than racing or cancelling it -- catches a
+ * future edit that drops the group binding or flips cancel-in-progress to
+ * true while leaving everything else in this file looking untouched.
+ */
+test('the workflow concurrency block queues runs instead of cancelling them', () => {
+  const { group, cancelInProgress } = concurrencyBlock();
+  assert.equal(
+    cancelInProgress,
+    'false',
+    `cancel-in-progress is '${cancelInProgress}'; it must be 'false' or an in-progress ` +
+      `round can be killed mid-write (NFR11)`,
+  );
+  assert.ok(
+    group.includes('github.workflow'),
+    `group is '${group}'; it must bind to the workflow name (e.g. ` +
+      "\${{ github.workflow }}) rather than a per-run dynamic value, or overlapping rounds " +
+      'would no longer share a queue (NFR5.1)',
   );
 });
 
