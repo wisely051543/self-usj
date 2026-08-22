@@ -12,7 +12,8 @@ location: _bmad-output/implementation-artifacts/epic-1-context.md:7
 source_spec: `spec-1-2-禁止抓取回合重疊.md`
 severity: low
 reason: epic-1-context.md 自身 Technical Decisions 段落即載明「CONCURRENCY 本身無靜態上限斷言」， 與 Goal 段落用詞略有落差，屬編譯側措辭精確度問題，非 Story 1.2 範圍內的程式碼缺陷。
-status: open
+status: done 2026-08-22
+resolution: already resolved: epic-1-context.md 已於 commit e901f1e 重新編譯為繁體中文版，全檔已無 'test-enforced' 字串；現行 Goal（epic-1-context.md:7）只寫「在明確的速率／並行上限內運作」，未宣稱並行度由測試斷言上限。
 
 ### DW-3: epic-1-context.md 英文版 Story 1.7 註解只提到「shrink」，未提及該 story 名稱本身強調的 「回歸保護」（既有三層排程與變動偵測須被保留並回歸測試）。
 origin: spec-deferred d1b5dbd2a359
@@ -20,7 +21,8 @@ location: _bmad-output/implementation-artifacts/epic-1-context.md:17
 source_spec: `spec-1-2-禁止抓取回合重疊.md`
 severity: low
 reason: 對照 epics.md 原文 Story 1.7「分層排程回歸保護」與 Technical Decisions 中 AD-21 條目， 只讀該行英文括號註解的人可能誤以為此 story 純粹是刪減功能。
-status: open
+status: done 2026-08-22
+resolution: already resolved: 同一次重新編譯（commit e901f1e）後 epic-1-context.md:17 為「- Story 1.7: 分層排程回歸保護」，全檔已無 'shrink' 註解，story 名稱本身即載明回歸保護。
 
 ### DW-4: epic-1-context.md 的 Cross-Story Dependencies 段落未提及 Story 1.2 與其所滿足之 「同一時間僅一回合執行」需求的關聯，即使該需求列在同一份文件的 Requirements & Constraints 中。
 origin: spec-deferred 575b064b5a6a
@@ -132,7 +134,8 @@ location: src/types.ts (Days.schemaVersion) / index.html
 source_spec: `spec-1-5-完整格網快照與狀態判定.md`
 severity: medium
 reason: 舊版 `fitsParty` 的守衛為 `p.units == null || p.units >= people`；非可購格沒有 `units` 欄位，`undefined == null` 為 true，因此每一格都會通過，售罄與尚未開賣的票種會被畫成可購列 ——正是本 story 要防的錯誤方向。`days.json` 以 `?t=${catalog.updatedAt}` 破快取，但 `index.html` 由瀏覽器獨立快取，已開啟未重載的頁面即落在此視窗內。 升版與「下游遇未識別版本須中止」由 Story 1.6 承接；惟 1.6 的規則作用於建置端， 不涵蓋瀏覽器端已載入的舊頁面，該視窗需在 1.6 或 Epic 2 cutover 時一併確認關閉。
-status: open
+status: done 2026-08-22
+resolution: already resolved: Story 1.6（commit c0a1d5d）已將 src/schema.ts:28 的 DAYS_SCHEMA_VERSION 升為 2，並在 index.html:1041 assertCalendarSchema / index.html:1050 assertIndexSchema 加上守衛（呼叫點 index.html:1065、index.html:1423）；index.html:1083 的 fitsParty 亦改為先經 onSale() 過濾，不再讓無 units 的非可購格通過。舊頁面快取那一半另由 DW-18 追蹤。
 
 ### DW-18: 瀏覽器已快取的**舊** `index.html`（其程式碼裡沒有 schema 守衛）讀到新版 `days.json` 的視窗， 本 story 無法關閉——守衛只存在於新頁面裡。
 origin: spec-deferred 167bc2813831
