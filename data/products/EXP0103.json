@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-22T14:53:28.519Z",
-  "calendarStart": "2026-08-22",
-  "calendarEnd": "2027-02-22",
-  "latestDate": "2026-10-23",
+  "fetchedAt": "2026-08-22T15:26:42.644Z",
+  "calendarStart": "2026-08-23",
+  "calendarEnd": "2027-02-23",
+  "latestDate": "2026-10-24",
   "dates": [
     {
       "date": "2026-09-11",
@@ -29,9 +29,9 @@
       "date": "2026-09-12",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 602,
+      "availableUnits": 603,
       "maxAvailable": 26,
-      "totalCapacity": 602,
+      "totalCapacity": 603,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": null,
@@ -101,9 +101,9 @@
       "date": "2026-09-18",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 258,
-      "maxAvailable": 20,
-      "totalCapacity": 258,
+      "availableUnits": 256,
+      "maxAvailable": 18,
+      "totalCapacity": 256,
       "pricePerPerson": 13800,
       "formattedPrice": "¥13,800",
       "timeSlots": null,
@@ -166,737 +166,16 @@
       "totalCapacity": 408,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
-      "timeSlots": [
-        {
-          "variantCode": "E4FBJ62D11A012",
-          "from": "10:30",
-          "to": "15:20",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "10:30",
-              "to": "11:00"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "14:50",
-              "to": "15:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A015",
-          "from": "10:30",
-          "to": "19:30",
-          "availableUnits": 2,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "10:30",
-              "to": "11:00"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "19:00",
-              "to": "19:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A041",
-          "from": "10:30",
-          "to": "15:10",
-          "availableUnits": 8,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "10:30",
-              "to": "11:00"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "14:40",
-              "to": "15:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A003",
-          "from": "10:40",
-          "to": "17:00",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "10:40",
-              "to": "11:10"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "16:30",
-              "to": "17:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A020",
-          "from": "10:40",
-          "to": "15:40",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "10:40",
-              "to": "11:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "15:10",
-              "to": "15:40"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A005",
-          "from": "11:00",
-          "to": "13:50",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "11:00",
-              "to": "11:30"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "13:20",
-              "to": "13:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A010",
-          "from": "11:10",
-          "to": "15:10",
-          "availableUnits": 7,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "11:10",
-              "to": "11:40"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "14:40",
-              "to": "15:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A017",
-          "from": "11:20",
-          "to": "20:00",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "11:20",
-              "to": "11:50"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "19:30",
-              "to": "20:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A022",
-          "from": "11:20",
-          "to": "15:20",
-          "availableUnits": 1,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "11:20",
-              "to": "11:50"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "14:50",
-              "to": "15:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A007",
-          "from": "11:40",
-          "to": "15:20",
-          "availableUnits": 4,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "11:40",
-              "to": "12:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "14:50",
-              "to": "15:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A013",
-          "from": "11:40",
-          "to": "18:50",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "11:40",
-              "to": "12:10"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "18:20",
-              "to": "18:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A016",
-          "from": "11:40",
-          "to": "20:20",
-          "availableUnits": 3,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "11:40",
-              "to": "12:10"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "19:50",
-              "to": "20:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A024",
-          "from": "11:40",
-          "to": "15:50",
-          "availableUnits": 7,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "11:40",
-              "to": "12:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "15:20",
-              "to": "15:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A014",
-          "from": "12:00",
-          "to": "17:10",
-          "availableUnits": 12,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "12:00",
-              "to": "12:30"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "16:40",
-              "to": "17:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A023",
-          "from": "12:10",
-          "to": "19:40",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "12:10",
-              "to": "12:40"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "19:10",
-              "to": "19:40"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A029",
-          "from": "12:40",
-          "to": "16:00",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "12:40",
-              "to": "13:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "15:30",
-              "to": "16:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A030",
-          "from": "12:40",
-          "to": "15:30",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "12:40",
-              "to": "13:10"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "15:00",
-              "to": "15:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A036",
-          "from": "12:50",
-          "to": "19:40",
-          "availableUnits": 3,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "12:50",
-              "to": "13:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:10",
-              "to": "19:40"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A004",
-          "from": "13:10",
-          "to": "15:50",
-          "availableUnits": 14,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "13:10",
-              "to": "13:40"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "15:20",
-              "to": "15:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A011",
-          "from": "13:20",
-          "to": "15:50",
-          "availableUnits": 9,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "13:20",
-              "to": "13:50"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "15:20",
-              "to": "15:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A033",
-          "from": "13:20",
-          "to": "20:00",
-          "availableUnits": 6,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "13:20",
-              "to": "13:50"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:30",
-              "to": "20:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A026",
-          "from": "13:30",
-          "to": "19:30",
-          "availableUnits": 11,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "13:30",
-              "to": "14:00"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:00",
-              "to": "19:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A032",
-          "from": "13:30",
-          "to": "15:20",
-          "availableUnits": 4,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "13:30",
-              "to": "14:00"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "14:50",
-              "to": "15:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A037",
-          "from": "13:50",
-          "to": "20:30",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "13:50",
-              "to": "14:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "20:00",
-              "to": "20:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A028",
-          "from": "14:00",
-          "to": "16:00",
-          "availableUnits": 12,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "14:00",
-              "to": "14:30"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "15:30",
-              "to": "16:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A040",
-          "from": "14:10",
-          "to": "20:10",
-          "availableUnits": 2,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "14:10",
-              "to": "14:40"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:40",
-              "to": "20:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A001",
-          "from": "14:20",
-          "to": "17:30",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "14:20",
-              "to": "14:50"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "17:00",
-              "to": "17:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A002",
-          "from": "14:20",
-          "to": "19:40",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "14:20",
-              "to": "14:50"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:10",
-              "to": "19:40"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A025",
-          "from": "14:50",
-          "to": "19:50",
-          "availableUnits": 10,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "14:50",
-              "to": "15:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:20",
-              "to": "19:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A008",
-          "from": "15:10",
-          "to": "16:40",
-          "availableUnits": 12,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "15:10",
-              "to": "15:40"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "16:10",
-              "to": "16:40"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A034",
-          "from": "15:40",
-          "to": "19:10",
-          "availableUnits": 3,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "15:40",
-              "to": "16:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "18:40",
-              "to": "19:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A038",
-          "from": "15:40",
-          "to": "20:00",
-          "availableUnits": 10,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "15:40",
-              "to": "16:10"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:30",
-              "to": "20:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A019",
-          "from": "16:00",
-          "to": "19:10",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "16:00",
-              "to": "16:30"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "18:40",
-              "to": "19:10"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A018",
-          "from": "16:20",
-          "to": "19:20",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "16:20",
-              "to": "16:50"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "18:50",
-              "to": "19:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A006",
-          "from": "16:50",
-          "to": "19:50",
-          "availableUnits": 6,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "16:50",
-              "to": "17:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:20",
-              "to": "19:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A021",
-          "from": "16:50",
-          "to": "19:30",
-          "availableUnits": 3,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "16:50",
-              "to": "17:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:00",
-              "to": "19:30"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A031",
-          "from": "16:50",
-          "to": "20:20",
-          "availableUnits": 6,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "16:50",
-              "to": "17:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:50",
-              "to": "20:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A027",
-          "from": "17:00",
-          "to": "20:20",
-          "availableUnits": 14,
-          "events": [
-            {
-              "code": "EXP_BIO",
-              "from": "17:00",
-              "to": "17:30"
-            },
-            {
-              "code": "EXP_FOF",
-              "from": "19:50",
-              "to": "20:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A035",
-          "from": "17:10",
-          "to": "20:20",
-          "availableUnits": 15,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "17:10",
-              "to": "17:40"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:50",
-              "to": "20:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ62D11A039",
-          "from": "17:50",
-          "to": "20:10",
-          "availableUnits": 14,
-          "events": [
-            {
-              "code": "EXP_FOF",
-              "from": "17:50",
-              "to": "18:20"
-            },
-            {
-              "code": "EXP_BIO",
-              "from": "19:40",
-              "to": "20:10"
-            }
-          ]
-        }
-      ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "timeSlots": null,
+      "slotsFetchedAt": null
     },
     {
       "date": "2026-09-24",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 446,
-      "maxAvailable": 19,
-      "totalCapacity": 446,
+      "availableUnits": 444,
+      "maxAvailable": 17,
+      "totalCapacity": 444,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": [
@@ -1462,7 +741,7 @@
           "variantCode": "E4FBJ62D66A018",
           "from": "16:20",
           "to": "20:20",
-          "availableUnits": 19,
+          "availableUnits": 17,
           "events": [
             {
               "code": "EXP_BIO",
@@ -1603,7 +882,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-09-25",
@@ -1868,7 +1147,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-09-26",
@@ -9873,9 +9152,9 @@
       "date": "2026-10-09",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 332,
+      "availableUnits": 336,
       "maxAvailable": 20,
-      "totalCapacity": 332,
+      "totalCapacity": 336,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -10009,7 +9288,7 @@
           "variantCode": "E4FBJ62D49A048",
           "from": "13:20",
           "to": "16:20",
-          "availableUnits": 4,
+          "availableUnits": 8,
           "events": [
             {
               "code": "EXP_FOF",
@@ -10330,7 +9609,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T14:53:32.921Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-10",
@@ -11262,9 +10541,9 @@
       "date": "2026-10-12",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 344,
+      "availableUnits": 342,
       "maxAvailable": 22,
-      "totalCapacity": 344,
+      "totalCapacity": 342,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -11344,7 +10623,7 @@
           "variantCode": "E4FBJ62D49A070",
           "from": "11:00",
           "to": "18:00",
-          "availableUnits": 8,
+          "availableUnits": 6,
           "events": [
             {
               "code": "EXP_BIO",
@@ -11737,7 +11016,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-13",
@@ -12206,9 +11485,9 @@
       "date": "2026-10-14",
       "dayOfWeek": 3,
       "available": true,
-      "availableUnits": 316,
+      "availableUnits": 314,
       "maxAvailable": 20,
-      "totalCapacity": 316,
+      "totalCapacity": 314,
       "pricePerPerson": 13800,
       "formattedPrice": "¥13,800",
       "timeSlots": [
@@ -12288,7 +11567,7 @@
           "variantCode": "E4FBJ62D49A072",
           "from": "11:50",
           "to": "14:40",
-          "availableUnits": 11,
+          "availableUnits": 9,
           "events": [
             {
               "code": "EXP_FOF",
@@ -12645,7 +11924,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T12:41:28.634Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-15",
@@ -13108,7 +12387,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-16",
@@ -13571,15 +12850,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T09:04:23.056Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-17",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 343,
+      "availableUnits": 341,
       "maxAvailable": 22,
-      "totalCapacity": 343,
+      "totalCapacity": 341,
       "pricePerPerson": 19800,
       "formattedPrice": "¥19,800",
       "timeSlots": [
@@ -13677,7 +12956,7 @@
           "variantCode": "E4FBJ62D49A072",
           "from": "11:50",
           "to": "14:40",
-          "availableUnits": 13,
+          "availableUnits": 11,
           "events": [
             {
               "code": "EXP_FOF",
@@ -14034,7 +13313,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T12:41:28.634Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     },
     {
       "date": "2026-10-18",
@@ -16373,9 +15652,9 @@
       "date": "2026-10-23",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 363,
+      "availableUnits": 364,
       "maxAvailable": 22,
-      "totalCapacity": 363,
+      "totalCapacity": 364,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -16545,7 +15824,7 @@
           "variantCode": "E4FBJ62D49A078",
           "from": "12:30",
           "to": "20:40",
-          "availableUnits": 20,
+          "availableUnits": 22,
           "events": [
             {
               "code": "EXP_FOF",
@@ -16563,7 +15842,7 @@
           "variantCode": "E4FBJ62D49A069",
           "from": "13:10",
           "to": "15:20",
-          "availableUnits": 9,
+          "availableUnits": 8,
           "events": [
             {
               "code": "EXP_BIO",
@@ -16848,7 +16127,488 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-22T14:53:32.921Z"
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
+    },
+    {
+      "date": "2026-10-24",
+      "dayOfWeek": 6,
+      "available": true,
+      "availableUnits": 389,
+      "maxAvailable": 22,
+      "totalCapacity": 389,
+      "pricePerPerson": 19800,
+      "formattedPrice": "¥19,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ62D49A058",
+          "from": "10:30",
+          "to": "15:20",
+          "availableUnits": 18,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "10:30",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A061",
+          "from": "10:30",
+          "to": "20:50",
+          "availableUnits": 13,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "10:30",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "20:20",
+              "to": "20:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A056",
+          "from": "10:40",
+          "to": "20:10",
+          "availableUnits": 3,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "10:40",
+              "to": "11:10"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A062",
+          "from": "11:00",
+          "to": "18:50",
+          "availableUnits": 9,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "11:00",
+              "to": "11:30"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A070",
+          "from": "11:00",
+          "to": "18:00",
+          "availableUnits": 10,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "11:00",
+              "to": "11:30"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "17:30",
+              "to": "18:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A072",
+          "from": "11:50",
+          "to": "14:40",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "11:50",
+              "to": "12:20"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "14:10",
+              "to": "14:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A059",
+          "from": "12:00",
+          "to": "20:50",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "12:00",
+              "to": "12:30"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "20:20",
+              "to": "20:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A060",
+          "from": "12:00",
+          "to": "21:00",
+          "availableUnits": 3,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "12:00",
+              "to": "12:30"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:30",
+              "to": "21:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A071",
+          "from": "12:00",
+          "to": "15:50",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "12:00",
+              "to": "12:30"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "15:20",
+              "to": "15:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A078",
+          "from": "12:30",
+          "to": "20:40",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A069",
+          "from": "13:10",
+          "to": "15:20",
+          "availableUnits": 13,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "14:50",
+              "to": "15:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A073",
+          "from": "13:20",
+          "to": "20:50",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "13:20",
+              "to": "13:50"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:20",
+              "to": "20:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A064",
+          "from": "13:30",
+          "to": "16:10",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "13:30",
+              "to": "14:00"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "15:40",
+              "to": "16:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A067",
+          "from": "13:40",
+          "to": "19:20",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "18:50",
+              "to": "19:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A074",
+          "from": "13:40",
+          "to": "16:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "16:20",
+              "to": "16:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A065",
+          "from": "13:50",
+          "to": "17:20",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "13:50",
+              "to": "14:20"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "16:50",
+              "to": "17:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A055",
+          "from": "14:20",
+          "to": "19:10",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "14:20",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "18:40",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A068",
+          "from": "15:10",
+          "to": "20:50",
+          "availableUnits": 6,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "15:10",
+              "to": "15:40"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:20",
+              "to": "20:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A075",
+          "from": "15:10",
+          "to": "20:10",
+          "availableUnits": 16,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "15:10",
+              "to": "15:40"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A057",
+          "from": "15:30",
+          "to": "20:00",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "15:30",
+              "to": "16:00"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A080",
+          "from": "15:50",
+          "to": "19:50",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "15:50",
+              "to": "16:20"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "19:20",
+              "to": "19:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A063",
+          "from": "17:00",
+          "to": "20:30",
+          "availableUnits": 14,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "17:00",
+              "to": "17:30"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "20:00",
+              "to": "20:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A077",
+          "from": "17:10",
+          "to": "18:40",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "17:10",
+              "to": "17:40"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "18:10",
+              "to": "18:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A079",
+          "from": "17:10",
+          "to": "20:20",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "17:10",
+              "to": "17:40"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "19:50",
+              "to": "20:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A066",
+          "from": "17:20",
+          "to": "18:50",
+          "availableUnits": 13,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "17:20",
+              "to": "17:50"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A076",
+          "from": "18:30",
+          "to": "20:10",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "18:30",
+              "to": "19:00"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "19:40",
+              "to": "20:10"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-22T15:26:51.989Z"
     }
   ],
   "attractionNames": {
