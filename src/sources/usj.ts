@@ -83,15 +83,32 @@ const MAX_SLOT_AGE_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Header set shared by all four `limitedFetch` call sites below. Exported so
- * the NFR7 regression test (src/sources/usj.test.ts) can lock it directly
- * rather than parsing source text.
+ * the NFR7 regression test (src/sources/usj.test.ts) can assert on this object
+ * itself, rather than inferring its contents from the source text.
+ *
+ * Frozen because one shared reference is what makes "lock it once, lock every
+ * call site" true: without the freeze a single call site could mutate the
+ * object in place and silently re-identify the other three. `Object.freeze`
+ * stops that at runtime — as a thrown TypeError under the strict mode this
+ * module compiles to, as a silent no-op were it ever otherwise, but either way
+ * the header set is unchanged. The readonly types it returns catch
+ * a direct write earlier, at compile time, but only through this binding —
+ * TypeScript ignores `readonly` when checking assignability, so widening the
+ * value into a `Record<string, string>` first typechecks, and so does every
+ * write through it. The runtime freeze is the barrier that has no such hole.
+ *
+ * The freeze only guarantees the object cannot be *changed*; it cannot
+ * guarantee the four call sites still pass it through untouched. That half is
+ * enforced by a second, source-text regression test in src/sources/usj.test.ts,
+ * which counts the call sites in this file and checks each one hands this
+ * constant over verbatim rather than spreading or overriding it.
  */
-export const HEADERS = {
+export const HEADERS = Object.freeze({
   'Accept': 'application/json, text/plain, */*',
   'Content-Type': 'application/json',
   'x-anonymous-consents': '%5B%5D',
   'Accept-Language': 'ja-JP',
-};
+} as const);
 
 interface CalendarDate {
   date: string;

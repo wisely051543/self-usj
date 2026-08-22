@@ -48,7 +48,9 @@ location: src/sources/usj.ts:84
 source_spec: `spec-1-3-請求標頭匿名化.md`
 severity: low
 reason: 此為既有行為（匯出前已是同一可變物件、同檔案內四處共用），本 story 只是加上 export 使測試可直接匯入， 並未新增或加劇此風險；epics.md 的 Story 1.3 AC 也未要求不可變性，屬額外強化而非本 story 範圍缺陷。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-header-anonymization-hardening
+resolution-undo: a46b86ae59d6044313cd4d050efa192774e882f33294959b47509a46f44cff07 2026-08-22 7374617475733a206f70656e
 
 ### DW-7: 新增測試僅靜態檢查 HEADERS 常數本身，未驗證四個 limitedFetch 呼叫點確實仍原樣傳入該常數（例如未來 某呼叫點改為 spread/覆寫），註解宣稱「鎖住全部四個呼叫點」但無程式碼強制驗證這個接線事實。
 origin: spec-deferred ae0e2a645e0d
@@ -56,7 +58,9 @@ location: src/sources/usj.ts:147,240,337,410
 source_spec: `spec-1-3-請求標頭匿名化.md`
 severity: low
 reason: 目前四個呼叫點皆為 `headers: HEADERS` 字面寫法（已於本次 Code Map 人工核對），本 story 的 diff 未 改動任何呼叫點；要做到自動化驗證接線需要類似 limits.test.ts 對 yml 的正則解析手法，屬額外強化， 非本 story 明確要求範圍。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-header-anonymization-hardening
+resolution-undo: a46b86ae59d6044313cd4d050efa192774e882f33294959b47509a46f44cff07 2026-08-22 7374617475733a206f70656e
 
 ### DW-8: `BlockedError` 未攜帶造成封鎖的回應內文（body），而其他錯誤路徑（`usj.ts` 四個 `!res.ok` throw 點）皆會附上內文片段；封鎖情境（WAF/驗證碼頁等）反而是最需要內文以利排查的一種。
 origin: spec-deferred 48485b2b559e
@@ -156,6 +160,7 @@ source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: medium
 reason: `src/schema.ts` 的兩個守衛與 `src/schema-check.ts` 只讀 `schemaVersion` 一個欄位。若寫入端 在不改版號的情況下漏掉 `status`、把 `price` 寫成字串，或 `days` 少了整段日期，所有閘門仍全綠。 本 story 的 AC 只要求版號守衛，逐欄位 runtime 形狀驗證屬 AD-14a 的後續提案，故明文排除 （見 Boundaries「Never」第三條）。
 status: open
+decision: 2026-08-22 留待 Story 1.10 一併設計
 
 ### DW-20: `.github/workflows/fetch.yml` 在 `npm run fetch` 之後直接 commit/push `data/`，中間沒有 schema 閘門，且 commit 步驟為 `if: always()`；被回滾的抓取端寫出的舊版快照會先發佈、CI 才紅燈。
 origin: spec-deferred b7c9f7ebcc2b
@@ -172,6 +177,7 @@ source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: medium
 reason: 本 story 為 `index.json` 在 `index.html` 與 `schema-check.ts` 兩處加了守衛，但抓取端自己 讀回上一輪 `index.json` 的路徑未納入。在此加硬守衛會讓「升版當回合」的抓取直接失敗， 需要一併決定升版時的遷移行為，超出本 story 的 AC。
 status: open
+decision: 2026-08-22 版號不符時記警告並視為「沒有上一輪 index」 — 在 src/fetcher.ts 的 readIndex() 內呼叫 assertIndexSchemaVersion()（或等價比對），版號不符時印出明確的 console.error 說明版號與期望值，並回傳 null，使本回合以「無上一輪快照」的既有路徑繼續。此路徑本來就存在（首次抓取即是），且因為所有產品的 lastSeenAt 都會設為本回合時間，sweepDelisted() 不會誤刪任何票種，代價僅為升版當回合失去 carriedOver 的補撈。同時補測試涵蓋版號不符與版號正確兩條路徑。DW-27 為本項的重複副本，一併關閉。
 
 ### DW-22: `data/products/*.json` 完全沒有 `schemaVersion` 欄位，因此不在任何版本守衛的涵蓋範圍內。
 origin: spec-deferred 392e3fcbc717
@@ -240,3 +246,43 @@ source_spec: `spec-1-6-快照-schema-版本控制.md`
 reason: GitHub Actions 對預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow（反遞迴保護），而 `fetch.yml` 的 commit 步驟正是用預設 token 直接 push 到 `main`，故 `ci.yml` 的 `on: push` 不會為那些提交執行。`index.html` 端的 `assertCalendarSchema`／`assertIndexSchema` 仍會在使用者瀏覽器端擋下錯誤版本，故本 story 的 AC 仍然成立；但 CI 閘門「建置紅燈而非無聲錯誤」的敘事對排程回合這個主要情境實際上不生效，要等到下一次人工 push 或 PR 觸發 CI 才會被抓到。修正需要調整 `fetch.yml` 的推送機制（例如改用具備推送觸發權限的 token 或改走 PR），屬既有排程／推送架構的變更。
 status: open
 decision: 2026-08-22 併入 Story 1.11 的 PAT 工作
+
+### DW-30: NFR7 目前沒有任何測試觀察「真正送出去的請求」帶了什麼標頭；所有斷言都止於原始碼文字與匯出常數。
+origin: spec-deferred ddf68c779ae1
+location: src/limiter.ts:114
+source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
+severity: medium
+reason: src/limiter.ts:114 的 `await fetch(url, init)` 是四個呼叫點與網路之間的唯一一跳。 把它改成 `await fetch(url)`，或改成合併一個自訂 User-Agent 的版本，四個 NFR7 測試全部照樣通過： HEADERS 仍凍結、仍不含站名、仍無 User-Agent 鍵，usj.ts 的原始碼文字也仍顯示四個 `headers: HEADERS`。 repo 內既有 `t.mock.method(globalThis, 'fetch', ...)` 的機制（src/limiter.test.ts:50、 src/sources/usj-fetchproduct-blocking.test.ts:100），但沒有任何測試讀取傳給 fetch 的第二個參數。
+status: open
+
+### DW-31: 接線檢查只掃 src/sources/usj.ts 一個檔案，新增的其他來源檔若呼叫 limitedFetch 而未帶 HEADERS 不會被發現。
+origin: spec-deferred c2cce39eed83
+location: src/sources/
+source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
+severity: medium
+reason: limitedFetch 由 src/limiter.ts 匯出，目前生產程式碼只有 src/sources/usj.ts 呼叫它， 但 NFR7「請求標頭不得揭露本站網域或站名」是 repo 層級要求。掃描範圍改為 src/**/*.ts（排除 *.test.ts） 才能讓保證涵蓋面與需求一致。本次刻意不擴大，因 intent 指名的就是那四個呼叫點。
+status: open
+
+### DW-32: 沒有測試禁止裸 fetch( ；架構決策要求「禁止裸 fetch(，由測試強制」，但該強制目前不存在。
+origin: spec-deferred be971369a148
+location: src/
+source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
+severity: medium
+reason: epic-1-context.md 的技術決策明載「所有對外請求須經單一閘門 limitedFetch，禁止裸 fetch(，由測試強制」。 grep 全 repo 後，除 src/limiter.ts:114 本身外沒有生產端裸 fetch，但也沒有任何測試會在有人新增時失敗。 在 src/sources/usj.ts 加一個裸 fetch(url) 既不帶 HEADERS 也繞過速率閘門，且對本次新增的計數檢查完全隱形。
+status: open
+
+### DW-33: 沒有任何測試釘住 HEADERS 應有的鍵值集合；把 HEADERS 換成 Object.freeze({}) 或刪掉 x-anonymous-consents／Accept-Language，四個測試全部照樣通過。
+origin: spec-deferred 41a3a3f899c7
+location: src/sources/usj.test.ts
+source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
+severity: medium
+reason: forbidden-name 測試只斷言「不含站名」，User-Agent 測試只斷言「無該鍵」，凍結測試只斷言 「凍結且寫入會拋錯」，接線測試只讀原始碼文字。三者都是否定式或結構式斷言，沒有一個說出 HEADERS *應該* 有哪四個鍵、值是什麼。刪除任一標頭（例如 Accept-Language: ja-JP，日文頁面 的語系依據）對測試完全隱形。此為 Story 1.3 起既有的缺口，本次凍結與接線強化並未加劇它， 但也未涵蓋；補法是加一條 deepEqual 的預期鍵值集合斷言。
+status: open
+
+### DW-34: Follow-up review still recommended for dw-header-anonymization-hardening after the damping cap was spent
+origin: review-budget-followup
+location: n/a
+source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
+severity: low
+reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-193604-52a6; this entry preserves the lingering recommendation for a deliberate later review.
+status: open
