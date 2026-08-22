@@ -81,7 +81,12 @@ const CATALOG_SAMPLE_DAYS = 7;
  */
 const MAX_SLOT_AGE_MS = 6 * 60 * 60 * 1000;
 
-const HEADERS = {
+/**
+ * Header set shared by all four `limitedFetch` call sites below. Exported so
+ * the NFR7 regression test (src/sources/usj.test.ts) can lock it directly
+ * rather than parsing source text.
+ */
+export const HEADERS = {
   'Accept': 'application/json, text/plain, */*',
   'Content-Type': 'application/json',
   'x-anonymous-consents': '%5B%5D',
