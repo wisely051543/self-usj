@@ -4,7 +4,9 @@ location: .github/workflows/fetch.yml:18-22
 source_spec: `spec-1-2-禁止抓取回合重疊.md`
 severity: medium
 reason: 架構文件 review-reality-check.md 的 F9 已載明並接受此語意（"queued run... pending job... will be canceled and the new queued job... will take its place"），現行 spec 的 I/O & Edge-Case Matrix 與 Design Notes 未涵蓋此邊界情境，值得補一句說明或未來評估告警機制。
-status: open
+status: done 2026-08-22
+resolution: closed by human decision: 此為 GitHub concurrency 的既有平台語意，非本次變更之缺陷，且已於架構文件 review-reality-check.md F9 明文載明並接受；30 分鐘排程重複覆蓋，跳過一回合僅延後資料新鮮度。
+decision: 2026-08-22 接受並關閉 — 此為 GitHub concurrency 的既有平台語意，非本次變更之缺陷，且已於架構文件 review-reality-check.md F9 明文載明並接受；30 分鐘排程重複覆蓋，跳過一回合僅延後資料新鮮度。
 
 ### DW-2: epic-1-context.md（本次重新編譯的英文版）Goal 段落用詞「test-enforced rate/concurrency limits」略為誇大——CONCURRENCY 本身無靜態上限斷言。
 origin: spec-deferred d7470bfd7c02
