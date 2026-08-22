@@ -484,7 +484,14 @@ test('the page\'s two guards say nothing about each other\'s file', () => {
  * the locale helpers — supplied as context globals so the sliced source runs
  * unmodified.
  */
-function runPage(daysDoc: unknown, indexDoc: unknown) {
+function runPage(
+  daysDoc: unknown,
+  indexDoc: unknown,
+  // Lets a caller simulate the index.json request itself failing (a 404, a
+  // 500) rather than resolving with a document the schema guard rejects.
+  // days.json keeps its always-ok default — nothing here needed it yet.
+  indexResponse: { ok?: boolean; status?: number } = {},
+) {
   let renderCalls = 0;
   let dayRenders = 0;
   // Keyed by id, not one shared object: boot()'s catch writes #root while
@@ -496,11 +503,14 @@ function runPage(daysDoc: unknown, indexDoc: unknown) {
   const ctx: Record<string, unknown> = {
     calendar: null,
     catalog: { updatedAt: '2026-08-22T00:00:00.000Z' },
-    fetch: async (url: unknown) => ({
-      ok: true,
-      status: 200,
-      json: async () => (String(url).includes('days.json') ? daysDoc : indexDoc),
-    }),
+    fetch: async (url: unknown) => {
+      const isDays = String(url).includes('days.json');
+      return {
+        ok: isDays ? true : (indexResponse.ok ?? true),
+        status: isDays ? 200 : (indexResponse.status ?? 200),
+        json: async () => (isDays ? daysDoc : indexDoc),
+      };
+    },
     render: () => { renderCalls++; },
     // The day-first view's own painter, stubbed: what this file asks about is
     // whether setView() reaches it at all on a snapshot the page refused.
@@ -623,6 +633,20 @@ test('boot() renders normally when index.json is the version this page reads', a
   await page.boot();
   assert.equal(page.renderCalls(), 1, 'a good index must still render exactly once');
   assert.equal(page.html('root'), '', 'a good index must not put anything in the error box');
+});
+
+test('boot() renders nothing when the index.json fetch itself fails', async () => {
+  // The schema guard is only reached once a response comes back at all — this
+  // is the `if (!res.ok) throw ...` guard in front of it, for a 404/500 with
+  // no body worth parsing as a snapshot.
+  const page = runPage(null, null, { ok: false, status: 404 });
+  await page.boot();
+  assert.equal(
+    page.renderCalls(),
+    0,
+    'boot() rendered even though the index.json request itself failed',
+  );
+  assert.match(page.html('root'), /HTTP 404/, "the failure must surface in boot()'s own host, naming the HTTP status");
 });
 
 test('the guards run before the page keeps or draws anything', () => {

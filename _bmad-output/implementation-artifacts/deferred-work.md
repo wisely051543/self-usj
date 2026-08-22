@@ -200,7 +200,9 @@ location: index.html:1419-1423
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: 同檔的 `loadCalendar()` 有 `if (!res.ok) throw new Error('HTTP ' + res.status)`，`boot()` 沒有。 此為本 story 之前既有的不對稱（本次僅在該行之後插入版號守衛），錯誤仍會落入既有 catch 顯示 錯誤框，故非新缺陷，但錯誤訊息會誤導排查方向。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-index-json-consumer-guards
+resolution-undo: f593b0423cb62355b6fe08e61270945f67f23701b1155c84ab16e36cb45aac68 2026-08-22 7374617475733a206f70656e
 
 ### DW-24: 沒有任何測試釘住 CI workflow 的閘門步驟本身；把 `ci.yml` 裡的 `- run: npm run schema:check` （或 i18n 閘門）整行刪掉，測試套件仍然全綠。
 origin: spec-deferred 4eadf5a0aa26
@@ -216,7 +218,9 @@ location: src/i18n-check.ts:59
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: `src/i18n-check.ts` 以 `JSON.parse(fs.readFileSync(...'index.json')) as Index` 讀檔後 直接走訪 `index.products`，全程不呼叫 `assertIndexSchemaVersion()`。它本身是一道 CI 閘門， 卻會對版號不符的 `index.json` 回報「翻譯缺漏」而非「版號不符」，把診斷指向錯誤方向。 目前無實害：`INDEX_SCHEMA_VERSION` 本 story 未變動，且 CI 中 `npm test` 會先於 `i18n:check` 失敗；只有單獨執行 `npm run i18n:check` 的開發者會遇到誤導訊息。 此檔為既有程式碼，本 story 未觸及，且 `src/` 下沒有任何 `i18n-check` 的測試檔， 補守衛應與該檔的測試一併處理。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-index-json-consumer-guards
+resolution-undo: f593b0423cb62355b6fe08e61270945f67f23701b1155c84ab16e36cb45aac68 2026-08-22 7374617475733a206f70656e
 
 ### DW-26: Follow-up review still recommended for 1-6-快照-schema-版本控制 after the damping cap was spent
 origin: review-budget-followup
@@ -363,4 +367,28 @@ location: src/limiter.ts
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: 本輪一度更名為 `bodySnippet`，但 I/O 矩陣四列皆以 `body` 指稱該欄位，屬凍結契約，故回滾。 此欄位為本次新增，趁尚無其他消費者時更名成本最低，但同樣需先修訂 intent-contract。
+status: open
+
+### DW-44: `readIndex()`／`main()` 讀 `data/index.json` 失敗（檔案不存在或非合法 JSON）時， 拋出的是原始 `ENOENT`／`SyntaxError`，不像 `schema-check.ts` 的 `readSchemaVersion()` 那樣包成具名檔案的友善訊息。
+origin: spec-deferred 3a913104726f
+location: src/i18n-check.ts（readIndex()）
+source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
+severity: low
+reason: 本次變更前的 `main()` 就已是 `JSON.parse(fs.readFileSync(...)) as Index`， 對讀檔／解析失敗完全沒有 try/catch；`readIndex()` 原樣沿用這段讀檔邏輯，只在其後插入 版號檢查，讀檔／解析失敗的行為與本次變更前完全一致，非本次引入。
+status: open
+
+### DW-45: `main()` 走訪 `index.products` 時，若某個 product code 在 `data/products/` 下沒有對應 檔案（版號正確但索引與商品檔不一致），仍會以未包裝的 `ENOENT` 中止，訊息不會指出是 哪個 product code 造成的。
+origin: spec-deferred e4ccf2a400ea
+location: src/i18n-check.ts（main()，products.map）
+source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
+severity: low
+reason: `index.products.map(p => JSON.parse(fs.readFileSync(path.join(PRODUCTS_DIR, ...))))` 這段本次未觸碰，`readIndex()` 的版號守衛只擋下版號不符的情境，對「版號正確但索引與 商品檔不同步」這個相鄰失效模式沒有任何新增防護，此為既有行為。
+status: open
+
+### DW-46: `loadCalendar()`（`index.html:1061`）既有的 `!res.ok` 守衛，與本次新增的 `boot()` 守衛 同樣完全沒有回歸測試——`src/schema.test.ts` 的 `runPage()` fetch stub 目前寫死 `ok: true`，本輪已就 `boot()` 的新守衛排入 patch（見上）補測，但 `loadCalendar()` 這處既
+origin: spec-deferred e20e815b5b05
+location: index.html:1061（loadCalendar()）
+source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
+severity: low
+reason: grep `src/*.test.ts` 未找到任何 `ok: false`／`status: 404`／`status: 500` 的 fetch stub， `runPage()`（`src/schema.test.ts:487-538`）的 `fetch` 固定回傳 `ok: true`， `loadCalendar()` 相關測試（`src/schema.test.ts:552-564`）僅涵蓋版號守衛，不涵蓋 HTTP 狀態守衛。此缺口在本次變更之前就存在，範圍與本次 patch 的 `boot()` 守衛測試不同。
 status: open

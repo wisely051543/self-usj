@@ -13,6 +13,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Index, Localized, ProductResult } from './types';
+import { assertIndexSchemaVersion } from './schema';
 
 const ROOT = path.join(__dirname, '..');
 const PRODUCTS_DIR = path.join(ROOT, 'data', 'products');
@@ -55,8 +56,25 @@ function translate(text: string, index: Array<[string, string]>): string {
   return out;
 }
 
-function main(): void {
+/**
+ * Read data/index.json and refuse it before any caller can walk `.products`.
+ *
+ * Mirrors schema-check.ts's readSchemaVersion() -> assert*SchemaVersion()
+ * pattern: this is the only place in this file that reads the index, so a
+ * version mismatch surfaces here rather than downstream as an ENOENT on a
+ * product file this file's caller expected but the version-correct catalog
+ * would never have listed.
+ */
+export function readIndex(): Index {
   const index = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'index.json'), 'utf-8')) as Index;
+  assertIndexSchemaVersion(index.schemaVersion);
+  return index;
+}
+
+// Exported only so the test file can call it directly; real invocation still
+// goes through the `require.main === module` guard at the bottom of this file.
+export function main(): void {
+  const index = readIndex();
   const products = index.products.map(
     p => JSON.parse(fs.readFileSync(path.join(PRODUCTS_DIR, `${p.code}.json`), 'utf-8')) as ProductResult,
   );
@@ -131,4 +149,4 @@ function main(): void {
   console.log(`\n${gaps} gap(s), ${missingEn} attraction(s) without an English name.`);
 }
 
-main();
+if (require.main === module) { main(); }
