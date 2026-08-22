@@ -134,18 +134,6 @@ severity: medium
 reason: 舊版 `fitsParty` 的守衛為 `p.units == null || p.units >= people`；非可購格沒有 `units` 欄位，`undefined == null` 為 true，因此每一格都會通過，售罄與尚未開賣的票種會被畫成可購列 ——正是本 story 要防的錯誤方向。`days.json` 以 `?t=${catalog.updatedAt}` 破快取，但 `index.html` 由瀏覽器獨立快取，已開啟未重載的頁面即落在此視窗內。 升版與「下游遇未識別版本須中止」由 Story 1.6 承接；惟 1.6 的規則作用於建置端， 不涵蓋瀏覽器端已載入的舊頁面，該視窗需在 1.6 或 Epic 2 cutover 時一併確認關閉。
 status: open
 
-- source_spec: `spec-1-6-快照-schema-版本控制.md`
-  summary: `src/fetcher.ts` 的 `readIndex()` 讀回上一輪 `index.json` 供合併（取得已知 `products`、`lastSeenAt`）時，從未呼叫 `assertIndexSchemaVersion()`，本 story 建立的版本守衛只用在消費端（`index.html`）與 CI 閘門，未涵蓋抓取端自己讀回舊檔這條路徑。
-  evidence: 目前無實害——`readIndex()` 只讀 `raw.products` 陣列並已有 `Array.isArray` 結構檢查，`INDEX_SCHEMA_VERSION` 本 story 未變動（維持 5），故版號不符不會腐化合併結果；但此為既有行為（1.6 之前即如此），非本 story 造成，AD-14 的精神（任何讀取此檔的消費者都應驗版）嚴格上也涵蓋這條路徑，值得未來 `index.json` 形狀真的改版時一併補上。
-
-- source_spec: `spec-1-6-快照-schema-版本控制.md`
-  summary: 逐票種快照檔（`data/products/<code>.json`，`ProductResult` 型別）完全沒有 `schemaVersion` 欄位，不在本 story 新增的任何守衛（`schema.ts`／`schema-check.ts`／`index.html`）覆蓋範圍內。
-  evidence: 本 story 的 Boundaries 明文排除變更 `products/*.json` 的結構，故不在範圍內；但 `buildDays()`／`cellStatus()` 直接讀這些檔案，AD-14 描述的「抓取端版本回滾造成無聲錯誤斷言」對這批檔案同樣成立，只是尚未發生，值得日後與 Story 1.10（靜默失敗偵測）一併評估是否也需要版本欄位。
-
-- source_spec: `spec-1-6-快照-schema-版本控制.md`
-  summary: 新增的 `.github/workflows/ci.yml` `schema:check` 步驟，實際上不會在 `fetch.yml` 排程回合自己寫入不符版號快照的當下被觸發——GitHub Actions 對預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow（反遞迴保護），而 `fetch.yml` 的 commit 步驟正是用預設 token 直接 push 到 `main`，故 `ci.yml` 的 `on: push` 不會為那些提交執行。
-  evidence: `index.html` 端的 `assertCalendarSchema`／`assertIndexSchema` 仍會在使用者瀏覽器端擋下錯誤版本（使用者不會看到無聲錯誤資料），故本 story 的 AC 仍然成立；但 CI 閘門「建置紅燈而非無聲錯誤」的敘事對排程回合這個主要情境實際上不生效，要等到下一次人工 push 或 PR 觸發 CI 才會被抓到。修正需要調整 `fetch.yml` 的推送機制（例如改用具備推送觸發權限的 token 或改走 PR），屬於既有排程／推送架構的變更，超出本 story 範圍（Boundaries 明文禁止改動抓取排程行為）。
-
 ### DW-18: 瀏覽器已快取的**舊** `index.html`（其程式碼裡沒有 schema 守衛）讀到新版 `days.json` 的視窗， 本 story 無法關閉——守衛只存在於新頁面裡。
 origin: spec-deferred 167bc2813831
 location: index.html (loadCalendar / boot 的守衛只保護新載入的頁面)
@@ -216,4 +204,28 @@ location: n/a
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-132139-136d; this entry preserves the lingering recommendation for a deliberate later review.
+status: open
+
+### DW-27: `src/fetcher.ts` 的 `readIndex()` 讀回上一輪 `index.json` 供合併（取得已知 `products`、`lastSeenAt`）時，從未呼叫 `assertIndexSchemaVersion()`，版本守衛未涵蓋抓取端自己讀回舊檔這條路徑。
+
+origin: migrated from legacy ledger (flat append from spec-1-6-快照-schema-版本控制.md), 2026-08-22
+location: src/fetcher.ts:24-31 (readIndex)
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+reason: 本 story 建立的版本守衛只用在消費端（`index.html`）與 CI 閘門。目前無實害——`readIndex()` 只讀 `raw.products` 陣列並已有 `Array.isArray` 結構檢查，`INDEX_SCHEMA_VERSION` 本 story 未變動（維持 5），故版號不符不會腐化合併結果；但此為既有行為（1.6 之前即如此），非本 story 造成，AD-14 的精神（任何讀取此檔的消費者都應驗版）嚴格上也涵蓋這條路徑，值得未來 `index.json` 形狀真的改版時一併補上。
+status: open
+
+### DW-28: 逐票種快照檔（`data/products/<code>.json`，`ProductResult` 型別）完全沒有 `schemaVersion` 欄位，不在本 story 新增的任何守衛（`schema.ts`／`schema-check.ts`／`index.html`）覆蓋範圍內。
+
+origin: migrated from legacy ledger (flat append from spec-1-6-快照-schema-版本控制.md), 2026-08-22
+location: data/products/*.json、src/schema.ts、src/schema-check.ts
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+reason: 本 story 的 Boundaries 明文排除變更 `products/*.json` 的結構，故不在範圍內；但 `buildDays()`／`cellStatus()` 直接讀這些檔案，AD-14 描述的「抓取端版本回滾造成無聲錯誤斷言」對這批檔案同樣成立，只是尚未發生，值得日後與 Story 1.10（靜默失敗偵測）一併評估是否也需要版本欄位。
+status: open
+
+### DW-29: 新增的 `.github/workflows/ci.yml` `schema:check` 步驟，不會在 `fetch.yml` 排程回合自己寫入不符版號快照的當下被觸發——預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow。
+
+origin: migrated from legacy ledger (flat append from spec-1-6-快照-schema-版本控制.md), 2026-08-22
+location: .github/workflows/ci.yml:41、.github/workflows/fetch.yml:64-68
+source_spec: `spec-1-6-快照-schema-版本控制.md`
+reason: GitHub Actions 對預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow（反遞迴保護），而 `fetch.yml` 的 commit 步驟正是用預設 token 直接 push 到 `main`，故 `ci.yml` 的 `on: push` 不會為那些提交執行。`index.html` 端的 `assertCalendarSchema`／`assertIndexSchema` 仍會在使用者瀏覽器端擋下錯誤版本，故本 story 的 AC 仍然成立；但 CI 閘門「建置紅燈而非無聲錯誤」的敘事對排程回合這個主要情境實際上不生效，要等到下一次人工 push 或 PR 觸發 CI 才會被抓到。修正需要調整 `fetch.yml` 的推送機制（例如改用具備推送觸發權限的 token 或改走 PR），屬既有排程／推送架構的變更。
 status: open
