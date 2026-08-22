@@ -212,7 +212,9 @@ location: n/a
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-132139-136d; this entry preserves the lingering recommendation for a deliberate later review.
-status: open
+status: done 2026-08-22
+resolution: closed by human decision: 該 review 的具體發現已以 DW-18～DW-25 與 DW-27～DW-29 進入帳本，且本次 sweep 已逐筆對照現行程式碼重新驗證；再跑一次只會重新推導同一批項目。
+decision: 2026-08-22 關閉，已由具體項目承接 — 該 review 的具體發現已以 DW-18～DW-25 與 DW-27～DW-29 進入帳本，且本次 sweep 已逐筆對照現行程式碼重新驗證；再跑一次只會重新推導同一批項目。
 
 ### DW-27: `src/fetcher.ts` 的 `readIndex()` 讀回上一輪 `index.json` 供合併（取得已知 `products`、`lastSeenAt`）時，從未呼叫 `assertIndexSchemaVersion()`，版本守衛未涵蓋抓取端自己讀回舊檔這條路徑。
 
