@@ -4,57 +4,60 @@
 
 ## Goal
 
-The operator needs to run the fetch pipeline within explicit, test-enforced rate/concurrency limits, with the ability to audit it and shut it down immediately. Snapshots must carry a complete (date × ticket-type) grid with explicit status for every cell, so downstream consumers never mistake "no data" for "sold out." The existing (already-live) site must immediately carry visible non-official / disclaimer disclosures without waiting for the broader SSG rewrite in Epic 2. This epic is the first line of defense for the data source's survival and legal-compliance urgency, and it is the trust foundation all later work depends on.
+本 epic 是資料源存續與法遵急迫性的第一道防線：讓抓取管線在明確的速率／並行上限內運作、可稽核、可立即停用；快照具備完整的（日期×票種）格網狀態判定，不把「沒資料」誤判為「售罄」；現有站台立即掛上顯著的非官方聲明與免責聲明，不等待後續靜態站台重構。完成後，抓取行為可辯護、可稽核，使用者下單前已能看到本站定位與風險聲明，為後續所有功能提供可信賴基礎。
 
 ## Stories
 
-- Story 1.1: 抓取速率降至 1 req/s 並鎖定常數 (rate limit → 1 req/s, constants locked, test-enforced)
-- Story 1.2: 禁止抓取回合重疊 (workflow concurrency group prevents overlapping runs)
-- Story 1.3: 請求標頭匿名化 (strip site-identifying strings from outbound headers)
-- Story 1.4: 429/5xx 退避與封鎖告警 (exponential backoff; stop + fail job on persistent blocking)
-- Story 1.5: 完整格網快照與狀態判定 (full date×ticket grid; explicit status determination in the orchestration layer)
-- Story 1.6: 快照 Schema 版本控制 (`days.json` schemaVersion bump; strict rejection of unknown versions)
-- Story 1.7: 分層排程回歸保護 (shrink/guard the timeslot fetch tier now that it has no consumer)
-- Story 1.8: Kill Switch 分級開關 (tiered L1/L2/L3 killswitch declaration file)
-- Story 1.9: 對外聯絡窗口 (visible, working contact email on the site)
-- Story 1.10: 靜默失敗偵測與合理性檢查 (sanity checks fail the job instead of publishing collapsed data)
-- Story 1.11: 私有儲存 repo 分離遷移 (migrate `data/` to a private, workflow-less storage repo)
-- Story 1.12: CI 護欄與 Node 24 升級 (CI workflow for tsc/tests/i18n:check; Node 20→24 upgrade)
-- Story 1.13: 現有站台信任揭露文字 (temporary disclosure block pasted onto current `index.html`)
+- Story 1.1: 抓取速率降至 1 req/s 並鎖定常數
+- Story 1.2: 禁止抓取回合重疊
+- Story 1.3: 請求標頭匿名化
+- Story 1.4: 429/5xx 退避與封鎖告警
+- Story 1.5: 完整格網快照與狀態判定
+- Story 1.6: 快照 Schema 版本控制
+- Story 1.7: 分層排程回歸保護
+- Story 1.8: Kill Switch 分級開關
+- Story 1.9: 對外聯絡窗口
+- Story 1.10: 靜默失敗偵測與合理性檢查
+- Story 1.11: 私有儲存 repo 分離遷移
+- Story 1.12: CI 護欄與 Node 24 升級
+- Story 1.13: 現有站台信任揭露文字
 
 ## Requirements & Constraints
 
-- The system is read-only: no cart, no reservation holds, no automated checkout/booking, no resale involvement.
-- Data may only be fetched from endpoints that do not require passing a queue/waitlist gate; if the source endpoint changes, confirm it is not routed through such a gate before using it.
-- The fact that the data source is a reverse-engineered private interface (no public docs, no API terms, no key) must be documented honestly in code comments/tech docs — not recorded only as a favorable fact.
-- No official ticket imagery may be used or hotlinked (this applies to rendering; noted here because it's adjacent to the "derived facts only" constraint this epic partially seeds).
-- Sustained outbound request rate to the source host must have an explicit, single, centrally-controlled upper bound. Target: 1 request/sec.
-- The total request volume of one fetch run must complete (at the target rate) in no more than half the scheduling interval; rate and volume are jointly constrained, not independently tunable.
-- Only one fetch run may execute at a time; a run in progress must not be interrupted by the next scheduled trigger.
-- Expensive data tiers must be fetched at lower frequency and driven by change-detection, not re-fetched every run.
-- Outbound request headers must not reveal this site's domain or name.
-- On 429/5xx, retries must use increasing (exponential) backoff; on persistent blocking, the run must stop outright — never fall back to an alternate way of continuing the fetch.
-- The system must have an immediately-usable kill switch, with the enablement procedure documented.
-- The kill-switch's "what happens after fetching stops" procedure must define: disposition of existing historical data, whether the site comes down, and the external contact window.
-- The site must provide at least one working contact email, and it must be visible, not buried.
-- The site must prominently disclose (in all three languages): unofficial status / no affiliation with USJ, official data source with a link to the official store, that this site does not sell/broker/resell tickets, and a disclaimer that data may be inaccurate/stale, is not a guarantee, is used at the visitor's own risk, and the official USJ page is authoritative.
-- Planning artifacts explicitly scope NFR3.2 (site name/domain must not use USJ's trademarks as primary identity) **out of any story in this round** — it is blocked on written legal opinion and must not be decided ad hoc by implementation.
+- 系統為唯讀：不建購物車、不保留庫存、不自動化下單/預約、不涉入轉售、不為解鎖庫存資訊收費。
+- 資料僅得從無須通過候位機制即可存取的端點取得，不得繞過/預熱/自動化通過候位機制讀取結帳階段庫存；新增來源端點前須先確認未被轉向候位機制。
+- 資料源為逆向而來的私有介面（無公開文件/條款/金鑰）——此事實須如實記載，不得只當有利事實。
+- 不得使用官方圖片，尤其不得熱連結；票種呈現改以自製圖示或純文字。
+- 對來源主機的持續請求速率須有明確上限，以單一具名常數集中控制，目標 1 req/秒，並由測試強制斷言。
+- 單回合請求總量與速率須共同約束，使該回合耗時不超過排程間隔的一半。
+- 同一時間只允許一個抓取回合，未跑完的回合須排隊而非並行（不得以中斷正在寫入的回合為代價）。
+- 抓取須分層排程：昂貴資料以較低頻率、由變動偵測驅動而非每回合重取；既有排程與變動偵測條件須有測試防回歸。
+- 請求標頭不得揭露本站網域或站名。
+- 遇 429/5xx 須遞增延遲退避；持續封鎖須停止該回合並告警，不得改以其他方式續抓。
+- 須具備可立即停用抓取的 kill switch，並記錄啟用程序：涵蓋既有歷史資料處置、頁面是否下架、對外窗口三件事。
+- 須提供至少一個可運作、三語顯著呈現的對外聯絡 email。
+- 須有合理性檢查偵測「什麼都沒抓到」等靜默失敗（零/近零結果視為失敗，不得寫入快照）；`budgetExhausted`、資料齡超標、PAT 失效亦須使 job 失敗；單一產品失敗不阻斷其餘產品寫入。
+- 現有站台須立即（不等架構重構）三語顯著呈現：非官方聲明、資料來源與官方商店連結、不販售/不代購/不轉售聲明、免責聲明（資料可能不準確或不即時、不構成保證、風險自負、以官方頁面為準）。此區塊須標記為臨時，供 Epic 2 上線同一 PR 移除。
+- `data/` 快照須遷至私有、無 workflow 的儲存 repo，以最小權限 fine-grained PAT 讀寫；公開 repo 既有 `data/` 的處置須明確決定並記錄；規則向前生效，已公開散佈的 commit 歷史無法收回。
+- 每次 push/PR 須自動執行型別檢查、單元測試、i18n 檢查；Node.js 須由已 EOL 的 20.17.0 升級至 24.x，移除 `ts-node`，測試改用 `node:test`。
+- 站名/網域/品牌識別不得使用官方標識為主要識別——**此項不在本輪任何 story 範圍內**，阻塞於待取得的律師書面意見，不得自行先斬後奏。
 
 ## Technical Decisions
 
-- **Single egress gate (AD-3):** every outbound HTTP request to the source host must go through `src/limiter.ts`'s `limitedFetch`; no other bare `fetch(` call is permitted anywhere in `src/`. This is enforced by lint/test.
-- **Rate-limit interlock group (AD-4):** `RATE_LIMIT_PER_SEC`, `CONCURRENCY`, cron interval, `timeout-minutes`, and `STALE_MS` are a mutually-dependent set. A test must assert `RATE_LIMIT_PER_SEC <= 1` and `MAX_REQUESTS_PER_RUN <= 6000`. `CONCURRENCY` itself has no static ceiling assertion — the currently-consistent solution is `RATE_LIMIT_PER_SEC=1`, `CONCURRENCY=4`, cron `*/30`, `timeout-minutes=25`, `STALE_MS=90min`; any future change to one of the five requires recomputing all five together, with a test asserting the recomputed cold-start estimate still fits within half the cron interval.
-- **Grid completion and state determination (AD-12/AD-13):** the orchestration layer (`src/fetcher.ts`) must persist the full (date × ticket-type) grid — including `available: false` rows, which the current `buildDays()` incorrectly discards — and determine each cell's status exactly once; renderers/downstream consumers must never re-derive status from absence. When the evidence is insufficient (notably an empty `latestDate`, seen in ~10/31 products), the cell must be explicitly "unknown," never defaulted to sold-out or closed.
-- **Independent schema versioning per file (AD-14):** `data/` files each carry their own `schemaVersion`. The grid change in Story 1.5 bumps `days.json` from 1 to 2; `index.json`'s version (currently 5) is unrelated and must not share version-comparison logic just because the numbers coincide. Any consumer reading an unrecognized `schemaVersion` must abort the build with an error, never degrade or render with defaults.
-- **Shut down unconsumed fetch tiers (AD-21):** since FR5 needs only slot *counts* and the render layer no longer consumes `timeSlots` detail, the timeslot fetch tier's scope must shrink to just what's needed to compute counts (or stop entirely once confirmed unconsumed) — while the existing 3-tier scheduling and change-detection (`slotsAreStale()`, `MAX_SLOT_AGE_MS=6h`, `SLOT_WINDOW_MONTHS=1`) must be preserved and regression-tested. `MAX_PEOPLE` filtering stays out of scope.
-- **Tiered kill switch (AD-15):** a single declaration file (`KILLSWITCH`) carries a level value (L1 stop-fetching / L2 stop-service / L3 take-down) — not a presence/absence flag. Both the fetch and build workflows must read the same file. Because a stopped fetch workflow means `workflow_run` never fires, the build workflow needs its own independent `schedule`/`workflow_dispatch` trigger (this is a prerequisite established by AD-6, which formally belongs to the Epic 2 build pipeline but must exist for L2 to work). GitHub UI workflow-disable must never be used as the sole mechanism for L2/L3.
-- **Failure boundaries and sanity checks (AD-16):** the job must fail (not publish) on: persistent blocking (403/repeated 429), `budgetExhausted`, N consecutive failed runs, data age past threshold, push-PAT failure, or a sanity check showing the product count / available-cell count / date coverage has collapsed beyond tolerance versus the prior snapshot — zero and near-zero results are always treated as failure. A single product's failure still does not block writes for the rest (existing behavior, unchanged).
-- **Storage separation (AD-5):** `data/` and its history must live only in a private, workflow-less storage repo, accessed via a fine-grained PAT; the public repo carries only code, workflows, and build output. This rule is forward-effective only — already-published commit history cannot be un-published, and no "already purged" claim may be made.
-- **CI as a publish precondition (AD-22):** a `ci.yml` workflow must run `tsc`, unit tests (covering the 1.1/1.4/1.5/1.6 assertions above), and `i18n:check` on every push/PR. Node upgrades from 20.17.0 (EOL) to 24.x, drops `ts-node`, and uses `node:test` for testing (no new dependencies).
+- 六層管線（取得→節制→協調→快照→渲染→發佈），本 epic 落在節制層與協調層；渲染層/快照層對來源的依賴方向禁止，供後續 epic 遵循。
+- 所有對外請求須經單一閘門 `limitedFetch`，禁止裸 `fetch(`，由測試強制。
+- 速率常數由測試斷言上限；並行度、cron 間隔、逾時分鐘數、`STALE_MS` 為互鎖組——任一項變更須整組重算，並由測試斷言冷啟動預估耗時小於半個排程間隔。
+- 抓取與建置為兩條獨立 workflow，以 `workflow_run` 銜接，且各自具備 `schedule`／`workflow_dispatch` 獨立入口，使站台可部署性不依賴抓取成功。
+- 快照須攜帶完整（日期×票種）格網：每個組合皆有明確狀態，由協調層判定一次，下游一律讀取不得自行重推；「不可購」的日期列須保留不得丟棄；證據不足時顯式標為「未知」，關鍵欄位為空字串時必須判為未知而非售罄。
+- 快照各檔案的 schema 版本各自獨立，結構變更即升版；下游讀到未識別版本須中止建置報錯，不得降級渲染。
+- kill switch 為帶等級值的宣告檔（非存在性旗標）：L1 停抓、L2 停止服務、L3 下架；抓取與建置 workflow 皆讀同一檔案；GitHub UI 停用 workflow 不得作為 L2/L3 唯一手段。
+- 時段層取得範圍須縮減至只夠算出數量（無消費者的抓取須關閉），既有三層排程與變動偵測門檻須維持不被回歸破壞；人數篩選功能明確不在恢復範圍。
+- 建置須偵測封鎖、預算耗盡、連續失敗、資料齡超標、PAT 失效、合理性檢查未過等情況並使 job 失敗，且不得寫入快照。
 
 ## Cross-Story Dependencies
 
-- Story 1.6 (schema versioning) depends on the grid-structure change delivered in Story 1.5.
-- Story 1.12's CI test suite must cover the assertions introduced by Stories 1.1, 1.5, and 1.6.
-- Story 1.8's build-workflow independent trigger requirement (so L2 can render even when fetching is stopped) depends on the fetch/build workflow split (AD-6), which is formally realized as part of Epic 2's SSG pipeline — Epic 1 only needs the build workflow's independent entry point to exist.
-- Story 1.13's disclosure block is explicitly marked temporary: when Epic 2 ships its full page rewrite (Epic 2 Story 2.13, cutover), the same PR must remove Story 1.13's block. The two must never coexist for more than one deploy cycle.
+- Story 1.13 貼在現有頁面的臨時揭露文字，與後續靜態站台上線構成 cutover 依賴：新站上線須於同一 PR 移除該區塊，新舊揭露文字不得並存超過一個部署週期。
+- Story 1.5（完整格網快照）是後續矩陣頁「缺席狀態推導」的資料前提，渲染端須直接讀取協調層判定結果，不得自行從缺席推論。
+- Story 1.6（schema 版本控制）建立在 Story 1.5 的格網化結構變更之上。
+- Story 1.11（私有儲存 repo 遷移）為後續 SEO 基礎工作的前置遷移，屬 Deferred 項但為上線必要條件。
+- Story 1.12 新增的 CI 涵蓋 Story 1.1、1.5、1.6 的斷言，須待這些 story 的程式碼變更到位後才能完整驗證。

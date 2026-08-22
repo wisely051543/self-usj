@@ -56,8 +56,8 @@ jobs:
           "
 
       # Runs even when one product failed, so the healthy products' fresh data
-      # still lands in git. Only a total outage reddens the run (npm run fetch
-      # exits non-zero when every product failed).
+      # still lands in git. Only a total outage or a persistent block from the
+      # store reddens the run (npm run fetch exits non-zero in either case).
       - name: Commit results
         if: always()
         run: |

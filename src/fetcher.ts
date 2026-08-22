@@ -3,7 +3,7 @@ import * as path from 'path';
 import { CatalogEntry, DateRange, DayEntry, Days, Index, ProductResult, ProductSummary } from './types';
 import { shiftMonths, todayJST } from './dates';
 import { usjSource } from './sources/usj';
-import { budgetExhausted, requestCount } from './limiter';
+import { BlockedError, budgetExhausted, requestCount } from './limiter';
 
 const source = usjSource;
 const MONTHS_AHEAD = 6;
@@ -190,7 +190,8 @@ function writeDays(days: Days): boolean {
   return true;
 }
 
-async function main() {
+/** Exported so tests can await it directly instead of racing its fire-and-forget invocation below. */
+export async function main() {
   const wanted = process.argv
     .filter(a => a.startsWith('--product='))
     .map(a => a.split('=')[1])
@@ -253,6 +254,18 @@ async function main() {
       if (writeProduct(trimmed)) written++;
       summaries.push(summarize(trimmed, lastSeenAt));
     } catch (err) {
+      if (err instanceof BlockedError) {
+        // The store is still blocking us after exhausting retries — stop the
+        // round outright rather than recording it as one product's failure.
+        // Nothing after this point runs, so index.json/days.json keep the last
+        // successful round and the site keeps serving it (NFR8, NFR11). The
+        // per-product files written earlier in this round do stay on disk:
+        // writes are incremental by design, and index.json is what decides
+        // which of them the site reads.
+        console.error(`[fetch] ${entry.code} blocked: ${err.message}`);
+        process.exit(1);
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[fetch] ${entry.code} failed: ${message}`);
       failed++;
@@ -317,4 +330,9 @@ async function main() {
   }
 }
 
-main();
+// Guarded so importing this module (e.g. from a test) does not also run it —
+// `require.main === module` still holds when it is invoked as the CLI entry
+// point, so this is a no-op behavior change for the real `node`/`ts-node` run.
+if (require.main === module) {
+  main();
+}

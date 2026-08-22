@@ -36,6 +36,26 @@ export const MAX_REQUESTS_PER_RUN = 900;
 
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
 
+/**
+ * Thrown when the retry loop above has run out of widening delays and the
+ * store is still answering 429/5xx — "not now" has become "not for as long as
+ * we're willing to wait". Distinct from a connection-level failure (a dropped
+ * `fetch()`), which is retried the same way but rethrown as-is: this class
+ * exists so `usj.ts` and `fetcher.ts` can tell "the store is blocking us" from
+ * "this one request failed" and stop the round instead of grinding on (AD-16 #1).
+ */
+export class BlockedError extends Error {
+  readonly url: string;
+  readonly status: number;
+
+  constructor(url: string, status: number) {
+    super(`Blocked: ${status} from ${url} after exhausting retries`);
+    this.name = 'BlockedError';
+    this.url = url;
+    this.status = status;
+  }
+}
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 let inFlight = 0;
@@ -100,7 +120,11 @@ export async function limitedFetch(url: string, init?: RequestInit): Promise<Res
       }
 
       const retryable = res.status === 429 || res.status >= 500;
-      if (!retryable || attempt >= RETRY_DELAYS_MS.length) return res;
+      if (!retryable) return res;
+      if (attempt >= RETRY_DELAYS_MS.length) {
+        await res.text().catch(() => undefined);
+        throw new BlockedError(url, res.status);
+      }
 
       // Drain the body so the socket can be reused for the retry.
       await res.text().catch(() => undefined);

@@ -9,7 +9,7 @@ import {
   TimeSlot,
 } from '../types';
 import { everyNthDay, shiftMonths } from '../dates';
-import { budgetExhausted, limitedFetch, mapLimit } from '../limiter';
+import { BlockedError, budgetExhausted, limitedFetch, mapLimit } from '../limiter';
 
 /**
  * Everything is fetched for a party of one. The store hides whatever it cannot
@@ -316,6 +316,7 @@ async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
         p.slot.availableUnits = units.get(`${p.slot.variantCode}@${p.date}`) ?? null;
       }
     } catch (err) {
+      if (err instanceof BlockedError) throw err;
       // A missing count only costs these slots their party-size filter.
       const span = `${batch[0].date}..${batch[batch.length - 1].date}`;
       console.error(`[usj]   stock batch ${span} failed: ${err instanceof Error ? err.message : err}`);
@@ -444,6 +445,9 @@ export const usjSource: Source = {
       try {
         products = await fetchCatalogPage(date);
       } catch (err) {
+        // A continuing block is not one blind sample — it must not be swallowed
+        // like one. Let it propagate so the round stops (AD-16 #1).
+        if (err instanceof BlockedError) throw err;
         // One blind sample costs at most a product that no other sample saw.
         console.error(`[usj] catalog ${date} failed: ${err instanceof Error ? err.message : err}`);
         return;
@@ -491,8 +495,9 @@ export const usjSource: Source = {
   ): Promise<ProductResult> {
     const attractionNames = normalizeNames(previous?.attractionNames);
     let nonTimedAttractions = previous?.nonTimedAttractions ?? [];
-    // Falling back to the last run's answer keeps a blocked product-info call
+    // Falling back to the last run's answer keeps a failed product-info call
     // from silently downgrading a slotted pass to "no slots" for a whole run.
+    // A persistent block never reaches this fallback — it stops the round.
     let deep = previous?.deep ?? false;
     let classified = false;
 
@@ -502,6 +507,7 @@ export const usjSource: Source = {
       deep = info.timed.length > 0;
       classified = true;
     } catch (err) {
+      if (err instanceof BlockedError) throw err;
       console.error(`[usj] ${entry.code} product info failed: ${err instanceof Error ? err.message : err}`);
     }
 
@@ -513,6 +519,7 @@ export const usjSource: Source = {
       try {
         await fetchProductInfo(entry.code, attractionNames, lang);
       } catch (err) {
+        if (err instanceof BlockedError) throw err;
         console.error(`[usj] ${entry.code} ${lang} names failed: ${err instanceof Error ? err.message : err}`);
       }
     }
@@ -520,8 +527,9 @@ export const usjSource: Source = {
     // A pass with no timed attraction is walk-up-any-time: it has no slots to
     // report, so the fetcher discards it and its calendar is a request spent on
     // nothing. Only skip it when the product API actually answered — an
-    // unclassified pass still gets its calendar, so one blocked call cannot
-    // mistake a slotted pass for a walk-up one.
+    // unclassified pass still gets its calendar, so one failed call cannot
+    // mistake a slotted pass for a walk-up one. As above, a persistent block
+    // is not one of those failures: it stops the round instead.
     let dates: DateSlot[] = [];
     if (deep || !classified) {
       const [availability] = await fetchInventory([
@@ -604,6 +612,7 @@ export const usjSource: Source = {
         target.timeSlots = await fetchTimeSlots(entry.code, target.date, attractionNames);
         pending.push(target);
       } catch (err) {
+        if (err instanceof BlockedError) throw err;
         // Losing one date's slot lookup must not lose the rest of the run.
         console.error(`[usj]   ${entry.code} ${target.date} failed: ${err instanceof Error ? err.message : err}`);
         if (prev?.timeSlots) {

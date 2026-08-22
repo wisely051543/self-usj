@@ -10,5 +10,7 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+  // `test-support.ts` is test-only plumbing that carries no `.test.ts` suffix,
+  // so it needs naming here to stay out of dist/ alongside the tests it serves.
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/test-support.ts"]
 }
