@@ -239,3 +239,4 @@ location: .github/workflows/ci.yml:41、.github/workflows/fetch.yml:64-68
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 reason: GitHub Actions 對預設 `GITHUB_TOKEN` 推送的提交不會觸發其他 workflow（反遞迴保護），而 `fetch.yml` 的 commit 步驟正是用預設 token 直接 push 到 `main`，故 `ci.yml` 的 `on: push` 不會為那些提交執行。`index.html` 端的 `assertCalendarSchema`／`assertIndexSchema` 仍會在使用者瀏覽器端擋下錯誤版本，故本 story 的 AC 仍然成立；但 CI 閘門「建置紅燈而非無聲錯誤」的敘事對排程回合這個主要情境實際上不生效，要等到下一次人工 push 或 PR 觸發 CI 才會被抓到。修正需要調整 `fetch.yml` 的推送機制（例如改用具備推送觸發權限的 token 或改走 PR），屬既有排程／推送架構的變更。
 status: open
+decision: 2026-08-22 併入 Story 1.11 的 PAT 工作
