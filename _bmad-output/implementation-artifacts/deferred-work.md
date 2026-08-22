@@ -180,6 +180,7 @@ source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: medium
 reason: AD-14 的字面要求是「`data/` 下的每一份檔案各自擁有獨立的 `schemaVersion` 序列」。 本 story 的 AC 只點名 `days.json` 與 `index.json`，產品檔連版號欄位都尚未存在， 為其引入版號屬新的結構變更，須自成一個 story。
 status: open
+decision: 2026-08-22 留待 Story 1.10 一併評估
 
 ### DW-23: `index.html` 的 `boot()` 取 `data/index.json` 時未檢查 `res.ok` 就 `res.json()`， 404/500 會以 JSON 解析錯誤的面貌出現。
 origin: spec-deferred a17edf54c60d
