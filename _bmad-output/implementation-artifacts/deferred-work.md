@@ -109,3 +109,27 @@ source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-132139-136d; this entry preserves the lingering recommendation for a deliberate later review.
 status: open
+
+### DW-15: `buildDays()` 不讀 `ProductSummary` 的 `stale` / `error` 旗標，因此本回合抓取失敗或被 `--product=` 跳過的票種，其舊檔中不存在的日期會被以與新鮮資料相同的信心斷言為 `sold-out`。
+origin: spec-deferred d0a5552c6e70
+location: src/fetcher.ts (buildDays / cellStatus)
+source_spec: `spec-1-5-完整格網快照與狀態判定.md`
+severity: medium
+reason: `src/fetcher.ts` 的 `buildDays()` 只取 `summary.code`，`cellStatus()` 亦只看 `ProductResult` 的內容，兩者都看不到 `summary.stale === true`（`src/fetcher.ts` 逐產品 迴圈失敗分支與 untouched 合併處會設定它）。格網化之前，陳舊檔案只會讓「可購」格延用舊值； 格網化之後，它額外產生「已售罄」這個新的、具體且可能錯誤的斷言。 本 story 的 AC2 無條件要求「缺席 + latestDate → 售罄／尚未開賣」，未對陳舊證據設例外， 故本回合依 intent 實作；新鮮度標示由 Story 1.10（靜默失敗偵測）與 Story 3.7（資料新鮮度 與過期標示）承接時應一併決定陳舊票種的格子是否降級為 `unknown`。
+status: open
+
+### DW-16: 整回合證據崩潰（所有產品檔皆讀不到）時，會產出 5,735 格全 `unknown` 的格網覆蓋掉上一份good 快照，且 `main()` 仍以 exit 0 結束。
+origin: spec-deferred 8869a3e0176f
+location: src/fetcher.ts (main 的 writeDays 呼叫點)
+source_spec: `spec-1-5-完整格網快照與狀態判定.md`
+severity: medium
+reason: `cellStatus()` 對 `readProduct() === null` 回傳 `unknown`（正確，單一票種層級已有測試涵蓋）， 但沒有任何一層檢查「整份格網沒有任何 available 格」。`writeDays()` 會照寫， `.github/workflows/fetch.yml` 的 commit 步驟為 `if: always()`，而 `main()` 只在 `failed === targets.length` 時才 exit 1——讀檔失敗不計入 `failed`。 此為既有行為（格網化前同樣會把 `days.json` 寫成空物件），且 Story 1.10 「零/近零結果視為失敗，不得寫入快照」正是為此而設，故不在本 story 修補。
+status: open
+
+### DW-17: `days.json` 的格子結構已變更但 `schemaVersion` 仍為 `1`，且 `index.html` 完全不讀 `schemaVersion`，因此在 1.5 與 1.6 之間存在「舊快取頁面讀到新檔」的視窗。
+origin: spec-deferred edc11e3d2bf3
+location: src/types.ts (Days.schemaVersion) / index.html
+source_spec: `spec-1-5-完整格網快照與狀態判定.md`
+severity: medium
+reason: 舊版 `fitsParty` 的守衛為 `p.units == null || p.units >= people`；非可購格沒有 `units` 欄位，`undefined == null` 為 true，因此每一格都會通過，售罄與尚未開賣的票種會被畫成可購列 ——正是本 story 要防的錯誤方向。`days.json` 以 `?t=${catalog.updatedAt}` 破快取，但 `index.html` 由瀏覽器獨立快取，已開啟未重載的頁面即落在此視窗內。 升版與「下游遇未識別版本須中止」由 Story 1.6 承接；惟 1.6 的規則作用於建置端， 不涵蓋瀏覽器端已載入的舊頁面，該視窗需在 1.6 或 Epic 2 cutover 時一併確認關閉。
+status: open

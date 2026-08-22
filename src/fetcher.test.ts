@@ -25,6 +25,7 @@ import * as path from 'node:path';
 import { BlockedError } from './limiter';
 import { usjSource } from './sources/usj';
 import { main } from './fetcher';
+import { everyNthDay, shiftMonths, todayJST } from './dates';
 import type { CatalogEntry, ProductResult } from './types';
 
 /** Typed so the mocks below are checked against the real signatures. */
@@ -248,4 +249,58 @@ test('an ordinary (non-BlockedError) failure on one product is recorded and the 
   assert.equal(index.products.length, 2, 'both the failed and the succeeding product must appear in the index');
   const failedSummary = index.products.find((p: { code: string }) => p.code === catalogEntry.code);
   assert.ok(failedSummary?.error, 'the failed product must carry an error field (existing behavior, unchanged)');
+});
+
+/**
+ * Story 1.5: the snapshot's date domain is this round's range.
+ *
+ * `buildDays` takes the range as an argument now, and nothing below `main()`
+ * can tell whether it was handed the right one — a call site wired to some
+ * narrower window (a single product's calendar, say) would quietly shrink the
+ * grid to a fraction of the days it should cover, with every grid-level test
+ * still green because they all pass their own range in. So this asserts the
+ * wiring from the outside: whatever `main()` asked the store for is what the
+ * written snapshot spans.
+ */
+test('the days.json a round writes spans that round\'s whole fetch range', async (t: TestContext) => {
+  t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
+  t.mock.method(usjSource, 'fetchProduct', async () => productResult(catalogEntry.code));
+
+  const contents = new Map<string, string>();
+  const { written } = mockFs(t);
+  t.mock.method(fs, 'writeFileSync', ((file: unknown, data: unknown) => {
+    written.push(String(file));
+    contents.set(String(file), String(data));
+  }) as typeof fs.writeFileSync);
+  t.mock.method(process, 'exit', (() => undefined) as (code?: number) => never);
+  t.mock.method(console, 'error', () => undefined);
+  t.mock.method(console, 'log', () => undefined);
+
+  // JST midnight could roll over mid-run, which would make a hard-coded
+  // expectation flake once a day. Bracket the run instead and require the
+  // snapshot to start on the day it actually saw.
+  const before = todayJST();
+  await main();
+  const after = todayJST();
+
+  const daysPath = snapshotWrites(written).find(p => p.endsWith('days.json'));
+  assert.ok(daysPath, 'a completed round must write days.json');
+  const dates = Object.keys(JSON.parse(contents.get(daysPath) as string).days);
+
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  assert.ok(
+    first === before || first === after,
+    `the grid must start on the round's own start date, got ${first} (round ran ${before}..${after})`,
+  );
+  assert.equal(
+    last,
+    shiftMonths(first, 6),
+    'and run to the end of the range the round asked the store for, six months out',
+  );
+  assert.deepEqual(
+    dates,
+    everyNthDay(first, last, 1),
+    'with every day in between present exactly once and in order — no gaps, no truncated domain',
+  );
 });

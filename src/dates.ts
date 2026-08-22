@@ -12,6 +12,19 @@ export function addDays(date: string, days: number): string {
   return t.toISOString().slice(0, 10);
 }
 
+/**
+ * Which day of the week a date falls on — 0=Sun … 6=Sat, locale-neutral.
+ *
+ * Computed in UTC so the runner's timezone cannot shift it. It lives here
+ * rather than beside the source parser because the snapshot now labels dates
+ * the store never returned a row for, and a second copy of the formula is a
+ * second thing to keep in step.
+ */
+export function dayOfWeek(date: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 /** The day after `date` — the calendar API's end bound is exclusive-ish. */
 export function nextDay(date: string): string {
   return addDays(date, 1);

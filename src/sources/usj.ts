@@ -8,7 +8,7 @@ import {
   Source,
   TimeSlot,
 } from '../types';
-import { everyNthDay, shiftMonths } from '../dates';
+import { dayOfWeek, everyNthDay, shiftMonths } from '../dates';
 import { BlockedError, budgetExhausted, limitedFetch, mapLimit } from '../limiter';
 
 /**
@@ -168,14 +168,11 @@ export function parseCalendarDate(cd: CalendarDate): DateSlot {
   const maxAvailable = parseInt(inv.maxAvailable, 10) || 0;
   const totalCapacity = parseInt(inv.totalCapacity, 10) || 0;
 
-  const [y, m, d] = cd.date.split('-').map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-
   const available = cd.canBeVisited && !cd.forceSoldOut && availableUnits > 0;
 
   return {
     date: cd.date,
-    dayOfWeek,
+    dayOfWeek: dayOfWeek(cd.date),
     available,
     availableUnits,
     maxAvailable,

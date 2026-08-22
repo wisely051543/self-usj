@@ -131,27 +131,53 @@ export interface ProductSummary {
 }
 
 /**
+ * What one (date × pass) cell of the calendar grid is known to be.
+ *
+ * Absence used to carry all four of these at once, which left every reader
+ * guessing — and guessing "sold out" is the one wrong answer that makes a user
+ * give up on a pass they could still buy. So the fetcher decides once, here,
+ * and 'unknown' is a real answer rather than a fallback to the pessimistic one.
+ */
+export type CellStatus = 'available' | 'sold-out' | 'not-yet-released' | 'unknown';
+
+/**
  * One pass on one day, as the day-first view needs it. Deliberately tiny: this
  * is the same fact the product files already hold, transposed, and the whole
  * calendar has to fit in one download.
+ *
+ * Modelled as a union so a price only exists where there is something to buy:
+ * a reader cannot reach `price` or `units` without having looked at `status`
+ * first, which is the whole point of deciding the status in one place.
  */
-export interface DayProduct {
+export interface DayProductOnSale {
   code: string;
+  status: 'available';
   price: number | null;          // per person, that day
   units: number | null;          // tickets left that day; null = not exposed
   slots: number | null;          // time slots known for that day; null = not fetched
 }
 
+/** A cell with nothing to buy: it carries the reason and nothing else. */
+export interface DayProductOffSale {
+  code: string;
+  status: Exclude<CellStatus, 'available'>;
+}
+
+export type DayProduct = DayProductOnSale | DayProductOffSale;
+
 export interface DayEntry {
   dayOfWeek: number;             // 0=Sun … 6=Sat
-  products: DayProduct[];        // only passes on sale that day, cheapest first
+  /** Every pass in the index, exactly one cell each — the ones on sale first, cheapest first. */
+  products: DayProduct[];
 }
 
 /**
- * data/days.json — the product files transposed by date, so "which passes can I
- * buy on the 20th" is one fetch instead of every product file. Carries no
- * timestamp of its own: it is written only when the answer changes, which is
- * what keeps it out of most commits.
+ * data/days.json — the product files transposed by date into a full grid: every
+ * date in the fetched range × every pass in the index, each with an explicit
+ * status. Answering "which passes can I buy on the 20th" is one fetch instead
+ * of every product file, and "why can I not buy this one" is answered too.
+ * Carries no timestamp of its own: it is written only when the answer changes,
+ * which is what keeps it out of most commits.
  */
 export interface Days {
   schemaVersion: 1;

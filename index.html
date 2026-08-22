@@ -1025,9 +1025,21 @@
       return calendar;
     }
 
+    /**
+     * The cells of that day's grid the fetcher marked buyable.
+     *
+     * days.json carries every pass for every date now, each with an explicit
+     * status, so `products` is no longer "what is on sale" — it is the whole
+     * row. The status is read, never re-derived: a cell with no price is not
+     * the same fact as a cell that is sold out.
+     */
+    function onSale(entry) {
+      return ((entry && entry.products) || []).filter(p => p.status === 'available');
+    }
+
     /** Passes that still have room for the party, given the day-level count. */
     function fitsParty(entry, people) {
-      return (entry.products || []).filter(p => p.units == null || p.units >= people);
+      return onSale(entry).filter(p => p.units == null || p.units >= people);
     }
 
     function dayRowHtml(item) {
@@ -1076,8 +1088,9 @@
       card.querySelector('.people .minus').disabled = dayState.people <= 1;
       card.querySelector('.people .plus').disabled = dayState.people >= MAX_PEOPLE;
 
+      const selling = onSale(entry);
       const fitting = fitsParty(entry, dayState.people);
-      const hidden = entry.products.length - fitting.length;
+      const hidden = selling.length - fitting.length;
       card.querySelector('.people-note').textContent = hidden > 0
         ? t('peopleNoteDayHidden', hidden, dayState.people)
         : t('peopleNoteDay');
@@ -1088,15 +1101,15 @@
           ${fmtDate(dayState.date)}
           <span class="${dowClass(entry.dayOfWeek)}">${esc(t('dayNames')[entry.dayOfWeek])}</span>
         </div>
-        <div class="detail">${esc(t('dayDetail', entry.products.length))}${
+        <div class="detail">${esc(t('dayDetail', selling.length))}${
           hidden > 0 ? esc(t('dayDetailFit', fitting.length, dayState.people)) : ''}</div>`;
 
       const body = card.querySelector('.slot-body');
       // Rows that do not fit stay visible but dimmed — a sold-down pass is
       // still an answer to "what is on sale that day".
-      body.innerHTML = entry.products.length
-        ? `<div class="section-title">${esc(t('dayTitle', entry.products.length))}</div>` +
-          entry.products.map(dayRowHtml).join('')
+      body.innerHTML = selling.length
+        ? `<div class="section-title">${esc(t('dayTitle', selling.length))}</div>` +
+          selling.map(dayRowHtml).join('')
         : `<div class="empty">${esc(t('dayEmpty'))}</div>`;
 
       body.querySelectorAll('.day-row').forEach(row => {
@@ -1129,7 +1142,12 @@
 
     function renderDay() {
       const host = document.getElementById('product-root');
-      const dates = Object.keys(calendar.days);
+      // The snapshot is a full grid: every date in the fetched range has a row
+      // whether or not anything is buyable on it. The strip stays what it was —
+      // the days there is something to buy — rather than growing the full six
+      // months of the fetch range into empty pills. Showing the rest is the
+      // matrix view's job, not this one's.
+      const dates = Object.keys(calendar.days).filter(date => onSale(calendar.days[date]).length > 0);
 
       if (dates.length === 0) {
         host.innerHTML = `<div class="card"><div class="error-box">${esc(t('emptyCalendar'))}</div></div>`;
