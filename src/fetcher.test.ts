@@ -105,10 +105,39 @@ function captureErrors(t: TestContext): string[] {
   return lines;
 }
 
+/**
+ * The body a blocking store serves instead of the catalogue. Multi-line on
+ * purpose: what reaches the log has to be the single-line snippet, not this.
+ */
+const BLOCK_PAGE = 'Access Denied\n  Request blocked by WAF\n';
+
+/** The shape `logAbortSummary` prints, asserted rather than keyword-matched. */
+const ABORT_SUMMARY = /^\[fetch\] aborted after \d+ requests in \d+\.\d+s$/;
+
+/**
+ * The summary has to be printed on the way to `process.exit`, and after the
+ * alert that says why the round is ending — the two lines are read together,
+ * and "how far did it get" only means something once you know it was a block.
+ */
+function assertAbortSummaryFollows(errors: string[], alertIndex: number): void {
+  const summaryIndex = errors.findIndex(line => ABORT_SUMMARY.test(line));
+  assert.notEqual(
+    summaryIndex,
+    -1,
+    `the abort must say how far the round got, in the shape ${ABORT_SUMMARY}, got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    summaryIndex > alertIndex,
+    `the summary must follow the alert it explains, got: ${JSON.stringify(errors)}`,
+  );
+}
+
 test('a BlockedError from fetchProduct stops the round with a non-zero exit, leaving the snapshot files untouched', async (t: TestContext) => {
   t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
   t.mock.method(usjSource, 'fetchProduct', async () => {
-    throw new BlockedError('https://example.test/product', 503);
+    // A body, because the status alone is what DW-8 found insufficient: this is
+    // the round trip from a WAF page to the one line an operator actually reads.
+    throw new BlockedError('https://example.test/product', 503, BLOCK_PAGE);
   });
 
   const { written } = mockFs(t);
@@ -129,12 +158,23 @@ test('a BlockedError from fetchProduct stops the round with a non-zero exit, lea
     'index.json/days.json must not be rewritten when the round is aborted by a block (NFR11)',
   );
 
-  const alert = errors.find(line => line.includes('blocked'));
-  assert.ok(alert, `the abort must say it was a block, got: ${JSON.stringify(errors)}`);
+  const alertIndex = errors.findIndex(line => line.includes('blocked'));
+  assert.notEqual(alertIndex, -1, `the abort must say it was a block, got: ${JSON.stringify(errors)}`);
+  const alert = errors[alertIndex];
   assert.ok(
     alert.includes(catalogEntry.code) && alert.includes('503'),
     `the block alert must name the product and the status, got: ${alert}`,
   );
+  assert.ok(
+    alert.includes('Access Denied Request blocked by WAF'),
+    `the block alert must carry the body snippet, collapsed to one line, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(!alert.includes('\n'), `the alert must stay a single log line, got: ${JSON.stringify(alert)}`);
+
+  // Read after `assert.rejects` resolved — i.e. after `process.exit` was
+  // reached — so seeing the line at all proves it was printed ahead of the
+  // exit rather than stranded behind it with the closing summary.
+  assertAbortSummaryFollows(errors, alertIndex);
 });
 
 /**
@@ -169,10 +209,18 @@ test('a BlockedError from catalog sampling ends the round non-zero before any pr
     [],
     'index.json/days.json must be left at the last successful round (NFR11)',
   );
-  assert.ok(
-    errors.some(line => line.includes('catalog') && line.includes('429')),
+  const alertIndex = errors.findIndex(line => line.includes('catalog') && line.includes('429'));
+  assert.notEqual(
+    alertIndex,
+    -1,
     `the abort must be reported with the blocking status, got: ${JSON.stringify(errors)}`,
   );
+  // As above: the summary has to land before the exit, not with the closing log
+  // the abort jumps over. The count here is whatever this test's mocks issued —
+  // zero, since `listProducts` never reaches the network. In production the same
+  // exit is reached only after a request and three retries, so the number is the
+  // point; the assertion pins the line's shape rather than its value.
+  assertAbortSummaryFollows(errors, alertIndex);
 });
 
 /**

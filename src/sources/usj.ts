@@ -454,14 +454,27 @@ export const usjSource: Source = {
     const samples = everyNthDay(range.start, range.end, CATALOG_SAMPLE_DAYS);
     const byCode = new Map<string, CatalogEntry>();
 
+    // A throwing callback only ends the worker it threw from; `mapLimit`'s other
+    // workers keep pulling the remaining dates. Once a block has surfaced those
+    // are all chasing the same wall, so this stops the ones not yet started.
+    // Requests already in flight cannot be called back — that much detection lag
+    // is known and accepted, and is why the round still stops on the throw below
+    // rather than on this flag.
+    let blocked = false;
+
     await mapLimit(samples, async date => {
+      if (blocked) return;
+
       let products: SearchProduct[];
       try {
         products = await fetchCatalogPage(date);
       } catch (err) {
         // A continuing block is not one blind sample — it must not be swallowed
         // like one. Let it propagate so the round stops (AD-16 #1).
-        if (err instanceof BlockedError) throw err;
+        if (err instanceof BlockedError) {
+          blocked = true;
+          throw err;
+        }
         // One blind sample costs at most a product that no other sample saw.
         console.error(`[usj] catalog ${date} failed: ${err instanceof Error ? err.message : err}`);
         return;

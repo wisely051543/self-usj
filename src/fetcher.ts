@@ -254,6 +254,23 @@ export function writeDays(days: Days): boolean {
   return true;
 }
 
+/**
+ * The round-level tally an aborted round would otherwise take to the grave.
+ *
+ * `main()`'s closing summary sits past every abort's `process.exit(1)`, so a
+ * blocked round used to leave only "we were blocked" with no sense of how far
+ * it got or how long it spent getting there — the two numbers that separate a
+ * store that blocked on request three from one that blocked after twenty
+ * minutes of grinding. Kept as its own message rather than sharing the closing
+ * summary's format string, so neither line can be reworded by an edit aimed at
+ * the other. `console.error` to land in the same stream as the block alert it
+ * follows.
+ */
+function logAbortSummary(startedAt: number): void {
+  const seconds = Math.max(0, Date.now() - startedAt) / 1000;
+  console.error(`[fetch] aborted after ${requestCount()} requests in ${seconds.toFixed(1)}s`);
+}
+
 /** Exported so tests can await it directly instead of racing its fire-and-forget invocation below. */
 export async function main() {
   const wanted = process.argv
@@ -276,6 +293,7 @@ export async function main() {
     catalog = await source.listProducts(range, known);
   } catch (err) {
     console.error(`[fetch] catalog failed: ${err instanceof Error ? err.message : err}`);
+    logAbortSummary(startedAt);
     process.exit(1);
   }
 
@@ -327,6 +345,7 @@ export async function main() {
         // writes are incremental by design, and index.json is what decides
         // which of them the site reads.
         console.error(`[fetch] ${entry.code} blocked: ${err.message}`);
+        logAbortSummary(startedAt);
         process.exit(1);
       }
 

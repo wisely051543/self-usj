@@ -68,7 +68,9 @@ location: src/limiter.ts:120-127
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: `src/limiter.ts` 的 `limitedFetch` 於重試耗盡時 `await res.text().catch(() => undefined)` 後即丟棄，只以 `BlockedError(url, status)` 攜帶 URL 與狀態碼。獨立審查（blind-hunter、 edge-case-hunter）皆指出此點；本 story 的 AC 僅要求可用 `instanceof` 辨識封鎖並中止回合， 未要求攜帶回應內文，屬額外強化而非本 story 範圍缺陷。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-block-abort-path-hardening
+resolution-undo: 28808aec610d79c52978609d3a007ac27c9438a25d2cda2890dde1fdc79cb947 2026-08-22 7374617475733a206f70656e
 
 ### DW-9: `listProducts` 以 `mapLimit`（並行度 4）併發取樣多個日期，其中一個取樣命中持續封鎖並 throw `BlockedError` 後，其餘已在併發中的取樣仍會各自跑完自己的完整重試序列才各自失敗， 並非「偵測到即取消其餘進行中請求」，使「立即停止」在併發情境下有偵測延遲。
 origin: spec-deferred 5f718f95ac0f
@@ -76,7 +78,9 @@ location: src/sources/usj.ts:438-467
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: `Promise.all`／`mapLimit` 的設計本質如此：JS 無法中途取消已發出的 in-flight request。`src/sources/usj.ts` 的 `mapLimit(samples, ...)` 呼叫並未加入共享的 abort 旗標。獨立審查（blind-hunter、edge-case-hunter）皆指出此點；AC 的「立即停止」 合理解讀為「偵測到後不再發起新請求」而非「取消所有已在途的請求」，故不視為本 story 缺陷，但併發取樣的偵測延遲值得記錄。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-block-abort-path-hardening
+resolution-undo: 28808aec610d79c52978609d3a007ac27c9438a25d2cda2890dde1fdc79cb947 2026-08-22 7374617475733a206f70656e
 
 ### DW-10: `fetcher.ts` 因持續封鎖中止時，跳過了 `main()` 原本結尾處的請求數／耗時彙總 log， 降低事後排查此次回合實際跑了多少請求、耗時多久的可見度。
 origin: spec-deferred 3657aa24548a
@@ -84,7 +88,9 @@ location: src/fetcher.ts:256-264
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: `src/fetcher.ts` 的 `BlockedError` catch 分支只印一行 `[fetch] {code} blocked` 訊息 即呼叫 `process.exit(1)`，未執行到後面 `requestCount()`／耗時的彙總 log。獨立審查 （blind-hunter）指出此點；AD-16 只要求「非 0 exit 觸發 GitHub Actions 內建失敗通知」， 未要求額外彙總資訊，屬觀測性強化而非本 story AC 缺陷。
-status: open
+status: done 2026-08-22
+resolution: resolved by sweep bundle dw-block-abort-path-hardening
+resolution-undo: 28808aec610d79c52978609d3a007ac27c9438a25d2cda2890dde1fdc79cb947 2026-08-22 7374617475733a206f70656e
 
 ### DW-11: 因封鎖中止的回合，雖然不會改寫 `index.json`／`days.json`，但中止前已逐一寫入的 `data/products/*.json`（含被判定為 walk-up 而刪除的檔案）仍留在磁碟，且 `.github/workflows/fetch.yml` 的 commit 步驟為 `if: always()`，會把這批 與未更新的 `index.json` 不一致的檔案一起提交。
 origin: spec-deferred 7d964dcc27e0
@@ -285,4 +291,76 @@ location: n/a
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-193604-52a6; this entry preserves the lingering recommendation for a deliberate later review.
+status: open
+
+### DW-35: `src/sources/usj.ts:313` 的另一處 `mapLimit`（時段庫存批次）與 `listProducts` 有完全相同的併發缺口， 本次刻意未加封鎖旗標。
+origin: spec-deferred f147c4bf3ccd
+location: src/sources/usj.ts:313-337
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: medium
+reason: 該處於 `src/sources/usj.ts:333` 同樣以 `if (err instanceof BlockedError) throw err;` 傳播， 但沒有共享旗標，其餘 worker 在封鎖浮現後仍會繼續對已知封鎖的來源送出批次請求。 本次 intent 指名的是 `listProducts`，故不在範圍；修法與本次完全相同（旗標 + callback 首行檢查）。
+status: open
+
+### DW-36: `usj.ts` 四個 `!res.ok` throw 點各自內嵌 `.slice(0, 200)` 魔術數字，未改用新匯出的 `BLOCKED_BODY_SNIPPET_MAX`；其中 calendar 那一處更完全沒有上限。
+origin: spec-deferred 0dab1c56c2ff
+location: src/sources/usj.ts:174
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: medium
+reason: `src/sources/usj.ts:261`、`:359`、`:432` 皆為 `(await res.text()).slice(0, 200)` 字面值； `src/sources/usj.ts:174` 則是 `Calendar API returned ${res.status}: ${await res.text()}`， 完全沒有截斷，可能把整頁 HTML 灌進公開的 Actions log。本次新增了具名常數與 `snippet()` 正規化，但未回頭套用到這四處，repo 目前存在兩套並行慣例。
+status: open
+
+### DW-37: 封鎖偵測後，已通過旗標檢查但仍卡在速率閘門／退避 sleep 的取樣，依舊會跑完自己完整的 1s/2s/4s 重試序列，沒有 AbortSignal 可取消。
+origin: spec-deferred 6ce522a6891e
+location: src/sources/usj.ts:463-470
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: `listProducts` 的旗標檢查在 `mapLimit` callback 首行，實際請求要再經 `fetchCatalogPage` → `limitedFetch` → `acquire()` → 速率閘門 `sleep()` 才送出； 最多 `CONCURRENCY - 1` 個取樣會在偵測後仍各自對已封鎖來源送出首次請求與三次重試。 intent 明示「在途請求無法取消，不在範圍內」，但把閘門前排隊的請求也歸入「在途」， 比 intent 字面的排除範圍更寬，值得記錄。
+status: open
+
+### DW-38: `--product=` 找不到對應產品時的 `process.exit(2)` 仍會跳過任何彙總，而該路徑已經跑完整輪 catalog 取樣。
+origin: spec-deferred da0e3be97fae
+location: src/fetcher.ts:300-304
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: `src/fetcher.ts` 的 `No product matched ...` 分支在 `listProducts` 已耗用真實請求與時間之後 直接 exit 2，沒有 `logAbortSummary`。本次 DW-10 的授權範圍是「因持續封鎖中止」， 故未涵蓋；但這是唯一剩下的無彙總早退出口。
+status: open
+
+### DW-39: `main()` 於檔尾以 `main();` 呼叫且未接 `.catch()`，非封鎖類的意外例外仍會以 unhandledRejection 收場，且同樣沒有彙總。
+origin: spec-deferred 48bfb04bc401
+location: src/fetcher.ts:409-411
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: medium
+reason: `if (require.main === module) { main(); }`；catalog 階段之後任何 throw （`fs.writeFileSync` EACCES、`buildDays` 例外等）都不會經過本次新增的 `logAbortSummary`。 屬既有結構問題，非本次變更造成。
+status: open
+
+### DW-40: 本次新增的封鎖旗標在目前的生產接線下作用窗口極窄，其效益主要是防禦性的。
+origin: spec-deferred 982babb109ba
+location: src/sources/usj.ts:463
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: `listProducts` 的唯一生產呼叫點 `src/fetcher.ts` 的 catalog catch 會在 rejection 的 microtask 續行中同步 `process.exit(1)`，其餘 worker 多半停在 macrotask（網路 I/O 或 `sleep()`）上，來不及重新檢查旗標。旗標真正發揮作用的前提是未來有不會立即 exit 的呼叫者。 新測試直接呼叫 `listProducts` 並在 rejection 後續 tick，才觀察得到差異。
+status: open
+
+### DW-41: I/O 矩陣「超長內文」列以等式描述長度，但當截斷點恰落在代理對（surrogate pair）中間時， `body.length` 會是 199 而非 200。
+origin: spec-deferred a34d3d6020a2
+location: src/limiter.ts
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: `clipLoneSurrogate` 會丟掉被切一半的高位代理，以免輸出孤立代理字元。 矩陣該列陳述的輸入是 `'x'.repeat(500)`，該輸入下等式成立；此為措辭與實作在極端輸入上的 落差，非行為缺陷。
+status: open
+
+### DW-42: 截斷沒有任何標記，恰好 200 字的內文與被截斷的內文在 log 上無從分辨。
+origin: spec-deferred 6236d53e937b
+location: src/limiter.ts
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: 本輪一度加上 `…` 標記，但 `<intent-contract>` 的 I/O 矩陣「超長內文」列明訂 `body.length` 等於上限常數（200），標記使長度變成 201，與凍結契約抵觸，故回滾。 要落地需先修訂 intent-contract 的該列措辭。
+status: open
+
+### DW-43: 欄位名 `body` 實際存放的是正規化並截斷後的片段，名稱與內容不符，需靠 JSDoc 更正。
+origin: spec-deferred 5d272c029812
+location: src/limiter.ts
+source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
+severity: low
+reason: 本輪一度更名為 `bodySnippet`，但 I/O 矩陣四列皆以 `body` 指稱該欄位，屬凍結契約，故回滾。 此欄位為本次新增，趁尚無其他消費者時更名成本最低，但同樣需先修訂 intent-contract。
 status: open

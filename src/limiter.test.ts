@@ -2,7 +2,7 @@
  * Story 1.4: the retry/backoff behaviour `limitedFetch` (src/limiter.ts) owes
  * the rest of the fetcher.
  *
- * Two invariants are locked here. First, the widening retry delay itself —
+ * Three invariants are locked here. First, the widening retry delay itself —
  * `RETRY_DELAYS_MS` is private, so this asserts the literal sequence
  * [1000, 2000, 4000] rather than importing it, which is the point: a future
  * edit that quietly flattens it to a fixed delay fails this test instead of
@@ -10,7 +10,9 @@
  * Second, that retries exhausted while still 429/5xx throw `BlockedError`
  * rather than handing the blocked `Response` back to the caller, which is the
  * signal `usj.ts` and `fetcher.ts` rely on to stop a round instead of
- * grinding through it (AD-16 #1).
+ * grinding through it (AD-16 #1). Third, that the blocked response's body
+ * survives as a bounded single-line snippet on that error — see the block of
+ * tests at the bottom for why a status code alone is not enough to act on.
  *
  * `fetch` and the timer/Date pair are both mocked so a full exhausted-retry
  * run (1000 + 2000 + 4000 ms of real delay) costs nothing. `Date` is mocked
@@ -30,13 +32,13 @@
 
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
-import { BlockedError, limitedFetch } from './limiter';
-import { flush, track } from './test-support';
+import { BLOCKED_BODY_SNIPPET_MAX, BlockedError, limitedFetch } from './limiter';
+import { flush, settle, track } from './test-support';
 
 /** Not named `URL`: that shadows the global constructor for the whole file. */
 const TEST_URL = 'https://example.test/resource';
 
-const response = (status: number): Response => new Response('', { status });
+const response = (status: number, body = ''): Response => new Response(body, { status });
 
 /** Let pending microtasks run, then fire whatever mocked timer is now due. */
 async function advance(t: TestContext, ms: number): Promise<void> {
@@ -113,4 +115,135 @@ test('BlockedError carries the url and status that caused it, and is instanceof 
   assert.ok(err instanceof Error);
   assert.equal(err.url, TEST_URL);
   assert.equal(err.status, 503);
+});
+
+/**
+ * The diagnostic snippet. A blocked round's log used to carry the status and
+ * nothing else, which cannot tell "the store is briefly unwell" apart from "a
+ * WAF is serving us a captcha page" — and the body that would have said so was
+ * already being read to drain the socket, then dropped.
+ *
+ * The snippet is store-controlled text on its way to a public CI log, so the
+ * normalization is a containment boundary as much as a formatting one: single
+ * line, printable, and bounded. The first case
+ * runs the real exhausted-retry path, since what it locks is the wiring — that
+ * the body read at the throw site actually reaches the error. The rest
+ * construct the error directly, because normalization is an invariant of the
+ * constructor rather than of the retry loop, and a unit call states that
+ * without paying for four mocked round trips to assert a `slice()`.
+ */
+test('an exhausted retry carries the blocked response body through to the error', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 5_000_000 });
+  t.mock.method(globalThis, 'fetch', async () => response(503, 'blocked by WAF'));
+
+  const outcome = await settle(t, limitedFetch(TEST_URL));
+
+  const err = outcome.status === 'rejected' ? outcome.reason : undefined;
+  assert.ok(err instanceof BlockedError, `expected a BlockedError, got ${err}`);
+  assert.equal(err.body, 'blocked by WAF', 'the body read at the throw site must not be dropped');
+  assert.ok(
+    err.message.includes('blocked by WAF'),
+    `the snippet must reach the message an operator reads, got: ${err.message}`,
+  );
+  assert.equal(err.status, 503, 'carrying a body must not disturb the fields already there');
+  assert.equal(err.url, TEST_URL);
+});
+
+test('a body longer than the cap is truncated to exactly BLOCKED_BODY_SNIPPET_MAX', () => {
+  const err = new BlockedError(TEST_URL, 503, 'x'.repeat(500));
+
+  assert.equal(err.body?.length, BLOCKED_BODY_SNIPPET_MAX);
+  assert.equal(err.body, 'x'.repeat(BLOCKED_BODY_SNIPPET_MAX), 'the snippet is a prefix, not a sample');
+});
+
+/**
+ * The scan window is a memory bound, not part of the retained-content contract:
+ * a multi-megabyte error page must not be normalized in full to keep 200
+ * characters. What it costs is content that only appears past the window, which
+ * this pins by putting the second word out of reach.
+ */
+test('only a bounded prefix of the raw body is examined, however long the body is', () => {
+  const err = new BlockedError(TEST_URL, 503, `denied${' '.repeat(50_000)}tail`);
+
+  assert.equal(err.body, 'denied');
+});
+
+test('a multi-line body is collapsed to a single line so the log stays one line', () => {
+  const err = new BlockedError(TEST_URL, 429, '  <html>\n  <body>\n\tAccess denied  \n</body>\n');
+
+  assert.equal(err.body, '<html> <body> Access denied </body>');
+  assert.ok(!err.message.includes('\n'), `the message must stay on one line, got: ${JSON.stringify(err.message)}`);
+});
+
+/**
+ * The store chooses this text and this code prints it into a public Actions
+ * log. `\s` does not cover ESC, so a body left merely whitespace-collapsed
+ * could repaint or reposition an operator's terminal.
+ */
+test('control characters are stripped rather than merely collapsed, so no escape sequence survives', () => {
+  const err = new BlockedError(TEST_URL, 503, 'be\x1b[31mfore\x00mid\x07dle\x7fafter\x0bend');
+
+  assert.equal(err.body, 'be [31mfore mid dle after end');
+  assert.ok(
+    !/[\x00-\x1f\x7f]/.test(err.message),
+    `no control character may reach the message, got: ${JSON.stringify(err.message)}`,
+  );
+});
+
+/**
+ * `slice()` counts UTF-16 code units, so a cut one unit into an astral
+ * character leaves a lone high surrogate — which renders as a replacement
+ * character and does not survive the `JSON.stringify` these very tests use to
+ * report failures.
+ */
+test('a cut landing inside a surrogate pair drops the stranded half instead of emitting it', () => {
+  // One code unit of padding puts the boundary between the two halves of the
+  // emoji, which is the only place the bug can show.
+  const err = new BlockedError(TEST_URL, 503, 'z'.repeat(BLOCKED_BODY_SNIPPET_MAX - 1) + '🚫'.repeat(20));
+
+  const snippet = err.body ?? '';
+  assert.equal(snippet, 'z'.repeat(BLOCKED_BODY_SNIPPET_MAX - 1), 'the split character is dropped whole');
+  assert.ok(
+    ![...snippet].some(ch => {
+      const code = ch.charCodeAt(0);
+      return code >= 0xd800 && code <= 0xdfff;
+    }),
+    `no lone surrogate may survive, got: ${JSON.stringify(snippet)}`,
+  );
+});
+
+test('an absent or empty body leaves the error at its bodyless message, with no dangling suffix', () => {
+  const bodyless = new BlockedError(TEST_URL, 503).message;
+
+  for (const [label, err] of [
+    ['omitted', new BlockedError(TEST_URL, 503)],
+    ['undefined', new BlockedError(TEST_URL, 503, undefined)],
+    ['empty', new BlockedError(TEST_URL, 503, '')],
+    ['whitespace only', new BlockedError(TEST_URL, 503, ' \n\t ')],
+    ['control characters only', new BlockedError(TEST_URL, 503, '\x00\x1b\x7f')],
+  ] as const) {
+    assert.equal(err.body, undefined, `a ${label} body must read as no body at all`);
+    assert.equal(err.message, bodyless, `a ${label} body must not append a dangling ": " to the message`);
+    assert.ok(!err.message.endsWith(':'), `a ${label} body must not leave a trailing colon`);
+  }
+});
+
+test('a body that cannot be read leaves the BlockedError otherwise unchanged', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 6_000_000 });
+  t.mock.method(globalThis, 'fetch', async () => {
+    const res = response(500);
+    // A body that rejects on read — a connection dropped mid-response. The
+    // snippet is a nicety; losing it must not cost the block signal itself.
+    Object.defineProperty(res, 'text', {
+      value: async () => { throw new Error('body stream broke'); },
+    });
+    return res;
+  });
+
+  const outcome = await settle(t, limitedFetch(TEST_URL));
+
+  const err = outcome.status === 'rejected' ? outcome.reason : undefined;
+  assert.ok(err instanceof BlockedError, `an unreadable body must not change what is thrown, got ${err}`);
+  assert.equal(err.body, undefined);
+  assert.equal(err.message, new BlockedError(TEST_URL, 500).message);
 });
