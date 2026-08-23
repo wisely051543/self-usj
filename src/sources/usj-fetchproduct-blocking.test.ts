@@ -23,7 +23,7 @@
 
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
-import { BlockedError } from '../limiter';
+import { BlockedError, snippet } from '../limiter';
 import { settle } from '../test-support';
 import { usjSource } from './usj';
 import type { CatalogEntry, DateRange } from '../types';
@@ -193,3 +193,90 @@ for (const { site, what } of CASES) {
     );
   });
 }
+
+/**
+ * DW-36 patch: the four `!res.ok` throw sites in usj.ts each build their
+ * message as `` `...${snip ? `: ${snip}` : ''}` `` around `snippet()`'s
+ * output. Nothing above inspects a thrown Error's message, so an inverted or
+ * dropped ternary at any of the four sites would pass every test above while
+ * silently discarding the diagnostic body — or, for Calendar, no longer
+ * bounding it at all, which is the exact regression the ledger flagged.
+ *
+ * The product's own calendar lookup (the "Calendar API" call, straight after
+ * the product-info and name lookups both answer normally) is not wrapped in a
+ * try/catch, so its rejection reaches `fetchProduct`'s caller unchanged — the
+ * cleanest of the four sites to assert a message against directly, with no
+ * console.error interception needed.
+ */
+test(
+  "a non-ok, non-retryable Calendar API response's body reaches fetchProduct's rejection " +
+    'as a normalized, capped snippet',
+  async (t: TestContext) => {
+    t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 90_000_000 });
+    t.mock.method(console, 'error', () => undefined);
+
+    // Multi-line, tab-indented, carrying an ANSI escape sequence, and well past
+    // the cap once collapsed — the same shape limiter.test.ts uses to exercise
+    // snippet()'s normalization, aimed here at proving usj.ts's throw site
+    // actually calls it rather than reimplementing (or skipping) the cap.
+    const rawBody = '  Service\tUnavailable\n<html>\x1b[31mERROR\x1b[0m ' + 'x'.repeat(250) + '  ';
+
+    t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+      const url = String(input);
+      // 404 is not retryable, so limitedFetch hands it straight back instead
+      // of exhausting retries into a BlockedError — the plain-Error path all
+      // four throw sites share.
+      if (url.includes('fetchCalendarDatesWithPriceAndInventory')) {
+        return new Response(rawBody, { status: 404 });
+      }
+      return json(PRODUCT_INFO);
+    });
+
+    const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+    assert.equal(outcome.status, 'rejected', 'a non-ok calendar response must reject fetchProduct');
+    const reason = outcome.status === 'rejected' ? outcome.reason : undefined;
+    assert.ok(reason instanceof Error, `expected an Error, got ${reason}`);
+
+    const expectedSnippet = snippet(rawBody);
+    assert.ok(expectedSnippet, 'this raw body must normalize to a non-empty snippet');
+    assert.equal(
+      (reason as Error).message,
+      `Calendar API returned 404: ${expectedSnippet}`,
+      'the message must carry the same normalized, capped snippet that snippet() itself would produce',
+    );
+    assert.ok(
+      !(reason as Error).message.includes('\x1b'),
+      'the ANSI escape in the raw body must not survive into the message',
+    );
+  },
+);
+
+/**
+ * The other half of the same ternary: an empty body must not leave a dangling
+ * `: ` on the message, matching the convention `BlockedError`'s constructor
+ * already follows.
+ */
+test("an empty Calendar API body leaves fetchProduct's rejection message without a dangling colon", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 95_000_000 });
+  t.mock.method(console, 'error', () => undefined);
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) {
+      return new Response('', { status: 404 });
+    }
+    return json(PRODUCT_INFO);
+  });
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'rejected', 'a non-ok calendar response must reject fetchProduct');
+  const reason = outcome.status === 'rejected' ? outcome.reason : undefined;
+  assert.ok(reason instanceof Error, `expected an Error, got ${reason}`);
+  assert.equal(
+    (reason as Error).message,
+    'Calendar API returned 404',
+    'an empty body must leave no dangling ": " suffix on the message',
+  );
+});

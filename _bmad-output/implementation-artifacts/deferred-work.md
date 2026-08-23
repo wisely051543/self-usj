@@ -319,7 +319,9 @@ location: src/sources/usj.ts:174
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: medium
 reason: `src/sources/usj.ts:261`、`:359`、`:432` 皆為 `(await res.text()).slice(0, 200)` 字面值； `src/sources/usj.ts:174` 則是 `Calendar API returned ${res.status}: ${await res.text()}`， 完全沒有截斷，可能把整頁 HTML 灌進公開的 Actions log。本次新增了具名常數與 `snippet()` 正規化，但未回頭套用到這四處，repo 目前存在兩套並行慣例。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-usj-response-snippet-consistency
+resolution-undo: ba12f270878d8a5f8e10c97dbc1005eb9acee6ef764efe41218d7d1be5934469 2026-08-23 7374617475733a206f70656e
 
 ### DW-37: 封鎖偵測後，已通過旗標檢查但仍卡在速率閘門／退避 sleep 的取樣，依舊會跑完自己完整的 1s/2s/4s 重試序列，沒有 AbortSignal 可取消。
 origin: spec-deferred 6ce522a6891e
@@ -428,4 +430,20 @@ location: .github/workflows/fetch.yml:45-56
 source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
 severity: low
 reason: intent-alignment 審查指出：目前 `npm run fetch` 與「Flag failed products」中間沒有 其他步驟，且皆無 `continue-on-error`，所以 `success()` 現況等同於「fetch 這一步成功」； 但這個等價關係是隱含的，沒有用 `steps.<id>.outcome` 明確綁定到 `npm run fetch` 這個 步驟本身。spec 的 Always 條款寫的是「緊鄰的前一步驟」，現況成立，但寫法本身不會在 未來插入新步驟時提醒維護者重新檢查這個假設。
+status: open
+
+### DW-50: src/sources/usj.ts 的四個 !res.ok throw 點都對 await res.text() 沒有 catch 保護， body 讀取本身失敗時會讓原始 stream 例外取代原本意圖的 "X API returned {status}" 訊息。
+origin: spec-deferred d8c52e09ce52
+location: src/sources/usj.ts:174,262,374,448
+source_spec: `spec-dw-36-response-snippet-consistency.md`
+severity: low
+reason: 四處（fetchInventory/fetchTimeSlots/fetchProductInfo/fetchCatalogPage）在本次變更前 就已經是 `await res.text()` 沒有 `.catch()`；DW-36 只重構了截斷/正規化邏輯，沒有改變 這個讀取行為，屬於既有問題而非本次變更造成。limiter.ts 內 BlockedError 對應的讀取 路徑已經有 `.catch(() => undefined)` 保護（見 limitedFetch 的 body 讀取），可作為修法參考。
+status: open
+
+### DW-51: 四個 API 錯誤訊息都沒有帶入呼叫當下的識別資訊（productCode/date/query）， 光看 log 行看不出是哪一個請求失敗。
+origin: spec-deferred 0d32661b291d
+location: src/sources/usj.ts:174,262,374,448
+source_spec: `spec-dw-36-response-snippet-consistency.md`
+severity: low
+reason: 這是既有行為：變更前的三個 `.slice(0, 200)` 版本與 Calendar 的無截斷版本同樣沒有 帶入 productCode/date，DW-36 的範圍只在統一截斷/正規化慣例，未涉及訊息應包含哪些 欄位，因此不屬於本次變更造成的問題。
 status: open

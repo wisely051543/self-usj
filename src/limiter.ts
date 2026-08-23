@@ -37,7 +37,10 @@ export const MAX_REQUESTS_PER_RUN = 900;
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
 
 /**
- * How much of a blocked response's body is kept as a diagnostic snippet.
+ * How much of a store response's body is kept as a diagnostic snippet — used
+ * both for a `BlockedError` after retries are exhausted and for the ordinary
+ * `!res.ok` throws in `usj.ts`'s fetch calls, since either one can be the
+ * first sign of trouble worth reading.
  *
  * A status code alone does not distinguish "the store is briefly unwell" from
  * "a WAF is serving us a captcha page", and the second is the one worth acting
@@ -71,17 +74,18 @@ const clipLoneSurrogate = (s: string): string => {
 /**
  * Collapse a body down to one loggable, printable line, or to nothing at all.
  *
- * The body is store-controlled text that ends up verbatim in a public CI log,
- * so C0/C1 controls and DEL are stripped rather than merely collapsed: `\s`
- * does not cover ESC, and an escape sequence left in would let the store write
- * colours — or reposition the cursor — in someone else's terminal.
+ * Shared by `BlockedError` below and by the ordinary `!res.ok` throws in
+ * `usj.ts`'s fetch calls — the body is store-controlled text that ends up
+ * verbatim in a public CI log either way, so C0/C1 controls and DEL are
+ * stripped rather than merely collapsed: `\s` does not cover ESC, and an
+ * escape sequence left in would let the store write colours — or reposition
+ * the cursor — in someone else's terminal.
  *
  * Empty and absent bodies are deliberately the same answer: "no snippet". That
- * is what lets the message below append the snippet only when there is one,
- * instead of trailing a dangling colon on every blocked request that had an
- * empty body.
+ * is what lets a caller append the snippet only when there is one, instead of
+ * trailing a dangling colon on every failed request that had an empty body.
  */
-const snippet = (body: string | undefined): string | undefined => {
+export const snippet = (body: string | undefined): string | undefined => {
   if (!body) return undefined;
 
   const scanned = clipLoneSurrogate(body.slice(0, BLOCKED_BODY_SCAN_MAX));

@@ -9,7 +9,7 @@ import {
   TimeSlot,
 } from '../types';
 import { dayOfWeek, everyNthDay, shiftMonths } from '../dates';
-import { BlockedError, budgetExhausted, limitedFetch, mapLimit } from '../limiter';
+import { BlockedError, budgetExhausted, limitedFetch, mapLimit, snippet } from '../limiter';
 
 /**
  * Everything is fetched for a party of one. The store hides whatever it cannot
@@ -171,7 +171,8 @@ async function fetchInventory(queries: InventoryQuery[]): Promise<Availability[]
   });
 
   if (!res.ok) {
-    throw new Error(`Calendar API returned ${res.status}: ${await res.text()}`);
+    const snip = snippet(await res.text());
+    throw new Error(`Calendar API returned ${res.status}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as CalendarResponse;
@@ -258,7 +259,8 @@ async function fetchTimeSlots(
 
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    throw new Error(`Variant API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const snip = snippet(await res.text());
+    throw new Error(`Variant API returned ${res.status}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { products?: VariantProduct[] };
@@ -369,7 +371,8 @@ async function fetchProductInfo(
   const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=${lang}&curr=${CURRENCY}`;
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    throw new Error(`Product API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const snip = snippet(await res.text());
+    throw new Error(`Product API returned ${res.status}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { attractions?: { events?: VariantEvent[] } };
@@ -442,7 +445,8 @@ async function fetchCatalogPage(date: string): Promise<SearchProduct[]> {
 
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    throw new Error(`Search API returned ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const snip = snippet(await res.text());
+    throw new Error(`Search API returned ${res.status}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { products?: SearchProduct[] };
