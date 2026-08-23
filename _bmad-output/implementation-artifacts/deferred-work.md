@@ -100,7 +100,9 @@ location: src/fetcher.ts:249-263 / .github/workflows/fetch.yml:61-68
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: medium
 reason: `src/fetcher.ts` 逐產品迴圈在 `writeProduct()`／`fs.rmSync()` 之後才可能於下一個 產品命中 `BlockedError` 並 `process.exit(1)`；新增的 `src/fetcher.test.ts`「a block on a later product…」測試即斷言此行為（先前產品 的檔案確實已寫入）。四個審查角度皆獨立指出。AC 只要求「本回合不得寫入 index.json／days.json（上一份成功快照保留）」，字面已滿足，且站台以 `index.json` 的 `updatedAt` 當快取鍵，故不一致的產品檔實際上讀不到；要真正達成 整份快照原子性需改為緩衝寫入或在 workflow 端加閘門，屬本 story 範圍外的設計決策。
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: No fix; index.json's updatedAt cache key already prevents the site from serving orphaned product files, and true atomic writes are a bigger change better done deliberately.
+decision: 2026-08-23 Accept current behavior — No fix; index.json's updatedAt cache key already prevents the site from serving orphaned product files, and true atomic writes are a bigger change better done deliberately.
 
 ### DW-12: `src/fetcher.ts` 底部新增的 `if (require.main === module)` 閘門沒有任何測試或 CI 冒煙檢查確認 entry point 仍會實際執行；若日後工具鏈改動（ESM／改用 tsx／包一層 launcher）使該條件為 false，`npm run fetch` 會靜默無作為並以 exit 0 結束。
 origin: spec-deferred b2bfe8951a17
@@ -307,7 +309,9 @@ location: src/sources/usj.ts:313-337
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: medium
 reason: 該處於 `src/sources/usj.ts:333` 同樣以 `if (err instanceof BlockedError) throw err;` 傳播， 但沒有共享旗標，其餘 worker 在封鎖浮現後仍會繼續對已知封鎖的來源送出批次請求。 本次 intent 指名的是 `listProducts`，故不在範圍；修法與本次完全相同（旗標 + callback 首行檢查）。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-slot-stock-block-flag-parity
+resolution-undo: b7a548d8677a9afcab4a582565d2514a99352b5efdb190c36da52c6713faf303 2026-08-23 7374617475733a206f70656e
 
 ### DW-36: `usj.ts` 四個 `!res.ok` throw 點各自內嵌 `.slice(0, 200)` 魔術數字，未改用新匯出的 `BLOCKED_BODY_SNIPPET_MAX`；其中 calendar 那一處更完全沒有上限。
 origin: spec-deferred 0dab1c56c2ff
@@ -323,7 +327,9 @@ location: src/sources/usj.ts:463-470
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: `listProducts` 的旗標檢查在 `mapLimit` callback 首行，實際請求要再經 `fetchCatalogPage` → `limitedFetch` → `acquire()` → 速率閘門 `sleep()` 才送出； 最多 `CONCURRENCY - 1` 個取樣會在偵測後仍各自對已封鎖來源送出首次請求與三次重試。 intent 明示「在途請求無法取消，不在範圍內」，但把閘門前排隊的請求也歸入「在途」， 比 intent 字面的排除範圍更寬，值得記錄。
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: No change; this is the same boundary the original story deliberately drew, and the bounded extra requests (up to CONCURRENCY-1) this allows are a known, accepted cost.
+decision: 2026-08-23 Keep current best-effort scope — No change; this is the same boundary the original story deliberately drew, and the bounded extra requests (up to CONCURRENCY-1) this allows are a known, accepted cost.
 
 ### DW-38: `--product=` 找不到對應產品時的 `process.exit(2)` 仍會跳過任何彙總，而該路徑已經跑完整輪 catalog 取樣。
 origin: spec-deferred da0e3be97fae
@@ -363,7 +369,9 @@ location: src/limiter.ts
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: 本輪一度加上 `…` 標記，但 `<intent-contract>` 的 I/O 矩陣「超長內文」列明訂 `body.length` 等於上限常數（200），標記使長度變成 201，與凍結契約抵觸，故回滾。 要落地需先修訂 intent-contract 的該列措辭。
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: No change; already tried and reverted once specifically to honor the frozen contract, and an unmarked 200-char cap is an acceptable log-readability tradeoff.
+decision: 2026-08-23 Keep unmarked, close — No change; already tried and reverted once specifically to honor the frozen contract, and an unmarked 200-char cap is an acceptable log-readability tradeoff.
 
 ### DW-43: 欄位名 `body` 實際存放的是正規化並截斷後的片段，名稱與內容不符，需靠 JSDoc 更正。
 origin: spec-deferred 5d272c029812
@@ -372,6 +380,7 @@ source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: 本輪一度更名為 `bodySnippet`，但 I/O 矩陣四列皆以 `body` 指稱該欄位，屬凍結契約，故回滾。 此欄位為本次新增，趁尚無其他消費者時更名成本最低，但同樣需先修訂 intent-contract。
 status: open
+decision: 2026-08-23 Rename now, update contract — Rename BlockedError.body to bodySnippet, update its JSDoc, and revise the I/O matrix in spec-dw-8-9-10-block-abort-path-hardening.md to match, while no other code consumes the field yet.
 
 ### DW-44: `readIndex()`／`main()` 讀 `data/index.json` 失敗（檔案不存在或非合法 JSON）時， 拋出的是原始 `ENOENT`／`SyntaxError`，不像 `schema-check.ts` 的 `readSchemaVersion()` 那樣包成具名檔案的友善訊息。
 origin: spec-deferred 3a913104726f

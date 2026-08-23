@@ -310,7 +310,17 @@ async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
     batches.push(pairs.slice(i, i + STOCK_BATCH_SIZE));
   }
 
+  // A throwing callback only ends the worker it threw from; `mapLimit`'s other
+  // workers keep pulling the remaining batches. Once a block has surfaced those
+  // are all chasing the same wall, so this stops the ones not yet started.
+  // Requests already in flight cannot be called back — that much detection lag
+  // is known and accepted, and is why the round still stops on the throw below
+  // rather than on this flag.
+  let blocked = false;
+
   await mapLimit(batches, async batch => {
+    if (blocked) return;
+
     try {
       const availability = await fetchInventory(
         batch.map(p => ({ startDate: p.date, endDate: p.date, partNumber: p.slot.variantCode })),
@@ -330,7 +340,10 @@ async function fetchSlotStock(dates: DateSlot[]): Promise<void> {
         p.slot.availableUnits = units.get(`${p.slot.variantCode}@${p.date}`) ?? null;
       }
     } catch (err) {
-      if (err instanceof BlockedError) throw err;
+      if (err instanceof BlockedError) {
+        blocked = true;
+        throw err;
+      }
       // A missing count only costs these slots their party-size filter.
       const span = `${batch[0].date}..${batch[batch.length - 1].date}`;
       console.error(`[usj]   stock batch ${span} failed: ${err instanceof Error ? err.message : err}`);
