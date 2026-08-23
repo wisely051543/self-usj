@@ -249,7 +249,8 @@ origin: migrated from legacy ledger (flat append from spec-1-6-快照-schema-版
 location: src/fetcher.ts:24-31 (readIndex)
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 reason: 本 story 建立的版本守衛只用在消費端（`index.html`）與 CI 閘門。目前無實害——`readIndex()` 只讀 `raw.products` 陣列並已有 `Array.isArray` 結構檢查，`INDEX_SCHEMA_VERSION` 本 story 未變動（維持 5），故版號不符不會腐化合併結果；但此為既有行為（1.6 之前即如此），非本 story 造成，AD-14 的精神（任何讀取此檔的消費者都應驗版）嚴格上也涵蓋這條路徑，值得未來 `index.json` 形狀真的改版時一併補上。
-status: open
+status: done 2026-08-23
+resolution: already resolved: src/fetcher.ts:52-57 — readIndex() now calls assertIndexSchemaVersion(raw.schemaVersion) inside a try/catch that console.errors and returns null; added by commit 7976d8e (sweep dw-dw-fetcher-readindex-version-guard: DW-21).
 
 ### DW-28: 逐票種快照檔（`data/products/<code>.json`，`ProductResult` 型別）完全沒有 `schemaVersion` 欄位，不在本 story 新增的任何守衛（`schema.ts`／`schema-check.ts`／`index.html`）覆蓋範圍內。
 
