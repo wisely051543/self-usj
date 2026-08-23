@@ -528,7 +528,9 @@ location: src/fetcher.ts:307-314
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: `catch { return String(err); }` 對一般物件與 `JSON.stringify` 失敗時的結果相同，並未真正解決此函式本身要避免的 `[object Object]` 問題；只是把觸發條件從「任意物件」縮小到「JSON.stringify 會丟例外的物件（如循環參照）」。 需要循環參照安全的序列化（例如攔截已見過的參照）才能徹底解決，非本次早退彙總修補的範圍。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fatal-error-detail-hardening
+resolution-undo: 5acdddce1ced70e24648da5ec9460ed0c6a7773f414496435a0220ec47b2aa79 2026-08-23 7374617475733a206f70656e
 
 ### DW-57: `handleFatalMainError` 對 `Error` 分支只印出 `err.message`，捨棄 `err.stack`，診斷未知例外時少了呼叫堆疊。
 origin: spec-deferred 466cd80e2e4d
@@ -536,7 +538,9 @@ location: src/fetcher.ts:305-306
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 此函式本身定位是「非預期的 bug」的兜底處理（非既有的封鎖判定），呼叫堆疊正是排查此類意外最有用的資訊；目前只印 `err.message` 會讓 CI 記錄少一層可追溯性。是否要改印 `err.stack` 屬於彙總訊息格式的既有設計決定範圍，非本次 兩處早退彙總插入點的範圍。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fatal-error-detail-hardening
+resolution-undo: 5acdddce1ced70e24648da5ec9460ed0c6a7773f414496435a0220ec47b2aa79 2026-08-23 7374617475733a206f70656e
 
 ### DW-58: DW-38 新測試只涵蓋單一不存在的 `--product=` 代碼，未涵蓋多個 `--product=` 旗標部分命中、或空值 `--product=` 時 `wanted.filter(Boolean)` 會靜默退回抓取整個 catalog 的既有行為。
 origin: spec-deferred 4c11165a95da
@@ -560,7 +564,9 @@ location: src/fetcher.ts:305-306
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 此為邊界情境（呼叫端建構 `Error` 時未帶訊息），機率低；彙總行仍會照常接續印出（請求數與耗時仍可供診斷）， 故非阻斷性缺口，本次不在兩處早退彙總插入的範圍內處理。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fatal-error-detail-hardening
+resolution-undo: 5acdddce1ced70e24648da5ec9460ed0c6a7773f414496435a0220ec47b2aa79 2026-08-23 7374617475733a206f70656e
 
 ### DW-61: `--product=` 未命中分支（DW-38 插入點）呼叫 `logAbortSummary` 未如 `handleFatalMainError` 般以 `try`/`finally` 保護；若 `logAbortSummary` 本身丟出例外，`process.exit(2)` 將不會執行。
 origin: spec-deferred f7fe7021299c
@@ -576,7 +582,9 @@ location: src/fetcher.ts:307-314
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 目前測試只涵蓋 `Error` 與一般物件（`{ code, path }`）兩種情境，未涵蓋 `Promise.reject()` 或 `throw null`/`throw undefined` 這類邊界輸入；雖不會如循環參照物件般印出 `[object Object]`，但「undefined」 字串本身診斷價值有限。此輸入形態罕見，非本次兩處早退彙總插入點的範圍。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fatal-error-detail-hardening
+resolution-undo: 5acdddce1ced70e24648da5ec9460ed0c6a7773f414496435a0220ec47b2aa79 2026-08-23 7374617475733a206f70656e
 
 ### DW-63: Follow-up review still recommended for dw-dw-usj-error-message-hardening after the damping cap was spent
 origin: review-budget-followup
@@ -704,4 +712,44 @@ location: src/i18n-check.test.ts:23-32、src/fetcher.test.ts、src/schema.test.t
 source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
 severity: low
 reason: `grep -ln "function withFiles" src/*.ts` 命中三個檔，三份實作彼此僅註解不同， 且每份註解都指向另一份複本。本輪新增的 Error 值支援（缺檔情境傳 `Error` 而非字串） 只存在於 i18n-check 那一份，三份已開始分歧。此為改動前既有的重複，非本次引入。
+status: open
+
+### DW-79: handleFatalMainError 的 Error 分支只印 err.stack，未走訪 err.cause 鏈， 也未展開 AggregateError.errors，包裝過的錯誤會遺失真正的根因。
+origin: spec-deferred abb4b285c985
+location: src/fetcher.ts:deriveThrownValueDetail（Error-like 分支）
+source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
+severity: low
+reason: V8 的 err.stack 不包含 cause 的堆疊（已由 review 實測確認）： new Error('outer', { cause: inner }) 印出的 stack 完全沒有 inner 的痕跡； Promise.any 的 AggregateError 同理，errors 陣列不會出現在 stack 中。 這與 DW-57「丟掉呼叫堆疊就少一層可追溯性」屬同一類診斷資訊遺失， 但本次 intent 只要求「加上 err.stack」，未涵蓋 cause 走訪； 且此 repo 目前沒有任何地方以 { cause } 建構 Error，故非阻斷性。
+status: open
+
+### DW-80: 更正上一則（已入帳為 DW-79）的嚴重度依據：本 repo 確實會遇到帶 cause 的 Error， 因此不走訪 err.cause 會在最常見的網路失敗上丟掉真正的 errno。
+origin: spec-deferred 2c21b634a67f
+location: src/fetcher.ts:deriveThrownValueDetail（Error-like 分支）；證據在 src/limiter.ts:189-195
+source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
+severity: medium
+reason: DW-79 的理由寫「此 repo 目前沒有任何地方以 { cause } 建構 Error」—— 這句話成立，但不足以支撐 low：cause 不是本 repo 建的，是 undici 建的。 src/limiter.ts:189-195 在重試次數用盡後把 fetch() 丟出的錯誤原樣 rethrow， 而 Node 內建 fetch 失敗時丟的是 `TypeError: fetch failed`， 真正的 ECONNREFUSED / ENOTFOUND / TLS 失敗只掛在 err.cause 上。 已於 Node v24 實測：new Error('outer', { cause: inner }).stack 完全不含 inner， AggregateError.stack 也不含 errors。 也就是說對一個 fetcher 而言，最可能走到這個兜底的值， 正是 DW-57 的修法（印 err.stack）唯一印不出根因的那一種。 本次不修：intent 的 Approach 明寫 Error 分支只做 stack→message→name， 加走訪 cause 鏈與展開 AggregateError.errors 需要新的深度上限與輸出格式決策。
+status: open
+
+### DW-81: process.exit(1) 不會等待 stderr 的非同步寫入完成；當 stderr 是 pipe（CI 常態）時， fatal 行與 abort 摘要可能在寫出前就被截斷，與 detail 長度無關。
+origin: spec-deferred 2b4c45350f9c
+location: src/fetcher.ts:handleFatalMainError（finally 的 process.exit(1)）
+source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
+severity: medium
+reason: Node 對 process.exit() 的行為有明文：stdout/stderr 在導向 pipe 時是非同步寫入， process.exit() 不會等它們排空，因此輸出可能遺失。 handleFatalMainError 的 finally 正是無條件呼叫 process.exit(1)， 所以這個路徑存在「印了但沒真的寫出去」的可能—— 這會讓整個函式唯一的價值（在 CI 記錄留下可診斷的一行）在最壞情況下歸零。 本次的 4000 字元上限降低了風險但沒有解決機制本身。 非本次造成：process.exit(1) 在改動前後都在 finally 裡，且 intent 的 Always 明確凍結了這個保證，改成 process.exitCode ＋ 自然結束屬於行為契約變更，需人為決定。
+status: open
+
+### DW-82: Error 分支只印 stack／message／name，會丟掉 Error 自身攜帶的可列舉兄弟欄位； Node 的 fs 錯誤（code／path／syscall）就是這個形狀。
+origin: spec-deferred 25495a716fe0
+location: src/fetcher.ts:deriveThrownValueDetail（isErrorLike 分支）
+source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
+severity: low
+reason: 已實測：handleFatalMainError(Object.assign(new Error('open failed'), { code: 'ENOENT', path: '/data/index.json', syscall: 'open' })) 只印出 stack， code／path／syscall 完全不出現。這與本次為「帶 message／stack 的一般 payload」 補上的兄弟欄位保護是同一類資訊遺失，但發生在真正的 Error 上。 非本次造成：改動前的 `err instanceof Error ? err.message` 同樣丟掉這些欄位， 且 intent 的 Approach 明寫 Error 分支只做 stack→message→name。 實務衝擊有限——fs 錯誤的 message 本身通常已含 code 與 path—— 要補需決定「附加哪些欄位、如何與既有字元上限互動」，屬 intent 層決定。
+status: open
+
+### DW-83: Follow-up review still recommended for dw-fatal-error-detail-hardening after the damping cap was spent
+origin: review-budget-followup
+location: n/a
+source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
+severity: low
+reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260823-162725-d1ab; this entry preserves the lingering recommendation for a deliberate later review.
 status: open

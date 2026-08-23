@@ -542,3 +542,621 @@ test('handleFatalMainError still exits 1 even when logAbortSummary itself throws
     return true;
   });
 });
+
+
+/**
+ * A real stack frame, not merely the word "at": `new Error('blocked at
+ * checkout')` would satisfy a bare `includes(' at ')` with no stack at all,
+ * which is exactly the DW-57 regression these assertions are meant to catch.
+ */
+const STACK_FRAME = /\n\s+at /;
+
+/**
+ * Mirrors `FATAL_DETAIL_MAX_CHARS` in `src/fetcher.ts`, which stays unexported
+ * because nothing in production needs it. Kept here so the truncation
+ * assertions bound the line at the real cap rather than at some far looser
+ * number a regression could widen the cap into unnoticed.
+ */
+const FATAL_DETAIL_CAP = 4000;
+
+/**
+ * DW-56/57/60/62: the tests below all drive `handleFatalMainError` the same
+ * way — mock `process.exit` to throw, capture `console.error`, assert the exit
+ * code — and differ only in the shape of the thrown value, so the scaffolding
+ * lives here rather than being copied once per shape. The four assertions it
+ * always makes are the ones that hold for *every* shape: the round still exits
+ * 1, the fatal line carries something (never a bare `[fetch] fatal: `, DW-60),
+ * it never collapses to `[object Object]` (DW-56), and the abort summary still
+ * follows it. Each caller then adds what is specific to its own shape.
+ */
+function reportFatal(t: TestContext, thrown: unknown): string {
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  const errors = captureErrors(t);
+
+  assert.throws(() => handleFatalMainError(thrown), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 1, 'every thrown value shape must still exit 1');
+    return true;
+  });
+
+  const alertIndex = errors.findIndex(line => line.startsWith('[fetch] fatal:'));
+  assert.notEqual(alertIndex, -1, `the fatal alert must be printed, got: ${JSON.stringify(errors)}`);
+  const alert = errors[alertIndex];
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal:',
+    `the fatal alert must carry non-empty detail, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    !alert.includes('[object Object]'),
+    `no thrown value may collapse to [object Object], got: ${JSON.stringify(alert)}`,
+  );
+  assertAbortSummaryFollows(errors, alertIndex);
+  return alert;
+}
+
+/**
+ * DW-57: the handler used to print only `err.message`, throwing away the call
+ * stack — the one part of an unmodeled exception that says *where* the bug is,
+ * and the only thing a CI log leaves behind to work from.
+ */
+test('handleFatalMainError prints the call stack, not just the message, for a thrown Error (DW-57)', (t: TestContext) => {
+  const alert = reportFatal(t, new Error('boom'));
+
+  assert.ok(alert.includes('boom'), `the fatal alert must still name the error, got: ${JSON.stringify(alert)}`);
+  assert.match(
+    alert,
+    STACK_FRAME,
+    `the fatal alert must carry the call stack, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * DW-60: an `Error` with an empty message printed the diagnostically worthless
+ * `[fetch] fatal: ` and nothing else. Its stack still names the error type and
+ * the throw site, so preferring the stack covers this case too.
+ */
+test('handleFatalMainError still reports something diagnostic for an Error with an empty message (DW-60)', (t: TestContext) => {
+  const alert = reportFatal(t, new Error());
+
+  assert.ok(alert.includes('Error'), `the fatal alert must name the error type, got: ${JSON.stringify(alert)}`);
+  assert.match(
+    alert,
+    STACK_FRAME,
+    `the fatal alert must carry the call stack when the message is empty, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** An `Error` built without a stack (hand-rolled, or one deliberately stripped) must fall back to its message. */
+test('handleFatalMainError falls back to the message when a thrown Error carries no stack', (t: TestContext) => {
+  const err = new Error('boom');
+  err.stack = undefined;
+
+  const alert = reportFatal(t, err);
+
+  assert.ok(alert.includes('boom'), `the fatal alert must fall back to the message, got: ${JSON.stringify(alert)}`);
+});
+
+/** With neither stack nor message there is still the error's name, plus an explicit note that nothing else was available. */
+test('handleFatalMainError falls back to the error name when a thrown Error has neither stack nor message', (t: TestContext) => {
+  const err = new Error();
+  err.stack = '';
+
+  const alert = reportFatal(t, err);
+
+  assert.ok(alert.includes('Error'), `the fatal alert must at least name the error type, got: ${JSON.stringify(alert)}`);
+  assert.ok(
+    alert.includes('no message and no stack'),
+    `the fatal alert must say why there is nothing else to show, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** A thrown string is already the diagnostic; it must be passed through as-is. */
+test('handleFatalMainError reports a thrown string verbatim', (t: TestContext) => {
+  const alert = reportFatal(t, 'boom');
+
+  assert.ok(alert.includes('boom'), `the fatal alert must carry the thrown string, got: ${JSON.stringify(alert)}`);
+});
+
+/** An empty thrown string has no content of its own, so the handler has to supply the description. */
+test('handleFatalMainError describes an empty thrown string rather than printing nothing', (t: TestContext) => {
+  const alert = reportFatal(t, '');
+
+  assert.ok(
+    alert.includes('empty string'),
+    `an empty thrown string must be described, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * DW-56: a self-referencing object made `JSON.stringify` throw, and the
+ * `catch { return String(err) }` fallback then printed `[object Object]` — the
+ * exact useless output that fallback exists to avoid. The seen-set replacer
+ * keeps the rest of the object readable and marks only the cycle.
+ */
+test('handleFatalMainError serializes a circular non-Error object instead of collapsing to [object Object] (DW-56)', (t: TestContext) => {
+  const circular: Record<string, unknown> = { code: 'ELOOP' };
+  circular.self = circular;
+
+  const alert = reportFatal(t, circular);
+
+  assert.ok(
+    alert.includes('ELOOP'),
+    `the fatal alert must carry the object's real content, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('[circular]'),
+    `the cycle must be marked rather than making serialization throw, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** `bigint` makes `JSON.stringify` throw the same way a cycle does, and used to degrade the same way. */
+test('handleFatalMainError serializes a non-Error object carrying a bigint', (t: TestContext) => {
+  const alert = reportFatal(t, { code: 'EBIG', size: 9007199254740993n });
+
+  assert.ok(
+    alert.includes('EBIG') && alert.includes('9007199254740993'),
+    `the fatal alert must carry a bigint-bearing object's content, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * DW-62: `throw null` was entirely untested. The old code printed the bare
+ * token `null` (`JSON.stringify(null)` is the string `"null"`), which is
+ * indistinguishable from a thrown value that merely *serializes* to null, so
+ * asserting only `includes('null')` would pass against the very code this
+ * change replaced. The line has to say null was *thrown*.
+ */
+test('handleFatalMainError says that null was thrown (DW-62)', (t: TestContext) => {
+  const alert = reportFatal(t, null);
+
+  assert.ok(alert.includes('null'), `the fatal alert must say null was thrown, got: ${JSON.stringify(alert)}`);
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: null',
+    `a bare "null" does not say null was thrown, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('thrown'),
+    `the fatal alert must describe null as the thrown value, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** DW-62, other half: a bare `undefined` in the log says nothing about what happened; the description has to. */
+test('handleFatalMainError says that undefined was thrown (DW-62)', (t: TestContext) => {
+  const alert = reportFatal(t, undefined);
+
+  assert.ok(alert.includes('undefined'), `the fatal alert must say undefined was thrown, got: ${JSON.stringify(alert)}`);
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: undefined',
+    `a bare "undefined" says nothing about what was thrown, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Duck-typed error shapes: a cross-realm error (from `vm`, a worker, or a
+ * duplicated bundled copy of a library) fails `instanceof Error` while being
+ * one in every other respect. `message`/`stack` are non-enumerable on real
+ * errors — which is both why they must be duck-typed (the JSON branch would
+ * serialize such a value to a contentless `{}`, a different route to the same
+ * DW-56 dead end) and what distinguishes them from an ordinary payload that
+ * merely happens to carry a field of that name. The fixture below therefore
+ * defines them the way a real error does, not as plain literal fields.
+ */
+test('handleFatalMainError reports an Error-like value that fails instanceof Error', (t: TestContext) => {
+  const crossRealm = { name: 'CrossRealmError' };
+  Object.defineProperties(crossRealm, {
+    message: { value: 'boom', enumerable: false },
+    stack: {
+      value: 'CrossRealmError: boom\n    at somewhereElse (other-realm.js:1:1)',
+      enumerable: false,
+    },
+  });
+
+  const alert = reportFatal(t, crossRealm);
+
+  assert.ok(alert.includes('boom'), `the fatal alert must carry the message, got: ${JSON.stringify(alert)}`);
+  assert.match(alert, STACK_FRAME, `the fatal alert must carry the stack, got: ${JSON.stringify(alert)}`);
+  assert.ok(
+    !alert.includes('{}'),
+    `an Error-like value must not serialize to a contentless object, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** An `Error` subclass renames itself; the stack V8 formats on first read carries that name, and the log must show it. */
+test('handleFatalMainError reports the custom name of an Error subclass', (t: TestContext) => {
+  class CalendarBlockedError extends Error {
+    name = 'CalendarBlockedError';
+  }
+
+  const alert = reportFatal(t, new CalendarBlockedError('boom'));
+
+  assert.ok(
+    alert.includes('CalendarBlockedError'),
+    `the fatal alert must name the error subclass, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * `JSON.stringify` turns `NaN` and `Infinity` into `null`, which in the log is
+ * indistinguishable from the DW-62 `throw null` line — so non-object
+ * primitives are described before the serializer ever sees them.
+ */
+test('handleFatalMainError distinguishes a thrown NaN from a thrown null', (t: TestContext) => {
+  const alert = reportFatal(t, NaN);
+
+  // Asserting the positive contract rather than the absence of the substring
+  // "null": any future wording containing it (a path, "non-null") would fail a
+  // negative assertion without the line having regressed at all.
+  assert.match(
+    alert,
+    /number thrown: NaN/,
+    `a thrown NaN must be named as a thrown number, not read as a thrown null, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** The other half of the same branch: `JSON.stringify` collapses `Infinity` to `null` too. */
+test('handleFatalMainError distinguishes a thrown Infinity from a thrown null', (t: TestContext) => {
+  const alert = reportFatal(t, Infinity);
+
+  assert.match(
+    alert,
+    /number thrown: Infinity/,
+    `a thrown Infinity must be named as a thrown number, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** `JSON.stringify` returns `undefined` for a symbol, so this shape needs its own branch too. */
+test('handleFatalMainError reports a thrown symbol', (t: TestContext) => {
+  const alert = reportFatal(t, Symbol('boom'));
+
+  assert.ok(alert.includes('boom'), `the fatal alert must carry the symbol's description, got: ${JSON.stringify(alert)}`);
+});
+
+/** Same for a function — `JSON.stringify` drops it entirely, but its name says which step threw. */
+test('handleFatalMainError reports a thrown function', (t: TestContext) => {
+  const alert = reportFatal(t, function failingStep() { /* never called */ });
+
+  assert.ok(
+    alert.includes('failingStep'),
+    `the fatal alert must name the thrown function, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Tail layer 2: `JSON.stringify` throws for a reason other than a cycle (here
+ * a throwing `toJSON`), so serialization cannot carry the detail — but the
+ * value's own `toString` can, and must be preferred over the structural
+ * description below it.
+ */
+test('handleFatalMainError falls back to toString when serialization throws', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    toJSON() { throw new Error('toJSON is broken'); },
+    toString() { return 'CustomFailure: disk full'; },
+  });
+
+  assert.ok(
+    alert.includes('CustomFailure: disk full'),
+    `the fatal alert must use the value's own toString, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Tail layer 3: a throwing `toJSON` with no useful `toString` leaves
+ * `String(err)` returning the very `[object Object]` DW-56 is about, so the
+ * structural description has to take over and say what was thrown.
+ */
+test('handleFatalMainError describes the shape of a value whose serialization throws and whose toString is useless', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    failedPath: '/data/index.json',
+    toJSON() { throw new Error('toJSON is broken'); },
+  });
+
+  assert.ok(
+    alert.includes('failedPath'),
+    `the fatal alert must name what the value was carrying, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Tail layer 3, hardest case: a null-prototype object serializes to a
+ * contentless `{}` and makes `String(err)` throw outright, so both earlier
+ * layers miss. The fatal line must still say something, and specifically not
+ * the `[object Object]` that `Object.prototype.toString.call()` alone returns.
+ */
+test('handleFatalMainError still prints a fatal line for a value that cannot be converted to a string', (t: TestContext) => {
+  const alert = reportFatal(t, Object.create(null));
+
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: {}',
+    `a contentless serialization must not be the final answer, got: ${JSON.stringify(alert)}`,
+  );
+  // The full structural shape, not merely `includes('Object')` — that substring
+  // is also present in the `[object Object]` this test exists to rule out.
+  assert.equal(
+    alert.trim(),
+    '[fetch] fatal: Object (no own keys)',
+    `the fatal alert must say what kind of value was thrown, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Reading `err.stack` is itself a property access, and on a Proxy (or any
+ * object with a throwing getter) it throws. If that escaped `describeThrownValue`
+ * it would cost the fatal line *and* the abort summary — only the `finally`'s
+ * exit 1 would survive, which is a worse version of the unhandled rejection
+ * this whole path exists to prevent. `reportFatal` asserts both lines.
+ */
+test('handleFatalMainError still reports both lines when reading the thrown value itself throws', (t: TestContext) => {
+  const hostile = new Proxy({}, {
+    get() { throw new Error('every property access is a trap'); },
+    ownKeys() { throw new Error('so is every key listing'); },
+  });
+
+  const alert = reportFatal(t, hostile);
+
+  // Pins the outer guard's own wording: without this the placeholder could be
+  // replaced with any non-empty string and only `reportFatal`'s generic checks
+  // would be left, which every string passes.
+  assert.equal(
+    alert.trim(),
+    '[fetch] fatal: (thrown value could not be described)',
+    `the fatal alert must say the value defeated every description attempt, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * The proxy above throws on the very first property read, so the outer guard
+ * answers and the structural description is never entered. These two reach the
+ * guards *inside* it: a value that survives the ladder as far as the
+ * description, but whose key listing (`ownKeys`) or whose class tag
+ * (`Symbol.toStringTag`) throws once it gets there. Without them either guard
+ * could be deleted with the suite still green.
+ */
+test('handleFatalMainError still prints a fatal line when listing the thrown value\'s keys throws', (t: TestContext) => {
+  const alert = reportFatal(t, new Proxy({}, {
+    ownKeys() { throw new Error('key listing is a trap'); },
+  }));
+
+  assert.equal(
+    alert.trim(),
+    '[fetch] fatal: Object (no own keys)',
+    `the fatal alert must still say what kind of value was thrown, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+test('handleFatalMainError still prints a fatal line when reading the thrown value\'s class tag throws', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    failedPath: '/data/index.json',
+    toJSON() { throw new Error('toJSON is broken'); },
+    get [Symbol.toStringTag]() { throw new Error('the class tag is a trap'); },
+  });
+
+  assert.match(
+    alert,
+    /^\[fetch\] fatal: Object \(own keys: failedPath, toJSON/,
+    `the fatal alert must fall back to the default tag and still name the fields, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * The seen set bounds cycles, not volume. Without a cap, a thrown value
+ * holding a large graph dumps unbounded text into one `console.error`, which
+ * on a pipe can push the abort summary that follows past the buffer — losing
+ * the "how far did it get" half of the report. `reportFatal` asserts the
+ * summary still lands.
+ */
+test('handleFatalMainError caps an oversized detail rather than flooding the log', (t: TestContext) => {
+  const alert = reportFatal(t, { blob: 'x'.repeat(50_000) });
+
+  // Exactly the cap plus the `[fetch] fatal: ` prefix: the truncation marker is
+  // counted against the cap rather than appended past it, so no slack is needed
+  // and a regression that stopped counting it would show up here.
+  assert.ok(
+    alert.length <= FATAL_DETAIL_CAP + '[fetch] fatal: '.length,
+    `an oversized thrown value must be capped at ${FATAL_DETAIL_CAP}, got a ${alert.length}-char line`,
+  );
+  assert.ok(
+    alert.includes('truncated'),
+    `the cap must be marked so nobody reads the line as complete, got: ${JSON.stringify(alert.slice(-120))}`,
+  );
+});
+
+/**
+ * The other side of the cap: a stack is what DW-57 asked to preserve, so an
+ * ordinary error must come through whole.
+ *
+ * An `Error` raised inside a test callback carries only a handful of short
+ * frames, which pins the cap from above but not from below — the cap could be
+ * cut to a few hundred characters and such a test would stay green while real
+ * fatals, raised deep inside `main()`'s async chain with absolute `ts-node`
+ * paths, were being clipped mid-stack. The stack below is sized like one of
+ * those instead, so tightening the cap past a realistic stack turns this red.
+ */
+test('handleFatalMainError does not truncate a realistically deep stack', (t: TestContext) => {
+  const err = new Error('boom');
+  const frames = Array.from(
+    { length: 55 },
+    (_unused, index) => `    at deepFrame${index} (/Users/ci/builds/usj/src/fetcher.ts:${index + 1}:17)`,
+  );
+  err.stack = `Error: boom\n${frames.join('\n')}`;
+  assert.ok(err.stack.length > 3000, `the fixture must be a realistically long stack, got ${err.stack.length} chars`);
+
+  const alert = reportFatal(t, err);
+
+  assert.ok(
+    !alert.includes('truncated'),
+    `a realistic stack must not be clipped, got: ${JSON.stringify(alert.slice(-160))}`,
+  );
+  assert.ok(
+    alert.includes('deepFrame54'),
+    `the last frame must survive, got: ${JSON.stringify(alert.slice(-160))}`,
+  );
+});
+
+/**
+ * A failure payload that merely carries a `message` is not an error: the
+ * duck-typed error branch would print the message alone and silently drop the
+ * `code` and `path` that say what actually failed — the DW-56 kind of loss in
+ * a new place, and a regression against what the old `JSON.stringify` printed.
+ * Real errors keep `message` non-enumerable, which is what separates them.
+ */
+test('handleFatalMainError keeps the sibling fields of a payload that happens to carry a message', (t: TestContext) => {
+  const alert = reportFatal(t, { code: 'EACCES', message: 'permission denied', path: '/data/index.json' });
+
+  assert.ok(
+    alert.includes('EACCES') && alert.includes('/data/index.json'),
+    `a message-bearing payload must still be serialized whole, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * `Object.keys` reports nothing for a value whose fields are all
+ * non-enumerable — which is one of the two ways a value reaches the structural
+ * description in the first place, since the serializer returned `{}` for
+ * exactly that reason.
+ */
+test('handleFatalMainError names the fields of a value whose properties are all non-enumerable', (t: TestContext) => {
+  const err = {};
+  Object.defineProperty(err, 'failedPath', { value: '/data/index.json', enumerable: false });
+
+  const alert = reportFatal(t, err);
+
+  assert.ok(
+    alert.includes('failedPath'),
+    `non-enumerable fields must still be named, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * A `Map` (or `Set`, or `Response`) serializes to a contentless `{}` and
+ * stringifies to `[object Map]` — a bracket tag as uninformative as the
+ * `[object Object]` DW-56 is about, so it has to be rejected the same way.
+ */
+test('handleFatalMainError does not settle for a bracket tag from String()', (t: TestContext) => {
+  const alert = reportFatal(t, new Map([['catalog', 'missing']]));
+
+  assert.ok(
+    !alert.includes('[object Map]'),
+    `a bracket tag says nothing more than [object Object] does, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('Map'),
+    `the fatal alert must still say what kind of value was thrown, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * A `toJSON` returning null serializes to the bare token `null`, which in the
+ * log reads as the DW-62 `throw null` case and hides what was really thrown.
+ */
+test('handleFatalMainError does not report a value that serializes to null as a thrown null', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    failedPath: '/data/index.json',
+    toJSON() { return null; },
+  });
+
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: null',
+    `a value that serializes to null must not read as a thrown null, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('failedPath'),
+    `the fatal alert must name what the value was carrying, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * The `stack` half of the duck test, matching the `message` half above. A
+ * payload that happens to carry a `stack` field is no more an error than one
+ * carrying a `message`: taking the error branch would print that one field and
+ * drop the `code` and `path` that say what actually failed. Real errors keep
+ * `stack` non-enumerable, which is what separates them.
+ */
+test('handleFatalMainError keeps the sibling fields of a payload that happens to carry a stack', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    code: 'EACCES',
+    stack: 'not-a-real-stack',
+    path: '/data/index.json',
+  });
+
+  assert.ok(
+    alert.includes('EACCES') && alert.includes('/data/index.json'),
+    `a stack-bearing payload must still be serialized whole, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * A `toJSON` returning an empty string serializes to `""` — a result that
+ * passes a bare "is it a string" check while carrying nothing at all, the same
+ * dead end as the `{}` and `null` results rejected beside it.
+ */
+test('handleFatalMainError does not settle for a serialization that carries nothing', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    failedPath: '/data/index.json',
+    toJSON() { return ''; },
+  });
+
+  assert.ok(
+    alert.includes('failedPath'),
+    `an empty serialization must give way to the structural description, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * The same for a `toJSON` returning a bare primitive: `[fetch] fatal: 0` says
+ * nothing, and since a thrown primitive is already handled far earlier, any
+ * bare token reaching here came from a `toJSON` whose value is better described
+ * structurally.
+ */
+test('handleFatalMainError does not report a value that serializes to a bare number', (t: TestContext) => {
+  const alert = reportFatal(t, {
+    failedPath: '/data/index.json',
+    toJSON() { return 0; },
+  });
+
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: 0',
+    `a bare token must not be the fatal line, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('failedPath'),
+    `the fatal alert must name what the value was carrying, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/** An empty array serializes to `[]`, which is as contentless as `{}` and is rejected the same way. */
+test('handleFatalMainError describes a thrown empty array rather than printing []', (t: TestContext) => {
+  const alert = reportFatal(t, []);
+
+  assert.notEqual(
+    alert.trim(),
+    '[fetch] fatal: []',
+    `a contentless array must not be the fatal line, got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('Array'),
+    `the fatal alert must say what kind of value was thrown, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * Symbol-keyed fields are invisible to both `JSON.stringify` and
+ * `Object.getOwnPropertyNames`, so a value carrying nothing else would reach
+ * the structural description and be reported as empty — for precisely the
+ * reason that sent it there.
+ */
+test('handleFatalMainError names the symbol-keyed fields of a value that has no others', (t: TestContext) => {
+  const alert = reportFatal(t, { [Symbol('failedPath')]: '/data/index.json' });
+
+  assert.ok(
+    alert.includes('failedPath'),
+    `symbol-keyed fields must still be named, got: ${JSON.stringify(alert)}`,
+  );
+});

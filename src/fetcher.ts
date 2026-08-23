@@ -312,6 +312,203 @@ function logAbortSummary(startedAt: number): void {
 let startedAt = Date.now();
 
 /**
+ * The longest detail `describeThrownValue` will hand back, in characters. A
+ * cycle-safe serializer bounds cycles, not volume: a thrown value holding a
+ * whole catalogue, or a deep stack, would otherwise dump unbounded text into
+ * one `console.error`. On a pipe (`npm run fetch 2>&1 | tee fetch-output.log`)
+ * that risks pushing the abort summary that follows past the buffer, losing
+ * the "how far did it get" half of the report to save detail nobody reads
+ * past the first few frames. A few KB keeps a full stack and a realistic
+ * failure object intact.
+ */
+const FATAL_DETAIL_MAX_CHARS = 4000;
+
+/**
+ * Last resort when a value can neither be serialized nor converted to a
+ * string — a null-prototype object, a throwing `toJSON` paired with a throwing
+ * `toString`. `Object.prototype.toString.call()` alone is not enough here: for
+ * a plain object it returns literally `[object Object]`, the DW-56 output this
+ * whole helper exists to eliminate. So the bracket tag is unwrapped to its
+ * class name and paired with the value's own property names, which at least
+ * says what kind of thing was thrown and what it was carrying. Every read is
+ * guarded because anything reaching this point is already hostile.
+ *
+ * The keys come from `Object.getOwnPropertyNames`, not `Object.keys`: one of
+ * the two ways a value reaches this function at all is that the serializer
+ * returned a contentless `{}` because every field is non-enumerable, and
+ * `Object.keys` would then report "no own keys" for precisely the value whose
+ * fields are the only thing left to report. Symbol keys are appended for the
+ * same reason — a value carrying nothing but symbol-keyed fields is exactly
+ * the kind that serializes to `{}` and would otherwise be reported as empty.
+ */
+function describeStructurally(err: object): string {
+  let tag = 'Object';
+  try {
+    const match = /^\[object (.+)\]$/.exec(Object.prototype.toString.call(err));
+    if (match) tag = match[1];
+  } catch {
+    // Keep the default tag; a throwing Symbol.toStringTag getter lands here.
+  }
+
+  let keys: string[] = [];
+  try {
+    keys = Object.getOwnPropertyNames(err);
+  } catch {
+    // Keep the empty list; a Proxy with a throwing `ownKeys` trap lands here.
+  }
+  try {
+    keys = keys.concat(Object.getOwnPropertySymbols(err).map(String));
+  } catch {
+    // Keep whatever the string keys produced; the same `ownKeys` trap lands here.
+  }
+
+  return keys.length > 0 ? `${tag} (own keys: ${keys.join(', ')})` : `${tag} (no own keys)`;
+}
+
+/**
+ * The branch ladder behind `describeThrownValue`, split out so its caller can
+ * wrap the whole thing in one guard — see there for why that matters. A thrown
+ * value can be literally anything, and every shape used to degrade into
+ * something unreadable:
+ *
+ * - Error-like values prefer `stack` over `message` because V8's stack starts
+ *   with `Error: message` and is therefore a superset of it — one branch fixes
+ *   both the missing call frames (DW-57) and the bare `[fetch] fatal: ` an
+ *   empty `new Error()` used to print (DW-60), whose stack still names the
+ *   throw site. Falls back to `message`, then to `name` plus a placeholder,
+ *   for the hand-built errors that carry no stack at all. "Error-like" is
+ *   duck-typed rather than `instanceof Error` alone: a cross-realm error (from
+ *   `vm`, a worker, or a duplicated bundled copy of a library) or a hand-rolled
+ *   `{ message, stack }` fails `instanceof` yet carries exactly the fields
+ *   worth printing — and because `message`/`stack` are non-enumerable on real
+ *   errors, the JSON branch would serialize such a value to a contentless `{}`.
+ *   The duck test is deliberately narrow, and narrow symmetrically: a string
+ *   `stack` *or* a string `message`, in either case only when the property is
+ *   non-enumerable, as it is on every real error. A plain failure payload such
+ *   as `{ code: 'EACCES', message: 'permission denied', path: '/data/index.json' }`
+ *   — or the same payload carrying a `stack` field instead — has those fields
+ *   enumerable and belongs in the JSON branch: taking the error branch would
+ *   print the one field and drop `code` and `path`, which is the DW-56 kind of
+ *   loss in a new place. The cost of the symmetry is that a hand-rolled
+ *   `{ message, stack }` object literal now takes the JSON branch too, but
+ *   nothing is lost there — it serializes whole, both fields included.
+ * - `null` and `undefined` get an explicit description rather than the bare
+ *   `undefined` a template literal would print, which said nothing about what
+ *   was thrown (DW-62).
+ * - Non-object primitives are described before the JSON branch: `JSON.stringify`
+ *   turns `NaN` and `Infinity` into `null`, which reads as the DW-62 null case
+ *   and hides which one was thrown, and returns `undefined` outright for a
+ *   function or a symbol.
+ * - Everything else — real objects — is serialized with a seen-set replacer so
+ *   a self-referencing value survives instead of making `JSON.stringify` throw
+ *   and dropping the whole object to `String(err)`'s `[object Object]` (DW-56),
+ *   the exact useless output this branch exists to avoid. `bigint` gets the
+ *   same treatment: `JSON.stringify` throws on it, and an unguarded throw
+ *   lands in the same `[object Object]`. The seen set records "already
+ *   visited" rather than "is an ancestor", so a value shared by two sibling
+ *   fields also renders as `[circular]`; for a single diagnostic line that is
+ *   an acceptable trade against carrying an ancestor stack in a last-resort
+ *   helper.
+ *
+ * The tail is layered — serialize, then `String(err)`, then a structural
+ * description — and each layer rejects a result that carries nothing rather
+ * than returning it. The serializer's result is kept only when it is a
+ * non-empty object, array, or string literal: `{}`/`[]`/`""` carry nothing (a
+ * value whose fields are all non-enumerable or unserializable, or a `toJSON`
+ * returning an empty string), and a bare token — `null`, a number, a boolean —
+ * can only come from a `toJSON` on an object, where the structural description
+ * below always says more; a bare `null` in particular would print exactly like
+ * the DW-62 `throw null` case. `String(err)` is likewise rejected for any
+ * `[object Tag]` result (which `JSON.stringify` throwing for a reason other
+ * than a cycle — a throwing getter, a throwing `toJSON` — or a `Map`/`Set`
+ * serializing to `{}` otherwise walks straight into).
+ *
+ * Each property of the thrown value is read exactly once into a local: on a
+ * value with getters, reading twice runs foreign code twice and lets the two
+ * reads disagree.
+ */
+function deriveThrownValueDetail(err: unknown): string {
+  if (typeof err === 'string') {
+    return err.trim() === '' ? '(empty string thrown)' : err;
+  }
+  if (err === null) return '(null thrown)';
+  if (err === undefined) return '(undefined thrown)';
+  if (typeof err !== 'object') return `${typeof err} thrown: ${String(err)}`;
+
+  const errorLike = err as { stack?: unknown; message?: unknown; name?: unknown };
+  const stack = errorLike.stack;
+  const message = errorLike.message;
+  const isErrorLike = err instanceof Error
+    || (typeof stack === 'string' && !Object.prototype.propertyIsEnumerable.call(err, 'stack'))
+    || (typeof message === 'string' && !Object.prototype.propertyIsEnumerable.call(err, 'message'));
+
+  if (isErrorLike) {
+    if (typeof stack === 'string' && stack.trim() !== '') return stack;
+    if (typeof message === 'string' && message.trim() !== '') return message;
+    const rawName = errorLike.name;
+    const name = typeof rawName === 'string' && rawName.trim() !== '' ? rawName : 'Error';
+    return `${name}: (thrown with no message and no stack)`;
+  }
+
+  try {
+    const seen = new WeakSet<object>();
+    const json = JSON.stringify(err, (_key, value) => {
+      if (typeof value === 'bigint') return `${value}n`;
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return '[circular]';
+        seen.add(value);
+      }
+      return value;
+    });
+    if (typeof json === 'string' && /^[{["]/.test(json) && json !== '{}' && json !== '[]' && json !== '""') {
+      return json;
+    }
+  } catch {
+    // Fall through to the string conversion below.
+  }
+
+  try {
+    const text = String(err);
+    if (text.trim() !== '' && !/^\[object .+\]$/.test(text)) return text;
+  } catch {
+    // A null-prototype object or a throwing `toString` lands here.
+  }
+
+  return describeStructurally(err);
+}
+
+/**
+ * Turns whatever `handleFatalMainError` was handed into the one diagnostic
+ * line a red CI run leaves behind — always non-empty, always bounded, and
+ * never `[object Object]`. `deriveThrownValueDetail` holds the per-shape
+ * reasoning; this is the guard around it.
+ *
+ * The guard is the point: merely *reading* `err.stack` can throw, on a Proxy
+ * or on any object with a throwing getter. Letting that escape would cost the
+ * fatal line and the abort summary both — only `handleFatalMainError`'s
+ * `finally` would survive, leaving a bare exit 1 with no explanation, which is
+ * a worse version of the unhandled rejection this whole path exists to
+ * prevent. So every path out of here returns a string.
+ *
+ * Deliberately not exported: it is an implementation detail of the fatal
+ * handler, and tests drive it through `handleFatalMainError`.
+ */
+function describeThrownValue(err: unknown): string {
+  let detail: string;
+  try {
+    detail = deriveThrownValueDetail(err);
+  } catch {
+    detail = '(thrown value could not be described)';
+  }
+  if (detail.length <= FATAL_DETAIL_MAX_CHARS) return detail;
+  // The marker is counted against the cap rather than appended past it, so the
+  // constant is the real bound on what leaves this function and the tests can
+  // assert it exactly instead of allowing slack for the marker's own length.
+  const marker = `... (truncated, ${detail.length} chars total)`;
+  return `${detail.slice(0, Math.max(0, FATAL_DETAIL_MAX_CHARS - marker.length))}${marker}`;
+}
+
+/**
  * The catch-all for whatever `main()` throws that none of its own try/catch
  * blocks were written for — a bug, not a modeled failure mode. Without this,
  * such an exception fell out of the fire-and-forget call below as an
@@ -331,17 +528,7 @@ let startedAt = Date.now();
  */
 export function handleFatalMainError(err: unknown): never {
   try {
-    const detail = err instanceof Error
-      ? err.message
-      : typeof err === 'string'
-        ? err
-        : (() => {
-            try {
-              return JSON.stringify(err);
-            } catch {
-              return String(err);
-            }
-          })();
+    const detail = describeThrownValue(err);
     console.error(`[fetch] fatal: ${detail}`);
     logAbortSummary(startedAt);
   } finally {
