@@ -368,6 +368,7 @@ source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: `clipLoneSurrogate` 會丟掉被切一半的高位代理，以免輸出孤立代理字元。 矩陣該列陳述的輸入是 `'x'.repeat(500)`，該輸入下等式成立；此為措辭與實作在極端輸入上的 落差，非行為缺陷。
 status: open
+decision: 2026-08-23 Revise matrix wording for the edge case — Update the 超長內文 row in the frozen <intent-contract> I/O matrix of spec-dw-8-9-10-block-abort-path-hardening.md to state body.length is <= 200, and may be 199 when the truncation point lands mid-surrogate-pair; no code change needed since clipLoneSurrogate's behavior is already correct and intentional.
 
 ### DW-42: 截斷沒有任何標記，恰好 200 字的內文與被截斷的內文在 log 上無從分辨。
 origin: spec-deferred 6236d53e937b

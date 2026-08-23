@@ -35,6 +35,15 @@
     "label": "\u4f75\u5165 Story 1.11 \u7684 PAT \u5de5\u4f5c",
     "resolution": ""
   },
+  "DW-41": {
+    "answered_at": "2026-08-23",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "Update the \u8d85\u9577\u5167\u6587 row in the frozen <intent-contract> I/O matrix of spec-dw-8-9-10-block-abort-path-hardening.md to state body.length is <= 200, and may be 199 when the truncation point lands mid-surrogate-pair; no code change needed since clipLoneSurrogate's behavior is already correct and intentional.",
+    "key": "1",
+    "label": "Revise matrix wording for the edge case",
+    "resolution": ""
+  },
   "DW-43": {
     "answered_at": "2026-08-23",
     "bundle_name": "",
