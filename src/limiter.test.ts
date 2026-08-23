@@ -32,6 +32,8 @@
 
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { BLOCKED_BODY_SNIPPET_MAX, BlockedError, limitedFetch } from './limiter';
 import { flush, settle, track } from './test-support';
 
@@ -246,4 +248,104 @@ test('a body that cannot be read leaves the BlockedError otherwise unchanged', a
   assert.ok(err instanceof BlockedError, `an unreadable body must not change what is thrown, got ${err}`);
   assert.equal(err.body, undefined);
   assert.equal(err.message, new BlockedError(TEST_URL, 500).message);
+});
+
+/**
+ * DW-32: the architecture decision is "every outbound request goes through
+ * `limitedFetch`, no bare `fetch(` anywhere else" — `limitedFetch` itself
+ * (`src/limiter.ts:189`) is the one exception, since it *is* the gate.
+ * Nothing enforced that until now: a bare `fetch(url)` added to any other
+ * file would pass every existing test in this repo.
+ *
+ * This is deliberately a coarser scan than `usj.test.ts`'s comment/string-
+ * stripping wiring check — it does not distinguish code from comments or
+ * string literals. That is an accepted trade-off (see the spec's Design
+ * Notes): a `fetch(` mentioned in a comment would false-positive here. The
+ * scan only recognizes `fetch(` written as a direct identifier call (or as
+ * `<alias>.fetch(` for the four known global aliases below) — it is not
+ * proof against deliberate indirection such as `const f = fetch; f(url)`,
+ * which the "no bare fetch(" architecture rule does not otherwise guard
+ * against either. In particular, a `.` immediately before `fetch(` is only
+ * excluded when the identifier before that `.` is *not* one of
+ * `globalThis`/`global`/`self`/`window` — those four all resolve to the same
+ * global `fetch` the architecture forbids calling directly, so
+ * `globalThis.fetch(` etc. are still flagged as offenders; a real method call
+ * like `client.fetch(` keeps being excluded.
+ */
+const REPO_ROOT_FOR_SCAN = join(__dirname, '..');
+const SRC_DIR_FOR_SCAN = join(REPO_ROOT_FOR_SCAN, 'src');
+
+/** Every `.ts` file under `dir`, recursively, as absolute paths. */
+function collectTsFiles(dir: string): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...collectTsFiles(full));
+    else if (entry.isFile() && entry.name.endsWith('.ts')) files.push(full);
+  }
+  return files;
+}
+
+/**
+ * `src/**\/*.ts`, repo-relative, minus `*.test.ts`, `test-support.ts`, and
+ * `limiter.ts` itself — the files DW-32's bare-fetch scan does not cover.
+ */
+function filesToScanForBareFetch(): string[] {
+  return collectTsFiles(SRC_DIR_FOR_SCAN)
+    .map(f => relative(REPO_ROOT_FOR_SCAN, f).split('\\').join('/'))
+    .filter(rel => {
+      const base = rel.split('/').pop() ?? rel;
+      if (base.endsWith('.test.ts')) return false;
+      if (base === 'test-support.ts') return false;
+      if (rel === 'src/limiter.ts') return false;
+      return true;
+    });
+}
+
+/**
+ * Identifiers that all resolve to the same global `fetch` the architecture
+ * forbids calling directly — so `<one of these>.fetch(` is just as much a
+ * bare call as `fetch(` on its own, and must not be excluded the way a real
+ * method call like `client.fetch(` is.
+ */
+const GLOBAL_FETCH_ALIASES = new Set(['globalThis', 'global', 'self', 'window']);
+
+test('no source file outside limiter.ts calls the global fetch( directly', () => {
+  const offenders: string[] = [];
+
+  for (const rel of filesToScanForBareFetch()) {
+    const source = readFileSync(join(REPO_ROOT_FOR_SCAN, rel), 'utf8');
+    const lines = source.split('\n');
+
+    lines.forEach((line, idx) => {
+      let at = line.indexOf('fetch(');
+      while (at !== -1) {
+        const prevChar = at > 0 ? line[at - 1] : '';
+        if (prevChar === '.') {
+          // `x.fetch(` — ordinarily not a bare call (e.g. `client.fetch(`),
+          // *unless* `x` is itself an alias for the global object, in which
+          // case `x.fetch(` is exactly the forbidden global fetch in disguise.
+          const before = line.slice(0, at - 1);
+          const identifierMatch = before.match(/[A-Za-z0-9_$]+$/);
+          const identifier = identifierMatch ? identifierMatch[0] : '';
+          if (GLOBAL_FETCH_ALIASES.has(identifier)) {
+            offenders.push(`${rel}:${idx + 1}`);
+          }
+        } else if (!/[A-Za-z0-9_$]/.test(prevChar)) {
+          // A hit whose preceding character is an identifier character is
+          // `limitedFetch(` or `myFetch(` — not a bare call.
+          offenders.push(`${rel}:${idx + 1}`);
+        }
+        at = line.indexOf('fetch(', at + 1);
+      }
+    });
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    'found a bare fetch( outside limiter.ts\'s single allowed call site: ' +
+      `${offenders.join(', ')} -- every outbound request must go through limitedFetch, the ` +
+      'single gate the architecture requires',
+  );
 });

@@ -271,7 +271,9 @@ location: src/limiter.ts:114
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: medium
 reason: src/limiter.ts:114 的 `await fetch(url, init)` 是四個呼叫點與網路之間的唯一一跳。 把它改成 `await fetch(url)`，或改成合併一個自訂 User-Agent 的版本，四個 NFR7 測試全部照樣通過： HEADERS 仍凍結、仍不含站名、仍無 User-Agent 鍵，usj.ts 的原始碼文字也仍顯示四個 `headers: HEADERS`。 repo 內既有 `t.mock.method(globalThis, 'fetch', ...)` 的機制（src/limiter.test.ts:50、 src/sources/usj-fetchproduct-blocking.test.ts:100），但沒有任何測試讀取傳給 fetch 的第二個參數。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-header-observability-hardening
+resolution-undo: 69b582856c86820c5190afbaee1f514e7087f9ab0f25d377e77f8e89ba7010f7 2026-08-23 7374617475733a206f70656e
 
 ### DW-31: 接線檢查只掃 src/sources/usj.ts 一個檔案，新增的其他來源檔若呼叫 limitedFetch 而未帶 HEADERS 不會被發現。
 origin: spec-deferred c2cce39eed83
@@ -287,7 +289,9 @@ location: src/
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: medium
 reason: epic-1-context.md 的技術決策明載「所有對外請求須經單一閘門 limitedFetch，禁止裸 fetch(，由測試強制」。 grep 全 repo 後，除 src/limiter.ts:114 本身外沒有生產端裸 fetch，但也沒有任何測試會在有人新增時失敗。 在 src/sources/usj.ts 加一個裸 fetch(url) 既不帶 HEADERS 也繞過速率閘門，且對本次新增的計數檢查完全隱形。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-header-observability-hardening
+resolution-undo: 69b582856c86820c5190afbaee1f514e7087f9ab0f25d377e77f8e89ba7010f7 2026-08-23 7374617475733a206f70656e
 
 ### DW-33: 沒有任何測試釘住 HEADERS 應有的鍵值集合；把 HEADERS 換成 Object.freeze({}) 或刪掉 x-anonymous-consents／Accept-Language，四個測試全部照樣通過。
 origin: spec-deferred 41a3a3f899c7
@@ -295,7 +299,9 @@ location: src/sources/usj.test.ts
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: medium
 reason: forbidden-name 測試只斷言「不含站名」，User-Agent 測試只斷言「無該鍵」，凍結測試只斷言 「凍結且寫入會拋錯」，接線測試只讀原始碼文字。三者都是否定式或結構式斷言，沒有一個說出 HEADERS *應該* 有哪四個鍵、值是什麼。刪除任一標頭（例如 Accept-Language: ja-JP，日文頁面 的語系依據）對測試完全隱形。此為 Story 1.3 起既有的缺口，本次凍結與接線強化並未加劇它， 但也未涵蓋；補法是加一條 deepEqual 的預期鍵值集合斷言。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-header-observability-hardening
+resolution-undo: 69b582856c86820c5190afbaee1f514e7087f9ab0f25d377e77f8e89ba7010f7 2026-08-23 7374617475733a206f70656e
 
 ### DW-34: Follow-up review still recommended for dw-header-anonymization-hardening after the damping cap was spent
 origin: review-budget-followup
@@ -459,4 +465,12 @@ location: .github/workflows/fetch.yml (Smoke-check fetch entry point step); src/
 source_spec: `spec-dw-12-fetch-entrypoint-smoke-check-2.md`
 severity: low
 reason: repo 內已有同類先例：`src/limits.test.ts` 用 `flagFailedProductsCondition()` 這類 regex-parse helper 釘住 `fetch.yml` 鄰近步驟（`Flag failed products`）的 `if:` 條件字串，並在 `ci.yml` 的 `npm test`（merge-blocking gate）下每次 push/PR 執行；但這次新增的 `Smoke-check` 步驟的腳本內容（尤其是 `-s` 而非 `-e`/`-f`）沒有對應的 pin 測試。本次 spec 的 Never 條款明確排除新增測試檔案、且 Design Notes 已論證選 CI 冒煙步驟正是為了避免另外設計測試方式，因此在本次範圍內不處理；若要處理，屬於修改既有 `src/limits.test.ts`（非新增檔案）的後續加強項。
+status: open
+
+### DW-53: DW-30 的新測試只能透過 fetchProduct 觀察到三個 limitedFetch 呼叫點的真實 init.headers，fetchCatalogPage（僅 listProducts 呼叫）仍無執行期標頭觀察。
+origin: spec-deferred 1340623e299d
+location: src/sources/usj.ts (fetchCatalogPage)
+source_spec: `spec-dw-30-32-33-header-observability-hardening.md`
+severity: low
+reason: usj-fetchproduct-blocking.test.ts 新增的 headers 參照相等測試驅動 usjSource.fetchProduct(...)，只會走過 fetchProductInfo（兩次）、 fetchInventory（日曆＋庫存批次）、fetchTimeSlots，不會走過 fetchCatalogPage —— 那是 usjSource.listProducts(...) 才會呼叫的路徑。 目前唯一涵蓋 fetchCatalogPage 這個呼叫點的是 usj.test.ts 的原始碼文字 接線檢查（limitedFetchCallSites／wiringProblem），不是執行期觀察。 此為既有缺口的縮小（本輪之前四個呼叫點皆無執行期觀察），非本輪引入。
 status: open

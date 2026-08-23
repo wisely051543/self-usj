@@ -118,6 +118,21 @@ test('HEADERS is frozen, so no call site can mutate the set the others share', (
   );
 });
 
+test('HEADERS contains exactly the four keys the store expects, with the expected values', () => {
+  assert.deepEqual(
+    HEADERS,
+    {
+      'Accept': 'application/json, text/plain, */*',
+      'Content-Type': 'application/json',
+      'x-anonymous-consents': '%5B%5D',
+      'Accept-Language': 'ja-JP',
+    },
+    'HEADERS no longer matches this exact key/value set; this assertion exists so a deleted, ' +
+      'renamed, or re-valued key is visible here directly, rather than only inferable from the ' +
+      'other HEADERS tests above (which check for absence, not for what is actually present)',
+  );
+});
+
 /**
  * The file the wiring check reads, repo-relative — one literal, because the
  * path is used to open the file *and* to name it in every failure message, and

@@ -19,13 +19,18 @@
  * `fetch`, so the whole chain down through `limitedFetch`'s retry loop runs; the
  * timers are mocked (see `test-support.ts`) so the retries cost no wall-clock
  * time, and `settle` fails loudly rather than hanging if a rethrow goes missing.
+ *
+ * This file also carries one DW-30 test, unrelated to the blocking/degradation
+ * concern above: it reuses the same mocked-`fetch` harness to observe the real
+ * `init.headers` a normal (non-blocked) `fetchProduct` run actually sends,
+ * rather than exercising the try/catch rethrow sites.
  */
 
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { BlockedError, snippet } from '../limiter';
 import { settle } from '../test-support';
-import { usjSource } from './usj';
+import { HEADERS, usjSource } from './usj';
 import type { CatalogEntry, DateRange } from '../types';
 
 const entry: CatalogEntry = {
@@ -279,4 +284,51 @@ test("an empty Calendar API body leaves fetchProduct's rejection message without
     'Calendar API returned 404',
     'an empty body must leave no dangling ": " suffix on the message',
   );
+});
+
+/**
+ * DW-30: `usj.test.ts`'s wiring check reads `usj.ts`'s source text and asserts
+ * each `limitedFetch` call site *mentions* `headers: HEADERS` verbatim, but
+ * that is a claim about the code, not about what a real request carries. This
+ * test drives the real `fetchProduct` against a mocked global `fetch` and
+ * inspects what actually lands in `init.headers` on every call — the one place
+ * that can tell "the same frozen HEADERS object reached fetch()" apart from "a
+ * same-shaped copy did", since only reference equality (not deepEqual) can make
+ * that distinction.
+ */
+test('fetchProduct sends the real, same-reference HEADERS object to every request it makes', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 100_000_000 });
+  const capturedHeaders: Array<{ url: string; headers: unknown }> = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    capturedHeaders.push({ url, headers: init?.headers });
+
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) return json(CALENDAR);
+    if (url.includes('getExpressPassVariantDetails')) return json(VARIANT_DETAILS);
+    return json(PRODUCT_INFO);
+  });
+  t.mock.method(console, 'log', () => undefined);
+  t.mock.method(console, 'error', () => undefined);
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(
+    outcome.status,
+    'fulfilled',
+    `fetchProduct must resolve on an all-success mock, got ${
+      outcome.status === 'rejected' ? outcome.reason : ''
+    }`,
+  );
+  assert.ok(capturedHeaders.length > 0, 'no fetch call was captured; the mock never ran');
+
+  for (const { url, headers } of capturedHeaders) {
+    assert.equal(
+      headers,
+      HEADERS,
+      `a captured init.headers for ${url} was not the same HEADERS reference imported from ` +
+        "'./usj' — that call site is spreading, overriding, or omitting it rather than passing " +
+        'the shared constant through verbatim',
+    );
+  }
 });
