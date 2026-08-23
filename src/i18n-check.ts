@@ -57,6 +57,34 @@ function translate(text: string, index: Array<[string, string]>): string {
 }
 
 /**
+ * Read a JSON file, naming what was being read when it goes wrong.
+ *
+ * Mirrors schema-check.ts's readSchemaVersion(): read and parse get their own
+ * try/catch so "the file is not there" and "the file is there but corrupt"
+ * stay two different sentences — a bare ENOENT or SyntaxError escaping from
+ * here names neither the file nor which of the two happened. `subject` is the
+ * repo-relative label the message leads with rather than the absolute path,
+ * so a product file can also say which catalog entry sent us looking for it.
+ *
+ * Unlike fetcher.ts's readIndex(), an unreadable file is never a soft "cold
+ * start" here: this file is a check, and a check that cannot read its input
+ * has to go red rather than report zero gaps.
+ */
+function readJsonFile(file: string, subject: string): unknown {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(file, 'utf-8');
+  } catch (err) {
+    throw new Error(`${subject} could not be read: ${(err as Error).message}`);
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`${subject} is not valid JSON: ${(err as Error).message}`);
+  }
+}
+
+/**
  * Read data/index.json and refuse it before any caller can walk `.products`.
  *
  * Mirrors schema-check.ts's readSchemaVersion() -> assert*SchemaVersion()
@@ -66,7 +94,8 @@ function translate(text: string, index: Array<[string, string]>): string {
  * would never have listed.
  */
 export function readIndex(): Index {
-  const index = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'index.json'), 'utf-8')) as Index;
+  const file = path.join(ROOT, 'data', 'index.json');
+  const index = readJsonFile(file, path.relative(ROOT, file)) as Index;
   assertIndexSchemaVersion(index.schemaVersion);
   return index;
 }
@@ -75,9 +104,16 @@ export function readIndex(): Index {
 // goes through the `require.main === module` guard at the bottom of this file.
 export function main(): void {
   const index = readIndex();
-  const products = index.products.map(
-    p => JSON.parse(fs.readFileSync(path.join(PRODUCTS_DIR, `${p.code}.json`), 'utf-8')) as ProductResult,
-  );
+  // The subject names the product code as well as the path: the basename is
+  // the code, but saying `product ABC` points straight at the index.json entry
+  // that listed it, so nobody has to work backwards from a path. The path half
+  // is derived from the path actually opened, never spelled out a second time,
+  // so PRODUCTS_DIR moving can never leave the message naming a file that was
+  // not the one read.
+  const products = index.products.map(p => {
+    const file = path.join(PRODUCTS_DIR, `${p.code}.json`);
+    return readJsonFile(file, `product ${p.code} (${path.relative(ROOT, file)})`) as ProductResult;
+  });
 
   // Every distinct store string the page puts through term(), tagged so a gap
   // report says which field to go look at.

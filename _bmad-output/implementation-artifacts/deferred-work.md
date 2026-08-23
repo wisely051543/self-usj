@@ -417,7 +417,9 @@ location: src/i18n-check.ts（readIndex()）
 source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
 severity: low
 reason: 本次變更前的 `main()` 就已是 `JSON.parse(fs.readFileSync(...)) as Index`， 對讀檔／解析失敗完全沒有 try/catch；`readIndex()` 原樣沿用這段讀檔邏輯，只在其後插入 版號檢查，讀檔／解析失敗的行為與本次變更前完全一致，非本次引入。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-i18n-check-read-error-messages
+resolution-undo: b3b5f26eeefadc8b671f804c81aa68d67479db0b530e576d4aa9684f291e618b 2026-08-23 7374617475733a206f70656e
 
 ### DW-45: `main()` 走訪 `index.products` 時，若某個 product code 在 `data/products/` 下沒有對應 檔案（版號正確但索引與商品檔不一致），仍會以未包裝的 `ENOENT` 中止，訊息不會指出是 哪個 product code 造成的。
 origin: spec-deferred e4ccf2a400ea
@@ -425,7 +427,9 @@ location: src/i18n-check.ts（main()，products.map）
 source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
 severity: low
 reason: `index.products.map(p => JSON.parse(fs.readFileSync(path.join(PRODUCTS_DIR, ...))))` 這段本次未觸碰，`readIndex()` 的版號守衛只擋下版號不符的情境，對「版號正確但索引與 商品檔不同步」這個相鄰失效模式沒有任何新增防護，此為既有行為。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-i18n-check-read-error-messages
+resolution-undo: b3b5f26eeefadc8b671f804c81aa68d67479db0b530e576d4aa9684f291e618b 2026-08-23 7374617475733a206f70656e
 
 ### DW-46: `loadCalendar()`（`index.html:1061`）既有的 `!res.ok` 守衛，與本次新增的 `boot()` 守衛 同樣完全沒有回歸測試——`src/schema.test.ts` 的 `runPage()` fetch stub 目前寫死 `ok: true`，本輪已就 `boot()` 的新守衛排入 patch（見上）補測，但 `loadCalendar()` 這處既
 origin: spec-deferred e20e815b5b05
@@ -660,4 +664,44 @@ location: src/limits.test.ts:stepBlock
 source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
 severity: low
 reason: 兩份 workflow 現況所有步驟皆以 `- name:` 開頭，未觸發；DW-48 intent 只要求容忍 `name:` 與 `if:` 之間插入欄位，未涵蓋 `name:` 本身被移到非首位。
+status: open
+
+### DW-74: `readTerms()` 是本檔第三個未包裝的 JSON 讀取，`i18n/terms.<locale>.json` 缺檔或壞掉仍會逸出原始 ENOENT／SyntaxError，訊息不指名檔案也不區分讀檔或解析失敗。
+origin: spec-deferred c59f89a7795f
+location: src/i18n-check.ts:44-48
+source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
+severity: low
+reason: src/i18n-check.ts:44-48 仍是 `JSON.parse(fs.readFileSync(file, 'utf-8'))`， 新的 readJsonFile() helper 就在其下方數行、一行呼叫即可修好。 實測缺檔輸出：`Error: ENOENT: no such file or directory, open 'terms.zh-TW.json'`。 DW-44／DW-45 的意圖只列舉 readIndex() 與 products.map 兩處讀取，故本次未觸碰。
+status: open
+
+### DW-75: 本檔進入點沒有 schema-check.ts main() 那樣的 try/catch，具名訊息只會以未捕捉例外的堆疊標頭形式送達， 不是單行 stderr，離場碼也非刻意設定的 process.exitCode = 1。
+origin: spec-deferred 1288e2c7de20
+location: src/i18n-check.ts（require.main === module 進入點）
+source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
+severity: low
+reason: src/i18n-check.ts 結尾為裸的 `if (require.main === module) { main(); }`； 對照 src/schema-check.ts:65-72 會 catch、console.error((err as Error).message)、設 exitCode = 1， 且 schema.test.ts:275-316 以子行程斷言離場碼與 stderr 全文。此為既有行為（改動前的原始 ENOENT 同樣以堆疊形式輸出），本次未加劇；意圖明文只要求「包住兩處讀取、訊息指名檔案」。
+status: open
+
+### DW-76: `readIndex()` 對解析結果沒有形狀守衛：`index.json` 內容為 `null`／字串／陣列，或版號正確但缺 `products` 陣列時，仍以原始 TypeError 中止，不是具名訊息。
+origin: spec-deferred 78081321e495
+location: src/i18n-check.ts（readIndex() 與 main() 的 index.products.map）
+source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
+severity: low
+reason: 實測 `index.json` 為 `null` 得到 `TypeError: Cannot read properties of null (reading 'schemaVersion')`； `{"schemaVersion": 5}` 得到 `TypeError: Cannot read properties of undefined (reading 'map')`。 src/fetcher.ts:50,59 與 src/schema-check.ts:36 都已有對應守衛，本檔沒有。 此為改動前既有行為（原本同樣是 `JSON.parse(...) as Index` 直接取 .schemaVersion），非本次引入。
+status: open
+
+### DW-77: 商品檔解析成非物件（例如內容是 `"hello"` 或 `[]`）時完全不會拋錯，main() 會一路跑完並印出 「0 gap(s)」，是比缺檔更安靜的失效模式。
+origin: spec-deferred 65de7d961f9b
+location: src/i18n-check.ts（main()，products.map 之後的 note() 走訪）
+source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
+severity: low
+reason: 實測某 product 檔內容為 `"hello"` 時，p.name／p.eyebrow／p.legalDesc 全為 undefined， note() 一律略過，工具正常結束並回報 0 gap。包住讀取無法擋這個情境，需要形狀檢查。 此為改動前既有行為，非本次引入。
+status: open
+
+### DW-78: `withFiles()` 這個以 basename mock `fs.readFileSync` 的 helper，在 `src/i18n-check.test.ts`、`src/fetcher.test.ts`、`src/schema.test.ts` 各有一份逐字複本， 而 `src/test-support.ts` 早已是共用測試工具的既定去處。
+origin: spec-deferred 989a888d3e10
+location: src/i18n-check.test.ts:23-32、src/fetcher.test.ts、src/schema.test.ts
+source_spec: `spec-dw-44-45-i18n-check-read-error-messages.md`
+severity: low
+reason: `grep -ln "function withFiles" src/*.ts` 命中三個檔，三份實作彼此僅註解不同， 且每份註解都指向另一份複本。本輪新增的 Error 值支援（缺檔情境傳 `Error` 而非字串） 只存在於 i18n-check 那一份，三份已開始分歧。此為改動前既有的重複，非本次引入。
 status: open

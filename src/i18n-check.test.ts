@@ -75,3 +75,101 @@ test('main() aborts on a version mismatch before it ever walks .products', (t: T
     'main() must fail with the version error, not an ENOENT from walking a fake product code',
   );
 });
+
+/*
+ * DW-44 / DW-45: both reads used to be a bare
+ * `JSON.parse(fs.readFileSync(...))`, so a missing or corrupt file escaped as
+ * a raw ENOENT/SyntaxError that named neither the file nor which of the two
+ * had happened. These four lock the named messages in — one per cell of the
+ * spec's error matrix — so nobody quietly reverts to the unwrapped read.
+ */
+
+test('readIndex() names data/index.json when it cannot be read', (t: TestContext) => {
+  withFiles(t, { 'index.json': new Error("ENOENT: no such file or directory, open 'index.json'") });
+  assert.throws(
+    () => readIndex(),
+    /^Error: data\/index\.json could not be read: ENOENT/,
+    'a missing index must say which file is missing, not just ENOENT',
+  );
+});
+
+test('readIndex() names data/index.json when it does not parse', (t: TestContext) => {
+  withFiles(t, { 'index.json': '{ "schemaVersion": ' });
+  assert.throws(
+    () => readIndex(),
+    /^Error: data\/index\.json is not valid JSON: \S/,
+    'a corrupt index must read as a parse failure, distinct from a read failure',
+  );
+});
+
+test('main() names the product code when its file cannot be read', (t: TestContext) => {
+  withFiles(t, {
+    'index.json': JSON.stringify({
+      schemaVersion: INDEX_SCHEMA_VERSION,
+      products: [{ code: 'MISSING' }],
+    }),
+    'MISSING.json': new Error("ENOENT: no such file or directory, open 'MISSING.json'"),
+  });
+  assert.throws(
+    () => main(),
+    /^Error: product MISSING \(data\/products\/MISSING\.json\) could not be read: ENOENT/,
+    'a product file the index lists but disk lacks must name the code and the path',
+  );
+});
+
+test('main() names the product code when its file does not parse', (t: TestContext) => {
+  withFiles(t, {
+    'index.json': JSON.stringify({
+      schemaVersion: INDEX_SCHEMA_VERSION,
+      products: [{ code: 'BROKEN' }],
+    }),
+    'BROKEN.json': '{ "code": ',
+  });
+  assert.throws(
+    () => main(),
+    /^Error: product BROKEN \(data\/products\/BROKEN\.json\) is not valid JSON: \S/,
+    'a corrupt product file must name the code too, not just fail to parse',
+  );
+});
+
+/*
+ * The four above only ever drive products.map into a throw. This one is the
+ * other half: a product file that reads and parses must still arrive in
+ * `products` intact. The `[en]` report is the cheapest observable proof —
+ * it reads straight off the parsed object and owes nothing to the term
+ * tables, so it cannot go green for an unrelated reason.
+ *
+ * It is also the only test here that runs main() to completion, so it is the
+ * only one that reaches readTerms(). Both term tables are stubbed for that
+ * reason: withFiles() falls through to the real fs for anything it does not
+ * name, and an unstubbed run would read i18n/terms.*.json off disk — making a
+ * unit test about product plumbing fail whenever those files move.
+ */
+test('main() still threads a readable product file through to the report', (t: TestContext) => {
+  withFiles(t, {
+    'index.json': JSON.stringify({
+      schemaVersion: INDEX_SCHEMA_VERSION,
+      products: [{ code: 'HAPPY' }],
+    }),
+    'HAPPY.json': JSON.stringify({
+      code: 'HAPPY',
+      attractionNames: { ATTR1: { ja: 'ぬるぽアトラクション' } },
+    }),
+    'terms.zh-TW.json': JSON.stringify({ terms: {} }),
+    'terms.en.json': JSON.stringify({ terms: {} }),
+  });
+  const lines: string[] = [];
+  t.mock.method(console, 'log', (...args: unknown[]) => {
+    lines.push(args.map(String).join(' '));
+  });
+
+  main();
+
+  // The ja value is part of the assertion: the code alone only proves the
+  // attractionNames keys survived, while the value proves the nested object
+  // arrived intact rather than as an empty shell.
+  assert.ok(
+    lines.some(l => l.includes('[en] attraction ATTR1 has no English name from the API: ぬるぽアトラクション')),
+    'a product file that parses must reach the report, not just fail to throw',
+  );
+});
