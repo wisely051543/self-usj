@@ -219,6 +219,7 @@ source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: 本 story 引用 AD-22「不被執行的規則就不是規則」把閘門接上 `ci.yml`，但 `src/` 底下沒有任何 測試讀 `.github/workflows/`，三道閘門（tsc、i18n:check、schema:check）都一樣沒有保護。 這是全 repo 既有的缺口，不是本 story 造成的；要補應該一次涵蓋三道步驟，自成一個 story。
 status: open
+decision: 2026-08-23 新增 ci.yml 三道閘門的存在性 pin 測試 — 比照 limits.test.ts 對 fetch.yml 的既有正規表示式手法，新增測試涵蓋 ci.yml 的 tsc、npm run i18n:check、npm run schema:check 三道步驟存在，任一被整行刪除即測試失敗。
 
 ### DW-25: `src/i18n-check.ts` 讀 `data/index.json` 後直接 cast 成 `Index`，是本 story 之外 第三個未驗版的 `index.json` 消費者，既有 deferred 項目（抓取端 `readIndex()`、 `products/*.json`）都沒有涵蓋它。
 origin: spec-deferred d14807030099
@@ -281,7 +282,9 @@ location: src/sources/
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: medium
 reason: limitedFetch 由 src/limiter.ts 匯出，目前生產程式碼只有 src/sources/usj.ts 呼叫它， 但 NFR7「請求標頭不得揭露本站網域或站名」是 repo 層級要求。掃描範圍改為 src/**/*.ts（排除 *.test.ts） 才能讓保證涵蓋面與需求一致。本次刻意不擴大，因 intent 指名的就是那四個呼叫點。
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: 維持前一輪的刻意範圍決定；目前只有 usj.ts 呼叫 limitedFetch，無立即風險，待新增來源檔時再處理。
+decision: 2026-08-23 維持現有範圍，關閉 — 維持前一輪的刻意範圍決定；目前只有 usj.ts 呼叫 limitedFetch，無立即風險，待新增來源檔時再處理。
 
 ### DW-32: 沒有測試禁止裸 fetch( ；架構決策要求「禁止裸 fetch(，由測試強制」，但該強制目前不存在。
 origin: spec-deferred be971369a148
@@ -349,7 +352,9 @@ location: src/fetcher.ts:300-304
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: `src/fetcher.ts` 的 `No product matched ...` 分支在 `listProducts` 已耗用真實請求與時間之後 直接 exit 2，沒有 `logAbortSummary`。本次 DW-10 的授權範圍是「因持續封鎖中止」， 故未涵蓋；但這是唯一剩下的無彙總早退出口。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-fetcher-abort-summary-gaps
+resolution-undo: 1e0d62fefb9767ec1695789596fe639daf07e96353be5a6755f1d001451b189a 2026-08-23 7374617475733a206f70656e
 
 ### DW-39: `main()` 於檔尾以 `main();` 呼叫且未接 `.catch()`，非封鎖類的意外例外仍會以 unhandledRejection 收場，且同樣沒有彙總。
 origin: spec-deferred 48bfb04bc401
@@ -357,7 +362,9 @@ location: src/fetcher.ts:409-411
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: medium
 reason: `if (require.main === module) { main(); }`；catalog 階段之後任何 throw （`fs.writeFileSync` EACCES、`buildDays` 例外等）都不會經過本次新增的 `logAbortSummary`。 屬既有結構問題，非本次變更造成。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-fetcher-abort-summary-gaps
+resolution-undo: 1e0d62fefb9767ec1695789596fe639daf07e96353be5a6755f1d001451b189a 2026-08-23 7374617475733a206f70656e
 
 ### DW-40: 本次新增的封鎖旗標在目前的生產接線下作用窗口極窄，其效益主要是防禦性的。
 origin: spec-deferred 982babb109ba
@@ -365,7 +372,9 @@ location: src/sources/usj.ts:463
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: `listProducts` 的唯一生產呼叫點 `src/fetcher.ts` 的 catalog catch 會在 rejection 的 microtask 續行中同步 `process.exit(1)`，其餘 worker 多半停在 macrotask（網路 I/O 或 `sleep()`）上，來不及重新檢查旗標。旗標真正發揮作用的前提是未來有不會立即 exit 的呼叫者。 新測試直接呼叫 `listProducts` 並在 rejection 後續 tick，才觀察得到差異。
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: 接受現況為文件化的防禦性限制；旗標本身是刻意為未來不會立即 exit 的呼叫者準備，不投入 AbortController 重構。
+decision: 2026-08-23 接受現況為文件化限制，關閉 — 接受現況為文件化的防禦性限制；旗標本身是刻意為未來不會立即 exit 的呼叫者準備，不投入 AbortController 重構。
 
 ### DW-41: I/O 矩陣「超長內文」列以等式描述長度，但當截斷點恰落在代理對（surrogate pair）中間時， `body.length` 會是 199 而非 200。
 origin: spec-deferred a34d3d6020a2
@@ -442,6 +451,7 @@ source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
 severity: low
 reason: intent-alignment 審查指出：目前 `npm run fetch` 與「Flag failed products」中間沒有 其他步驟，且皆無 `continue-on-error`，所以 `success()` 現況等同於「fetch 這一步成功」； 但這個等價關係是隱含的，沒有用 `steps.<id>.outcome` 明確綁定到 `npm run fetch` 這個 步驟本身。spec 的 Always 條款寫的是「緊鄰的前一步驟」，現況成立，但寫法本身不會在 未來插入新步驟時提醒維護者重新檢查這個假設。
 status: open
+decision: 2026-08-23 改為明確綁定 steps.fetch.outcome — 為 npm run fetch 步驟加上 id: fetch，並把 Flag failed products 的 if: success() 改成 if: steps.fetch.outcome == 'success'，明確綁定觸發語意，避免未來插入新步驟時靜默改變行為。
 
 ### DW-50: src/sources/usj.ts 的四個 !res.ok throw 點都對 await res.text() 沒有 catch 保護， body 讀取本身失敗時會讓原始 stream 例外取代原本意圖的 "X API returned {status}" 訊息。
 origin: spec-deferred d8c52e09ce52
@@ -473,4 +483,76 @@ location: src/sources/usj.ts (fetchCatalogPage)
 source_spec: `spec-dw-30-32-33-header-observability-hardening.md`
 severity: low
 reason: usj-fetchproduct-blocking.test.ts 新增的 headers 參照相等測試驅動 usjSource.fetchProduct(...)，只會走過 fetchProductInfo（兩次）、 fetchInventory（日曆＋庫存批次）、fetchTimeSlots，不會走過 fetchCatalogPage —— 那是 usjSource.listProducts(...) 才會呼叫的路徑。 目前唯一涵蓋 fetchCatalogPage 這個呼叫點的是 usj.test.ts 的原始碼文字 接線檢查（limitedFetchCallSites／wiringProblem），不是執行期觀察。 此為既有缺口的縮小（本輪之前四個呼叫點皆無執行期觀察），非本輪引入。
+status: open
+
+### DW-54: `main().catch(handleFatalMainError)` at the file-tail entry point is never actually executed by any test.
+origin: spec-deferred 3fc421dd771c
+location: src/fetcher.ts:454
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: medium
+reason: `require.main === module` is false when `fetcher.ts` is imported for testing, so no test in `src/fetcher.test.ts` reaches that line; the new `handleFatalMainError` test calls the handler directly with a synthetic error instead. A regression that dropped or misspelled the `.catch()` (e.g. `.then()` instead) would ship undetected. The repo already has a related, separately-tracked entrypoint smoke-check effort (`_bmad-output/implementation-artifacts/spec-dw-12-fetch-entrypoint-smoke-check.md`, status in-review) that is the more natural home for a spawnSync-based integration test closing this gap, rather than adding ad hoc test hooks to production code here.
+status: open
+
+### DW-55: `startedAt` was converted from a `main()`-local `const` to a module-level `let`, so a second concurrent `main()` invocation in the same process would race/corrupt the first invocation's timer.
+origin: spec-deferred 56d29dffefd3
+location: src/fetcher.ts:281,307
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: This CLI is only ever invoked once per process via the `require.main === module` guard, so the race is not currently reachable in production; flagged for awareness if `main()` is ever made re-entrant.
+status: open
+
+### DW-56: `handleFatalMainError` 非 `Error` 分支的 `JSON.stringify` 例外 fallback 若遇到含循環參照的物件，`String(err)` 仍會印出無意義的 `[object Object]`。
+origin: spec-deferred fff709b06944
+location: src/fetcher.ts:307-314
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: `catch { return String(err); }` 對一般物件與 `JSON.stringify` 失敗時的結果相同，並未真正解決此函式本身要避免的 `[object Object]` 問題；只是把觸發條件從「任意物件」縮小到「JSON.stringify 會丟例外的物件（如循環參照）」。 需要循環參照安全的序列化（例如攔截已見過的參照）才能徹底解決，非本次早退彙總修補的範圍。
+status: open
+
+### DW-57: `handleFatalMainError` 對 `Error` 分支只印出 `err.message`，捨棄 `err.stack`，診斷未知例外時少了呼叫堆疊。
+origin: spec-deferred 466cd80e2e4d
+location: src/fetcher.ts:305-306
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: 此函式本身定位是「非預期的 bug」的兜底處理（非既有的封鎖判定），呼叫堆疊正是排查此類意外最有用的資訊；目前只印 `err.message` 會讓 CI 記錄少一層可追溯性。是否要改印 `err.stack` 屬於彙總訊息格式的既有設計決定範圍，非本次 兩處早退彙總插入點的範圍。
+status: open
+
+### DW-58: DW-38 新測試只涵蓋單一不存在的 `--product=` 代碼，未涵蓋多個 `--product=` 旗標部分命中、或空值 `--product=` 時 `wanted.filter(Boolean)` 會靜默退回抓取整個 catalog 的既有行為。
+origin: spec-deferred 4c11165a95da
+location: src/fetcher.ts:322-326
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: 這些是 `--product=` 既有解析邏輯（非本次新增）的既有行為與邊界，本次 diff 只在既有的「未命中」分支插入 `logAbortSummary`，未改動解析邏輯本身，故非本次改動造成。
+status: open
+
+### DW-59: DW-38 新測試只斷言 abort 訊息含 `No product matched`，未驗證訊息中列出可用代碼的 `Known: ...` 段落內容。
+origin: spec-deferred 7b8144332ada
+location: src/fetcher.ts:349
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: `Known: ...` 段落是既有訊息的一部分（非本次新增），本次只在其 `process.exit(2)` 前插入 `logAbortSummary`；若該段落遭意外刪改，既有測試不會失敗，但此屬既有訊息內容的既有驗證缺口。
+status: open
+
+### DW-60: `handleFatalMainError` 遇到 `message` 為空字串的 `Error`（如 `new Error()`）時，會印出無詳細內容的 `[fetch] fatal: `。
+origin: spec-deferred b0fcda90fdb2
+location: src/fetcher.ts:305-306
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: 此為邊界情境（呼叫端建構 `Error` 時未帶訊息），機率低；彙總行仍會照常接續印出（請求數與耗時仍可供診斷）， 故非阻斷性缺口，本次不在兩處早退彙總插入的範圍內處理。
+status: open
+
+### DW-61: `--product=` 未命中分支（DW-38 插入點）呼叫 `logAbortSummary` 未如 `handleFatalMainError` 般以 `try`/`finally` 保護；若 `logAbortSummary` 本身丟出例外，`process.exit(2)` 將不會執行。
+origin: spec-deferred f7fe7021299c
+location: src/fetcher.ts:351-353
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: 例外會往上傳遞並最終由 `main().catch(handleFatalMainError)` 接住、以 exit code 1 收尾，與 spec 「Never: 不變更 exit code 語意（2 維持 2）」的邊界產生分歧。但現有兩處封鎖中止路徑（`BlockedError`）本就未做 此保護，本次新增的 `--product=` 分支延續同一既有慣例（spec 的 Approach 明確要求「比照既有封鎖中止路徑」）； `requestCount()` 目前只讀取內部計數器變數，實務上幾乎不會拋出例外，即使觸發也仍會以 exit(1) 收尾而非靜默掛起， 風險極低，非本次早退彙總插入範圍內處理。
+status: open
+
+### DW-62: `handleFatalMainError` 對 `err` 為 `null` 或 `undefined` 時的處理未被測試涵蓋；`JSON.stringify(undefined)` 回傳非字串的 `undefined`，經樣板字串隱式轉型後會印出「`[fetch] fatal: undefined`」。
+origin: spec-deferred fe1efc8168bf
+location: src/fetcher.ts:307-314
+source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
+severity: low
+reason: 目前測試只涵蓋 `Error` 與一般物件（`{ code, path }`）兩種情境，未涵蓋 `Promise.reject()` 或 `throw null`/`throw undefined` 這類邊界輸入；雖不會如循環參照物件般印出 `[object Object]`，但「undefined」 字串本身診斷價值有限。此輸入形態罕見，非本次兩處早退彙總插入點的範圍。
 status: open

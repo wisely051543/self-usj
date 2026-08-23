@@ -23,8 +23,9 @@ import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 import { BlockedError } from './limiter';
+import * as limiter from './limiter';
 import { usjSource } from './sources/usj';
-import { main } from './fetcher';
+import { handleFatalMainError, main } from './fetcher';
 import { everyNthDay, shiftMonths, todayJST } from './dates';
 import type { CatalogEntry, ProductResult } from './types';
 
@@ -351,4 +352,146 @@ test('the days.json a round writes spans that round\'s whole fetch range', async
     everyNthDay(first, last, 1),
     'with every day in between present exactly once and in order — no gaps, no truncated domain',
   );
+});
+
+/**
+ * DW-38: `--product=` naming a code the catalog does not have is its own early
+ * exit, separate from the BlockedError paths above — it must still leave the
+ * same "how far did we get" summary behind rather than exiting silently.
+ */
+test('a --product= filter that matches nothing in the catalog aborts with a summary before exit(2)', async (t: TestContext) => {
+  t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
+  const fetchProduct = t.mock.method(usjSource, 'fetchProduct', async () => productResult(catalogEntry.code));
+
+  const originalArgv = process.argv;
+  process.argv = [...originalArgv, '--product=NOPE0001'];
+  t.after(() => {
+    process.argv = originalArgv;
+  });
+
+  const { written } = mockFs(t);
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  const errors = captureErrors(t);
+
+  await assert.rejects(main(), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 2, 'an unmatched --product= filter must exit 2 (existing behavior, unchanged)');
+    return true;
+  });
+
+  assert.equal(fetchProduct.mock.callCount(), 0, 'the round must stop before fetching any product');
+  assert.deepEqual(
+    snapshotWrites(written),
+    [],
+    'index.json/days.json must not be rewritten when no product matched the filter',
+  );
+
+  const alertIndex = errors.findIndex(line => line.includes('No product matched'));
+  assert.notEqual(alertIndex, -1, `the abort must say no product matched, got: ${JSON.stringify(errors)}`);
+  assertAbortSummaryFollows(errors, alertIndex);
+});
+
+/**
+ * DW-39: an unmodeled exception from `main()` must not fall out the bottom of
+ * this module's fire-and-forget invocation as an unhandled rejection. Calling
+ * `handleFatalMainError` directly exercises that handler without having to
+ * engineer a real throw through `main()`'s full body.
+ */
+test('handleFatalMainError prints the fatal alert then the abort summary and exits 1', (t: TestContext) => {
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  const errors = captureErrors(t);
+
+  assert.throws(() => handleFatalMainError(new Error('boom')), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 1, 'an unmodeled exception must exit 1 rather than surface as an unhandled rejection (DW-39)');
+    return true;
+  });
+
+  const alertIndex = errors.findIndex(line => line.includes('[fetch] fatal:') && line.includes('boom'));
+  assert.notEqual(alertIndex, -1, `the fatal alert must name the error, got: ${JSON.stringify(errors)}`);
+  assertAbortSummaryFollows(errors, alertIndex);
+});
+
+/**
+ * DW-39 follow-up: not every rejection is an `Error` — a thrown plain object
+ * (e.g. a hand-rolled `{ code, path }` failure shape rather than a real
+ * `Error`) is a realistic case. Stringifying such a
+ * value via implicit `toString()` would print the useless `[object Object]`;
+ * this asserts the fallback carries the value's actual content instead, and
+ * that the handler still exits 1 the same as it does for a real `Error`.
+ */
+test('handleFatalMainError still reports useful detail and exits 1 for a non-Error rejection', (t: TestContext) => {
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  const errors = captureErrors(t);
+
+  assert.throws(() => handleFatalMainError({ code: 'EACCES', path: '/data/index.json' }), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 1, 'a non-Error rejection must still exit 1 rather than surface as an unhandled rejection');
+    return true;
+  });
+
+  const alertIndex = errors.findIndex(line => line.includes('[fetch] fatal:'));
+  assert.notEqual(alertIndex, -1, `the fatal alert must be printed, got: ${JSON.stringify(errors)}`);
+  const alert = errors[alertIndex];
+  assert.ok(
+    !alert.includes('[object Object]'),
+    `a non-Error value must not collapse to [object Object], got: ${JSON.stringify(alert)}`,
+  );
+  assert.ok(
+    alert.includes('EACCES') && alert.includes('/data/index.json'),
+    `the fatal alert must carry the non-Error value's actual content, got: ${JSON.stringify(alert)}`,
+  );
+  assertAbortSummaryFollows(errors, alertIndex);
+});
+
+/**
+ * DW-39 hardening check: `handleFatalMainError`'s own reporting steps
+ * (`console.error`, `logAbortSummary`) are wrapped in `try`/`finally`
+ * specifically so a throw from either of them still reaches
+ * `process.exit(1)` instead of escaping uncaught — the exact
+ * unhandled-rejection failure mode this function exists to eliminate, one
+ * level deeper. This forces `console.error`'s first call to throw and
+ * asserts the `finally` still runs.
+ */
+test('handleFatalMainError still exits 1 even when reporting the fatal alert itself throws', (t: TestContext) => {
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  t.mock.method(console, 'error', () => {
+    throw new Error('stderr is closed (mocked)');
+  });
+
+  assert.throws(() => handleFatalMainError(new Error('boom')), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 1, 'a throw while reporting the fatal alert must still exit 1 via finally');
+    return true;
+  });
+});
+
+/**
+ * DW-39 hardening check, other half: the same `try`/`finally` guard must also
+ * cover `logAbortSummary` throwing, not just `console.error` — the JSDoc names
+ * `logAbortSummary` (e.g. its `requestCount()` call) as an equally motivating
+ * case, so it needs its own test rather than relying on the console.error test
+ * above to stand in for it.
+ */
+test('handleFatalMainError still exits 1 even when logAbortSummary itself throws', (t: TestContext) => {
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  t.mock.method(limiter, 'requestCount', () => {
+    throw new Error('request counter unavailable (mocked)');
+  });
+
+  assert.throws(() => handleFatalMainError(new Error('boom')), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 1, 'a throw while summarizing the abort must still exit 1 via finally');
+    return true;
+  });
 });

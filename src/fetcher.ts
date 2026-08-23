@@ -257,18 +257,67 @@ export function writeDays(days: Days): boolean {
 /**
  * The round-level tally an aborted round would otherwise take to the grave.
  *
- * `main()`'s closing summary sits past every abort's `process.exit(1)`, so a
- * blocked round used to leave only "we were blocked" with no sense of how far
- * it got or how long it spent getting there — the two numbers that separate a
- * store that blocked on request three from one that blocked after twenty
- * minutes of grinding. Kept as its own message rather than sharing the closing
- * summary's format string, so neither line can be reworded by an edit aimed at
- * the other. `console.error` to land in the same stream as the block alert it
- * follows.
+ * `main()`'s closing summary sits past every early exit — a block's
+ * `process.exit(1)`, the unmatched-filter `process.exit(2)`, and the fatal
+ * `process.exit(1)` from `handleFatalMainError` alike — so without this, an
+ * early-exiting round used to leave only "why it stopped" with no sense of how
+ * far it got or how long it spent getting there — the two numbers that
+ * separate a store that blocked on request three from one that blocked after
+ * twenty minutes of grinding. Kept as its own message rather than sharing the
+ * closing summary's format string, so neither line can be reworded by an edit
+ * aimed at the other. `console.error` to land in the same stream as the alert
+ * it follows.
  */
 function logAbortSummary(startedAt: number): void {
   const seconds = Math.max(0, Date.now() - startedAt) / 1000;
   console.error(`[fetch] aborted after ${requestCount()} requests in ${seconds.toFixed(1)}s`);
+}
+
+/**
+ * Module-level so `handleFatalMainError` — attached to `main()`'s promise from
+ * outside it — can reach the same clock `main()` started, rather than the two
+ * drifting apart as two separate timers. Seeded at load time so that even
+ * before `main()` reassigns it, `Date.now() - startedAt` is always a real
+ * number rather than `Date.now() - undefined` producing `NaN`.
+ */
+let startedAt = Date.now();
+
+/**
+ * The catch-all for whatever `main()` throws that none of its own try/catch
+ * blocks were written for — a bug, not a modeled failure mode. Without this,
+ * such an exception fell out of the fire-and-forget call below as an
+ * unhandled rejection: no abort summary, and an exit code Node chooses rather
+ * than the one this project uses for "the round did not finish". AD-16's rule
+ * is that the danger is silence, not noise, so this exits 1 rather than 0 or
+ * hanging as an unhandled rejection.
+ * Exported so a test can call it directly rather than engineering a real
+ * unmodeled throw through `main()`'s full body.
+ *
+ * The reporting steps themselves are wrapped in `try`/`finally` rather than a
+ * bare sequence: if `console.error` or `logAbortSummary` (e.g. its
+ * `requestCount()` call) throws, that would otherwise fall out of this
+ * handler uncaught — the exact unhandled-rejection failure mode this function
+ * exists to eliminate, one level deeper. `finally` guarantees `process.exit(1)`
+ * is still reached either way.
+ */
+export function handleFatalMainError(err: unknown): never {
+  try {
+    const detail = err instanceof Error
+      ? err.message
+      : typeof err === 'string'
+        ? err
+        : (() => {
+            try {
+              return JSON.stringify(err);
+            } catch {
+              return String(err);
+            }
+          })();
+    console.error(`[fetch] fatal: ${detail}`);
+    logAbortSummary(startedAt);
+  } finally {
+    process.exit(1);
+  }
 }
 
 /** Exported so tests can await it directly instead of racing its fire-and-forget invocation below. */
@@ -280,7 +329,7 @@ export async function main() {
 
   const start = todayJST();
   const range: DateRange = { start, end: shiftMonths(start, MONTHS_AHEAD) };
-  const startedAt = Date.now();
+  startedAt = Date.now();
   const now = new Date();
   const nowIso = now.toISOString();
 
@@ -300,6 +349,7 @@ export async function main() {
   const targets = wanted.length ? catalog.filter(e => wanted.includes(e.code)) : catalog;
   if (targets.length === 0) {
     console.error(`No product matched ${wanted.join(', ')}. Known: ${catalog.map(e => e.code).join(', ')}`);
+    logAbortSummary(startedAt);
     process.exit(2);
   }
 
@@ -426,5 +476,5 @@ export async function main() {
 // `require.main === module` still holds when it is invoked as the CLI entry
 // point, so this is a no-op behavior change for the real `node`/`ts-node` run.
 if (require.main === module) {
-  main();
+  main().catch(handleFatalMainError);
 }
