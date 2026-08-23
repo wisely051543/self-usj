@@ -17,15 +17,6 @@
     "label": "\u7559\u5f85 Story 1.10 \u4e00\u4f75\u8a55\u4f30",
     "resolution": ""
   },
-  "DW-24": {
-    "answered_at": "2026-08-23",
-    "bundle_name": "",
-    "effect": "build",
-    "intent": "\u6bd4\u7167 limits.test.ts \u5c0d fetch.yml \u7684\u65e2\u6709\u6b63\u898f\u8868\u793a\u5f0f\u624b\u6cd5\uff0c\u65b0\u589e\u6e2c\u8a66\u6db5\u84cb ci.yml \u7684 tsc\u3001npm run i18n:check\u3001npm run schema:check \u4e09\u9053\u6b65\u9a5f\u5b58\u5728\uff0c\u4efb\u4e00\u88ab\u6574\u884c\u522a\u9664\u5373\u6e2c\u8a66\u5931\u6557\u3002",
-    "key": "1",
-    "label": "\u65b0\u589e ci.yml \u4e09\u9053\u9598\u9580\u7684\u5b58\u5728\u6027 pin \u6e2c\u8a66",
-    "resolution": ""
-  },
   "DW-29": {
     "answered_at": "2026-08-22",
     "bundle_name": "",
@@ -42,15 +33,6 @@
     "intent": "Update the \u8d85\u9577\u5167\u6587 row in the frozen <intent-contract> I/O matrix of spec-dw-8-9-10-block-abort-path-hardening.md to state body.length is <= 200, and may be 199 when the truncation point lands mid-surrogate-pair; no code change needed since clipLoneSurrogate's behavior is already correct and intentional.",
     "key": "1",
     "label": "Revise matrix wording for the edge case",
-    "resolution": ""
-  },
-  "DW-49": {
-    "answered_at": "2026-08-23",
-    "bundle_name": "",
-    "effect": "build",
-    "intent": "\u70ba npm run fetch \u6b65\u9a5f\u52a0\u4e0a id: fetch\uff0c\u4e26\u628a Flag failed products \u7684 if: success() \u6539\u6210 if: steps.fetch.outcome == 'success'\uff0c\u660e\u78ba\u7d81\u5b9a\u89f8\u767c\u8a9e\u610f\uff0c\u907f\u514d\u672a\u4f86\u63d2\u5165\u65b0\u6b65\u9a5f\u6642\u975c\u9ed8\u6539\u8b8a\u884c\u70ba\u3002",
-    "key": "1",
-    "label": "\u6539\u70ba\u660e\u78ba\u7d81\u5b9a steps.fetch.outcome",
     "resolution": ""
   }
 }
