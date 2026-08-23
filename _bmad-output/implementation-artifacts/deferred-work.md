@@ -220,7 +220,9 @@ location: .github/workflows/ci.yml:28-37
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: low
 reason: 本 story 引用 AD-22「不被執行的規則就不是規則」把閘門接上 `ci.yml`，但 `src/` 底下沒有任何 測試讀 `.github/workflows/`，三道閘門（tsc、i18n:check、schema:check）都一樣沒有保護。 這是全 repo 既有的缺口，不是本 story 造成的；要補應該一次涵蓋三道步驟，自成一個 story。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-workflow-gate-pin-hardening
+resolution-undo: 0dd39def2d02debc3fa5fa63f3d562564d9cbd9131797d849209f7634c537b09 2026-08-23 7374617475733a206f70656e
 decision: 2026-08-23 新增 ci.yml 三道閘門的存在性 pin 測試 — 比照 limits.test.ts 對 fetch.yml 的既有正規表示式手法，新增測試涵蓋 ci.yml 的 tsc、npm run i18n:check、npm run schema:check 三道步驟存在，任一被整行刪除即測試失敗。
 
 ### DW-25: `src/i18n-check.ts` 讀 `data/index.json` 後直接 cast 成 `Index`，是本 story 之外 第三個未驗版的 `index.json` 消費者，既有 deferred 項目（抓取端 `readIndex()`、 `products/*.json`）都沒有涵蓋它。
@@ -447,7 +449,9 @@ location: src/limits.test.ts:70-116
 source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
 severity: low
 reason: `scheduleIntervalMin`／`jobTimeoutMin`／`concurrencyBlock`（`src/limits.test.ts:70-100`） 與本次新增的 `flagFailedProductsCondition()` 都是同一手法：直接對 YAML 原始文字跑正規 表示式，而非用真正的 YAML parser。這是本檔既有慣例，不是本次改動引入；本次只是比照 既有寫法新增一個同型 helper。獨立審查（blind-hunter、edge-case-hunter）皆指出，若日後 在 `- name:` 與 `if:` 之間插入 `id:`／`uses:` 等欄位，這類正規表示式會抓不到值， `assert.ok(step, …)` 會丟出「找不到步驟」的誤導性錯誤，而非指向真正的條件內容。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-workflow-gate-pin-hardening
+resolution-undo: 0dd39def2d02debc3fa5fa63f3d562564d9cbd9131797d849209f7634c537b09 2026-08-23 7374617475733a206f70656e
 
 ### DW-49: `if: success()` 判斷的是「job 到此為止沒有任何步驟失敗」，不是專門針對 `npm run fetch` 這一步；若日後在兩者之間插入會獨立失敗的新步驟，會連帶讓本應正常的 回合也被跳過標記。
 origin: spec-deferred a8795972081e
@@ -455,7 +459,9 @@ location: .github/workflows/fetch.yml:45-56
 source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
 severity: low
 reason: intent-alignment 審查指出：目前 `npm run fetch` 與「Flag failed products」中間沒有 其他步驟，且皆無 `continue-on-error`，所以 `success()` 現況等同於「fetch 這一步成功」； 但這個等價關係是隱含的，沒有用 `steps.<id>.outcome` 明確綁定到 `npm run fetch` 這個 步驟本身。spec 的 Always 條款寫的是「緊鄰的前一步驟」，現況成立，但寫法本身不會在 未來插入新步驟時提醒維護者重新檢查這個假設。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-workflow-gate-pin-hardening
+resolution-undo: 0dd39def2d02debc3fa5fa63f3d562564d9cbd9131797d849209f7634c537b09 2026-08-23 7374617475733a206f70656e
 decision: 2026-08-23 改為明確綁定 steps.fetch.outcome — 為 npm run fetch 步驟加上 id: fetch，並把 Flag failed products 的 if: success() 改成 if: steps.fetch.outcome == 'success'，明確綁定觸發語意，避免未來插入新步驟時靜默改變行為。
 
 ### DW-50: src/sources/usj.ts 的四個 !res.ok throw 點都對 await res.text() 沒有 catch 保護， body 讀取本身失敗時會讓原始 stream 例外取代原本意圖的 "X API returned {status}" 訊息。
@@ -484,7 +490,9 @@ location: .github/workflows/fetch.yml (Smoke-check fetch entry point step); src/
 source_spec: `spec-dw-12-fetch-entrypoint-smoke-check-2.md`
 severity: low
 reason: repo 內已有同類先例：`src/limits.test.ts` 用 `flagFailedProductsCondition()` 這類 regex-parse helper 釘住 `fetch.yml` 鄰近步驟（`Flag failed products`）的 `if:` 條件字串，並在 `ci.yml` 的 `npm test`（merge-blocking gate）下每次 push/PR 執行；但這次新增的 `Smoke-check` 步驟的腳本內容（尤其是 `-s` 而非 `-e`/`-f`）沒有對應的 pin 測試。本次 spec 的 Never 條款明確排除新增測試檔案、且 Design Notes 已論證選 CI 冒煙步驟正是為了避免另外設計測試方式，因此在本次範圍內不處理；若要處理，屬於修改既有 `src/limits.test.ts`（非新增檔案）的後續加強項。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-workflow-gate-pin-hardening
+resolution-undo: 0dd39def2d02debc3fa5fa63f3d562564d9cbd9131797d849209f7634c537b09 2026-08-23 7374617475733a206f70656e
 
 ### DW-53: DW-30 的新測試只能透過 fetchProduct 觀察到三個 limitedFetch 呼叫點的真實 init.headers，fetchCatalogPage（僅 listProducts 呼叫）仍無執行期標頭觀察。
 origin: spec-deferred 1340623e299d
@@ -580,4 +588,76 @@ location: src/fetcher.ts:38-42（readIndex() 第一段 try/catch）
 source_spec: `spec-dw-21-fetcher-readindex-version-guard.md`
 severity: low
 reason: 版號不符與讀取／解析失敗同屬 AD-14 所指「不驗證即接受異常快照」的範疇，但本 story 依 Boundaries 「Always」第 3 條明文要求後者維持現況靜默，僅補上版號檢查一條路徑的可見度。若未來要讓抓取端的 異常快照全面可觀測，需一併決定讀取／解析失敗要不要 log、log 什麼內容（例如是否要區分 ENOENT 與 JSON 語法錯誤），超出本 story 範圍。
+status: open
+
+### DW-65: ci.yml 的閘門 pin 只證明指令字串還在，無法察覺閘門被 continue-on-error、步驟或 job 層的 if: false 停用，或 workflow 的 on: push/pull_request 觸發被移除。
+origin: spec-deferred 3d5610d5e489
+location: src/limits.test.ts (the CI gate pin test); .github/workflows/ci.yml
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: medium
+reason: review 期間實測：對 `- run: npm run schema:check` 加上 `continue-on-error: true`、 把閘門改寫成帶 `if: false` 的具名步驟、對 `jobs.check` 加 `if: false`、 把 `on:` 改成只剩 `workflow_dispatch:`——四種情況 `npm test` 全部維持全綠， 但 AD-22「失敗即擋 merge」已不再成立。本次 intent 明確只要求「存在性 pin」 （「deleting any one line reddens npm test」），故不在範圍內。
+status: open
+
+### DW-66: Smoke-check 的 pin 只釘住 `-s` 判準，沒有釘住失敗分支仍以 exit 1 讓 job 變紅。
+origin: spec-deferred b818dbb16f9c
+location: src/limits.test.ts (the fetch smoke check pin); .github/workflows/fetch.yml
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 把 else 分支的 `exit 1` 改成 `echo done`，判準仍是 `-s`，pin 照樣通過， 但這道守門從此只會印一行字、不會擋任何回合——正是 DW-52 註解自己反對的 「看起來有守、實際不守」。本次 intent 只要求釘住判準本身。
+status: open
+
+### DW-67: DW-48 點名的四個 helper 中，只有 flagFailedProductsCondition 走的路徑有回歸測試； scheduleIntervalMin／jobTimeoutMin／concurrencyBlock 的新作用域無測試保護。
+origin: spec-deferred 934d04b27856
+location: src/limits.test.ts:70-250
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: review 實測確認新作用域有效（同層新增一個帶 `timeout-minutes: 1` 的兄弟 job， jobTimeoutMin 仍讀到 25；job 層的 concurrency: 不會蓋過 workflow 層的）， 但沒有任何斷言會在這些性質退化時出聲。fixture 成本很低，屬後續加強。
+status: open
+
+### DW-68: 刪掉 ci.yml 的 `- run: npm test` 會讓本檔所有 pin 在 CI 完全停止執行，而這件事 無法從本檔內部偵測。
+origin: spec-deferred 41cec46c84fe
+location: .github/workflows/ci.yml:29
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 斷言只有在被執行時才能報告任何事；`npm test` 那一步被刪除時，limits.test.ts 在 CI 根本不會跑。本次 intent 明確只列三道閘門（typecheck／i18n:check／schema:check）。 真正的補法在 repo 之外（branch protection 的 required status check）， 本次已改寫註解說明覆蓋邊界，但缺口本身仍在。
+status: open
+
+### DW-69: blockUnder 的 atIndent 只用於頂層 key（on／jobs／concurrency），巢狀查詢 （jobs.fetch、jobs.check、on.schedule）未傳入對應層級的 atIndent，若巢狀結構未來 出現同名 key 會被誤配對而非回報「找不到」。
+origin: spec-deferred b23ff50d9a9e
+location: src/limits.test.ts（blockUnder 的巢狀呼叫，如 jobTimeoutMin／ciCheckCommands／scheduleIntervalMin）
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: medium
+reason: 已閱讀程式碼與兩份 workflow 檔案現況確認：jobs.fetch／jobs.check／on.schedule 下皆無同名子欄位碰撞，故現況未觸發；但此為結構性缺口，非本次 intent 要求範圍。
+status: open
+
+### DW-70: runCommandsIn 對 `run: |` 折疊區塊的分支目前未被兩份 workflow 檔案的任何實際內容 觸發，且消費完一個區塊後迴圈索引未跳過該區塊內容，僅依賴區塊內容不含符合 `run:` 開頭格式的行來避免重複計入。
+origin: spec-deferred 939eff67ac94
+location: src/limits.test.ts:runCommandsIn
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 已閱讀程式碼確認邏輯；ci.yml 的 run: 皆為單行，現況無 run: | 步驟可驗證此路徑。
+status: open
+
+### DW-71: BLOCK_SCALAR 正規表示式（/^[|>][-+]?$/）未涵蓋 YAML 合法的顯式縮排指示數字 （如 `run: |2` 或 `run: >4-`），該寫法會被誤讀為單行純量而非區塊開頭。
+origin: spec-deferred 0f3700dc0c72
+location: src/limits.test.ts:BLOCK_SCALAR
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 兩份 workflow 檔案現況未使用顯式縮排指示，未觸發；為已知限制。
+status: open
+
+### DW-72: runCommandsIn／stepRunScript 對 `run: |`（逐行）與 `run: >`（折疊成一行）的處理 方式相同（皆逐行拆開），若未來步驟改用折疊語法，會被誤報為多條指令而非一行。
+origin: spec-deferred 09dcb60a7150
+location: src/limits.test.ts:runCommandsIn, stepRunScript
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 兩份 workflow 現況只用 `run: |` 或單行 `run:`，未觸發；為已知限制。
+status: open
+
+### DW-73: stepBlock 只辨識 `- name:` 是 dash 行自身第一個欄位的寫法；若步驟改寫成 `- id: x` 換行後接 `name: X`，會被判定為「找不到步驟」而非正確定位。
+origin: spec-deferred a8fb56897ac8
+location: src/limits.test.ts:stepBlock
+source_spec: `spec-dw-24-48-49-52-workflow-gate-pin-hardening.md`
+severity: low
+reason: 兩份 workflow 現況所有步驟皆以 `- name:` 開頭，未觸發；DW-48 intent 只要求容忍 `name:` 與 `if:` 之間插入欄位，未涵蓋 `name:` 本身被移到非首位。
 status: open

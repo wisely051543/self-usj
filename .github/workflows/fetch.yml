@@ -66,12 +66,17 @@ jobs:
             exit 1
           fi
 
-      # success() only: an aborted round (BlockedError, catalog failure, or an
-      # unmatched --product=) exits before index.json is rewritten, so running
-      # this on failure would re-warn about the previous round's already-known
-      # failures instead of this round's.
+      # Bound to the Fetch step's own result, not to "nothing has failed yet":
+      # an aborted round (BlockedError, catalog failure, or an unmatched
+      # --product=) exits before index.json is rewritten, so running this
+      # would re-warn about the previous round's already-known failures
+      # instead of this round's. A bare success() would say only that no
+      # earlier step failed, which a later inserted step could silently
+      # widen; naming steps.fetch keeps the binding explicit. GitHub still
+      # ANDs in an implicit success() because the condition contains no
+      # status-check function, so this is strictly narrower than before.
       - name: Flag failed products
-        if: success()
+        if: steps.fetch.outcome == 'success'
         run: |
           node -e "
             const r = JSON.parse(require('fs').readFileSync('data/index.json','utf8'));
