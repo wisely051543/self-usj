@@ -21,7 +21,9 @@
 
 import { test, type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
+import * as os from 'node:os';
 import * as path from 'node:path';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { BlockedError } from './limiter';
 import * as limiter from './limiter';
 import { usjSource } from './sources/usj';
@@ -33,8 +35,29 @@ import type { CatalogEntry, ProductResult } from './types';
 /** Typed so the mocks below are checked against the real signatures. */
 const fs = require('node:fs') as typeof import('node:fs');
 
+/**
+ * The real `fs` entry points, captured here at module load — before any test
+ * has run, so before anything can have been mocked over them.
+ *
+ * Tests that need genuine files on disk (the DW-54 entry-point tests at the
+ * bottom write a preload shim) cannot go through `fs` directly: a test that
+ * mocks the same method twice (`mockFs(t)` and then its own
+ * `t.mock.method(fs, 'writeFileSync', …)`) does not fully unwind on restore —
+ * the inner mock is left installed on the module for every later test in the
+ * file. Reaching for the captured originals sidesteps that entirely rather
+ * than depending on which tests happen to run first.
+ */
+const realFs = {
+  mkdtempSync: fs.mkdtempSync,
+  writeFileSync: fs.writeFileSync,
+  rmSync: fs.rmSync,
+};
+
+/** The package root, i.e. the `cwd` the `npm run fetch` script gives `fetcher.ts`. */
+const REPO_ROOT = path.join(__dirname, '..');
+
 /** The directory `fetcher.ts` derives its own paths from — nothing under it is real here. */
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const DATA_DIR = path.join(REPO_ROOT, 'data');
 
 class ExitSignal extends Error {
   constructor(public code: number | undefined) {
@@ -167,7 +190,7 @@ const ABORT_SUMMARY = /^\[fetch\] aborted after \d+ requests in \d+\.\d+s$/;
  * alert that says why the round is ending — the two lines are read together,
  * and "how far did it get" only means something once you know it was a block.
  */
-function assertAbortSummaryFollows(errors: string[], alertIndex: number): void {
+function assertAbortSummaryFollows(errors: string[], alertIndex: number): string {
   const summaryIndex = errors.findIndex(line => ABORT_SUMMARY.test(line));
   assert.notEqual(
     summaryIndex,
@@ -178,6 +201,7 @@ function assertAbortSummaryFollows(errors: string[], alertIndex: number): void {
     summaryIndex > alertIndex,
     `the summary must follow the alert it explains, got: ${JSON.stringify(errors)}`,
   );
+  return errors[summaryIndex];
 }
 
 test('a BlockedError from fetchProduct stops the round with a non-zero exit, leaving the snapshot files untouched', async (t: TestContext) => {
@@ -1354,5 +1378,209 @@ test('handleFatalMainError names the symbol-keyed fields of a value that has no 
   assert.ok(
     alert.includes('failedPath'),
     `symbol-keyed fields must still be named, got: ${JSON.stringify(alert)}`,
+  );
+});
+
+/**
+ * DW-54 scaffolding: both entry-point tests below have to run `fetcher.ts` in a
+ * child process, because the wiring they pin (`if (require.main === module) {
+ * main().catch(handleFatalMainError); }`) is unreachable from an in-process
+ * import — importing this module leaves `require.main === module` false, which
+ * is the whole reason it went untested.
+ *
+ * Neither test may let the child run a real round: that would hit usj.co.jp and
+ * rewrite the committed `data/` snapshots. So both preload a shim that replaces
+ * `./dates`'s `todayJST` with a thrower. `todayJST()` is the first call in
+ * `main()` that leaves `main()`'s own frame, and it runs before any network or
+ * filesystem I/O, so the injected failure lands before `source.listProducts()`
+ * and before `fs.mkdirSync(PRODUCTS_DIR)` no matter which way the wiring is
+ * broken. It also has to be an *unprotected* throw: a failure raised inside
+ * `listProducts()` is caught by `main()` itself and exits 1 down the "catalog
+ * failed" branch, which never passes through `handleFatalMainError` and would
+ * grade a deleted `.catch()` as green.
+ */
+const INJECTED_FAILURE = 'injected unmodeled failure (DW-54)';
+
+/**
+ * The status the shim exits with when it cannot find what it came to replace.
+ * Distinct from anything `fetcher.ts` itself exits with (0, 1, 2) so a moved
+ * injection point reports itself instead of masquerading as a result.
+ */
+const SHIM_INJECTION_MISSED = 97;
+
+/**
+ * Writes the throwing shim to a tmpdir and returns its path.
+ *
+ * Plain CommonJS `require` at an absolute path: the shim sits under
+ * `os.tmpdir()`, so a relative specifier would resolve against the wrong root,
+ * and `ts-node/register` is preloaded ahead of it, which is what makes a `.ts`
+ * path requirable at all. Assigning onto the module's `exports` object works
+ * because TypeScript compiles `fetcher.ts`'s call site to `dates_1.todayJST()`
+ * — a property lookup made at call time, long after this preload ran.
+ *
+ * The self-checks are the load-bearing part. A shim that has stopped biting
+ * does not fail on its own — it quietly lets the child run a real,
+ * network-touching round — so it has to detect that itself and exit with a
+ * dedicated status. The `require` is wrapped in `try`/`catch` because a moved
+ * or deleted `dates.ts` would otherwise throw during the `--require` preload
+ * itself, before either check below runs, and surface as a generic uncaught
+ * exception instead of the same clear "injection point missing" diagnostic.
+ * The `typeof` check ahead of the assignment catches a rename or a move of the
+ * function off this module; the identity check after it catches an assignment
+ * that was accepted and then discarded, which is what a frozen or
+ * accessor-backed `exports` object (an ESM rewrite, `Object.freeze`) produces
+ * in non-strict code. None of these cover the child resolving a *second*
+ * instance of `dates` — the shim would patch the wrong copy successfully —
+ * but that state fails loudly at the assertions instead, because the round
+ * would go on to issue requests rather than aborting after zero.
+ */
+function writeThrowShim(t: TestContext): string {
+  const shimDir = realFs.mkdtempSync(path.join(os.tmpdir(), 'usj-fetcher-entry-'));
+  t.after(() => realFs.rmSync(shimDir, { recursive: true, force: true }));
+  const shimPath = path.join(shimDir, 'throw-on-todayJST.js');
+  const datesModule = JSON.stringify(path.join(REPO_ROOT, 'src', 'dates.ts'));
+
+  realFs.writeFileSync(
+    shimPath,
+    `let dates;\n` +
+      `try {\n` +
+      `  dates = require(${datesModule});\n` +
+      `} catch (e) {\n` +
+      `  console.error('[shim] could not load the dates module: ' + (e && e.message));\n` +
+      `  process.exit(${SHIM_INJECTION_MISSED});\n` +
+      `}\n` +
+      `if (typeof dates.todayJST !== 'function') {\n` +
+      `  console.error('[shim] dates.todayJST is not a function to replace');\n` +
+      `  process.exit(${SHIM_INJECTION_MISSED});\n` +
+      `}\n` +
+      `const thrower = () => { throw new Error(${JSON.stringify(INJECTED_FAILURE)}); };\n` +
+      `dates.todayJST = thrower;\n` +
+      `if (dates.todayJST !== thrower) {\n` +
+      `  console.error('[shim] dates.todayJST did not take the replacement');\n` +
+      `  process.exit(${SHIM_INJECTION_MISSED});\n` +
+      `}\n`,
+  );
+  return shimPath;
+}
+
+/**
+ * Runs `node --require ts-node/register --require <shim> <tail…>` and makes the
+ * three checks that must pass before either test's own assertions mean
+ * anything: the child started, it was not killed, and the injection actually
+ * landed. Without them a spawn failure, a signal, or a dead shim would all
+ * surface as some misleading claim about the wiring.
+ */
+function runWithShim(t: TestContext, tail: string[]): SpawnSyncReturns<string> {
+  const shimPath = writeThrowShim(t);
+  const result = spawnSync(
+    process.execPath,
+    ['--require', 'ts-node/register', '--require', shimPath, ...tail],
+    // `node:test` has no default timeout, so a child that hangs would hang the
+    // whole suite with no output rather than failing.
+    { cwd: REPO_ROOT, encoding: 'utf8', timeout: 60_000 },
+  );
+
+  assert.equal(result.error, undefined, `could not run the entry point: ${result.error?.message}`);
+  // A signalled child leaves `error` undefined and `status` null, which would
+  // otherwise read as "the wiring printed nothing".
+  assert.equal(
+    result.signal,
+    null,
+    `the child was killed by ${result.signal} rather than exiting on its own, so nothing here is a verdict on the wiring; stderr: ${result.stderr}`,
+  );
+  assert.notEqual(
+    result.status,
+    SHIM_INJECTION_MISSED,
+    `the shim could not replace todayJST — the DW-54 injection point has moved and these tests need re-anchoring to whatever call now precedes all I/O in main(); stderr: ${result.stderr}`,
+  );
+  return result;
+}
+
+/**
+ * DW-54, half one: `main().catch(handleFatalMainError)`.
+ *
+ * Every other test in this file calls `handleFatalMainError` directly with a
+ * synthetic value, which proves the handler works but not that anything is
+ * attached to `main()`'s promise. Deleting the `.catch()` — or mistyping it as
+ * `.then()` — would leave all of them green while the shipped round lost both
+ * its `[fetch] fatal:` diagnostic and its abort summary.
+ *
+ * The stderr assertions are the load-bearing half, not decoration: an unhandled
+ * rejection also terminates Node with status 1, so the exit code alone cannot
+ * tell a working `.catch()` from a missing one, and only the `[fetch] fatal:`
+ * line proves the handler ran. The status check earns its own place from the
+ * other direction: it pins the exit at 1 specifically, so a fatal line printed
+ * on the way to some *other* code — Node's own, or whatever a weakened
+ * `finally` in `handleFatalMainError` would let through — is still caught.
+ *
+ * `after 0 requests` is asserted rather than the summary's shape alone: the
+ * shape matches any request count, so a shim that had stopped biting would
+ * still satisfy it after a real catalog fetch. Pinning the count at zero is
+ * what structurally holds the child to "never reached `source.listProducts()`".
+ */
+test('running fetcher.ts as the entry point routes an unmodeled throw through handleFatalMainError (DW-54)', (t: TestContext) => {
+  const result = runWithShim(t, [path.join(REPO_ROOT, 'src', 'fetcher.ts')]);
+
+  const stderr = result.stderr.split('\n');
+  const alertIndex = stderr.findIndex(line => line.startsWith('[fetch] fatal:'));
+  assert.notEqual(
+    alertIndex,
+    -1,
+    `the entry point must route the throw to handleFatalMainError, but stderr carries no fatal alert — ` +
+      `an unhandled rejection exits 1 too, so this line is the only proof .catch() is still attached. Got: ${result.stderr}`,
+  );
+  assert.ok(
+    stderr[alertIndex].includes(INJECTED_FAILURE),
+    `the fatal alert must name the failure that ended the round, got: ${JSON.stringify(stderr[alertIndex])}`,
+  );
+
+  const summary = assertAbortSummaryFollows(stderr, alertIndex);
+  assert.match(
+    summary,
+    /after 0 requests/,
+    `the throw must land before any request is issued, or the child has been out on the network; got: ${JSON.stringify(summary)}`,
+  );
+
+  assert.equal(
+    result.status,
+    1,
+    `an unmodeled throw must end the round with exit 1, got ${result.status} with stderr: ${result.stderr}`,
+  );
+});
+
+/**
+ * DW-54, half two: the `if (require.main === module)` wrapper around that call.
+ *
+ * The wrapper is what keeps `import … from './fetcher'` — which both this file
+ * and `fetcher-grid.test.ts` do — from running a live fetch round on import.
+ * Deleting the `if` while keeping `main().catch(handleFatalMainError)` intact
+ * leaves the test above fully green, because a spawned `fetcher.ts` is the entry
+ * point either way; what it would actually do is make every importing test file
+ * fire a real round that rewrites the committed `data/` snapshots, with the
+ * suite still reporting green.
+ *
+ * So this imports `fetcher.ts` instead of running it — `require.main` under
+ * `node -e` is not this module, so the guard must hold and `main()` must never
+ * start. Crucially it imports it *with the same throwing shim preloaded*: a
+ * bare `require()` in the broken state would kick off a real round rather than
+ * fail, and a network-dependent test is no pin at all. With the shim, a deleted
+ * guard makes `todayJST()` throw immediately, so the broken state is a
+ * deterministic exit 1 with a `[fetch] fatal:` line, reached without a single
+ * request or a byte written to `data/`.
+ */
+test('importing fetcher.ts does not run the round — the require.main guard holds (DW-54)', (t: TestContext) => {
+  const entry = JSON.stringify(path.join(REPO_ROOT, 'src', 'fetcher.ts'));
+  const result = runWithShim(t, ['-e', `require(${entry});`]);
+
+  const announced = result.stderr.split('\n').filter(line => line.startsWith('[fetch]'));
+  assert.deepEqual(
+    announced,
+    [],
+    `importing fetcher.ts must not start a round, but the child announced fetcher output — the require.main guard is gone: ${result.stderr}`,
+  );
+  assert.equal(
+    result.status,
+    0,
+    `importing fetcher.ts must be inert, got exit ${result.status} with stderr: ${result.stderr}`,
   );
 });

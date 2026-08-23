@@ -512,7 +512,9 @@ location: src/fetcher.ts:454
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: medium
 reason: `require.main === module` is false when `fetcher.ts` is imported for testing, so no test in `src/fetcher.test.ts` reaches that line; the new `handleFatalMainError` test calls the handler directly with a synthetic error instead. A regression that dropped or misspelled the `.catch()` (e.g. `.then()` instead) would ship undetected. The repo already has a related, separately-tracked entrypoint smoke-check effort (`_bmad-output/implementation-artifacts/spec-dw-12-fetch-entrypoint-smoke-check.md`, status in-review) that is the more natural home for a spawnSync-based integration test closing this gap, rather than adding ad hoc test hooks to production code here.
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fetcher-entrypoint-catch-pin
+resolution-undo: f0cd6fb95021590f4456d81d3ccd35e61b6e587270eaf18ee469a88c7e5218fa 2026-08-23 7374617475733a206f70656e
 
 ### DW-55: `startedAt` was converted from a `main()`-local `const` to a module-level `let`, so a second concurrent `main()` invocation in the same process would race/corrupt the first invocation's timer.
 origin: spec-deferred 56d29dffefd3
@@ -806,4 +808,12 @@ location: src/fetcher.ts:655
 source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
 severity: medium
 reason: `src/fetcher.ts:565` 決定抓取對象，`src/fetcher.ts:655` 的 `const products = wanted.length ? merged : sweepDelisted(merged, now);` 另外決定是否清掃下架商品。 本次 DW-58 兩則新測試只斷言 `fetchProduct` 的呼叫集合，未檢查寫出的 index 內容，因此 「空值 `--product=` 等同無篩選」這個結論只在抓取面被驗證、未在清掃面被驗證。 在 `src/fetcher.test.ts` grep `sweepDelisted` 與 `delist` 皆 0 命中 — 這條分岔目前完全沒有回歸網。 行為本身正確（無篩選才清掃），缺的是驗證，屬既有缺口而非本次改動造成。
+status: open
+
+### DW-90: `src/fetcher.test.ts` 有兩處在 `mockFs(t)` 之後又各自對 `fs.writeFileSync` 再 mock 一次，Node 的 MockTracker 依插入順序回捲，導致內層 mock 留在 `node:fs` 模組上，影響該檔後續每一個測試。
+origin: spec-deferred f977d3627f28
+location: src/fetcher.test.ts:325, src/fetcher.test.ts:379
+source_spec: `spec-dw-54-fetcher-entrypoint-catch-pin.md`
+severity: medium
+reason: `mockFs(t)`（約 src/fetcher.test.ts:107）已經 mock 過 `writeFileSync`，而 `an ordinary (non-BlockedError) failure...`（約 :325/:352）與 `the days.json a round writes...`（約 :379/:390）兩個測試又各自 `t.mock.method(fs, 'writeFileSync', ...)`。實測結果：DW-54 新測試第一次跑時因為 shim 檔實際上沒被寫出而以 MODULE_NOT_FOUND 失敗，改用「模組載入時攔下的 `realFs` 原函式」才穩定。今天沒有紅燈只是因為後續測試都各自重新 mock，屬於潛伏陷阱而非已生效的錯誤。這是本次改動之前就存在的問題，只是被 DW-54 的測試意外照出來。
 status: open
