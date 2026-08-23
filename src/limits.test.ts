@@ -107,6 +107,14 @@ function staleThresholdMin(): number {
   return Number(stale[1]);
 }
 
+/** The `if:` condition on the "Flag failed products" step. */
+function flagFailedProductsCondition(): string {
+  const yml = readFileSync(join(REPO_ROOT, '.github/workflows/fetch.yml'), 'utf8');
+  const step = /- name: Flag failed products\n\s*if:\s*(.+?)\s*$/m.exec(yml);
+  assert.ok(step, 'no "Flag failed products" step found in .github/workflows/fetch.yml');
+  return step[1];
+}
+
 test('RATE_LIMIT_PER_SEC stays at or below the safe ceiling', () => {
   assert.ok(
     RATE_LIMIT_PER_SEC <= RATE_CEILING_PER_SEC,
@@ -185,6 +193,25 @@ test('the workflow concurrency block queues runs instead of cancelling them', ()
     `group is '${group}'; it must bind to the workflow name (e.g. ` +
       "\${{ github.workflow }}) rather than a per-run dynamic value, or overlapping rounds " +
       'would no longer share a queue (NFR5.1)',
+  );
+});
+
+/**
+ * DW-13: an aborted `npm run fetch` (BlockedError, catalog failure, or an
+ * unmatched --product=) exits before index.json is rewritten this round, so
+ * this step must not run on failure -- it would re-warn about the previous
+ * round's already-known failures. Catches a future edit reverting to
+ * `always()`.
+ */
+test('the "Flag failed products" step only runs when fetch succeeded', () => {
+  const condition = flagFailedProductsCondition();
+  assert.equal(
+    condition,
+    'success()',
+    `the "Flag failed products" step is "if: ${condition}"; it must be "success()" ` +
+      "or an aborted npm run fetch (which exits before rewriting index.json) would " +
+      "either re-flag the previous round's stale failures or, if the condition is " +
+      'unconditional, run when it should not',
   );
 });
 

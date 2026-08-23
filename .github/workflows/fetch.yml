@@ -42,8 +42,12 @@ jobs:
 
       - run: npm run fetch
 
+      # success() only: an aborted round (BlockedError, catalog failure, or an
+      # unmatched --product=) exits before index.json is rewritten, so running
+      # this on failure would re-warn about the previous round's already-known
+      # failures instead of this round's.
       - name: Flag failed products
-        if: always()
+        if: success()
         run: |
           node -e "
             const r = JSON.parse(require('fs').readFileSync('data/index.json','utf8'));

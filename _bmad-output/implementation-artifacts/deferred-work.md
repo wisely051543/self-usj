@@ -116,7 +116,9 @@ location: .github/workflows/fetch.yml:45-56
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: low
 reason: 獨立審查（blind-hunter、verification-gap）皆指出。本 story 之前逐產品迴圈不會中途 中止，`index.json` 幾乎必然被本回合改寫，故此情境是新中止路徑才變得可達；但修正 需調整 workflow 步驟條件，且封鎖回合本身已是紅燈並印出明確的 `[fetch] … blocked` 訊息，誤導性有限。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-flag-failed-products-abort-skip
+resolution-undo: 75987223e8022d7158934c121fe69996664d97b6b2599713d0ead05c94f6baf4 2026-08-23 7374617475733a206f70656e
 
 ### DW-14: Follow-up review still recommended for 1-4-429-5xx-退避與封鎖告警 after the damping cap was spent
 origin: review-budget-followup
@@ -401,4 +403,20 @@ location: _bmad-output/implementation-artifacts/epic-1-context.md:57-64
 source_spec: `spec-dw-4-epic-context-cross-story-dep.md`
 severity: low
 reason: Requirements & Constraints 同時列有「同一時間只允許一個抓取回合，未跑完的回合須排隊而非並行」（Story 1.2）與 「遇 429/5xx 須遞增延遲退避；持續封鎖須停止該回合並告警，不得改以其他方式續抓」（Story 1.4）， 兩者交界（封鎖中止進行中回合時，佇列中回合的行為）在 Cross-Story Dependencies 段落無對應說明， 屬本次 review（blind-hunter 層）於既有文件中發現、非本次變更引入的既存缺口。
+status: open
+
+### DW-48: `src/limits.test.ts` 解析 `fetch.yml` 全靠手刻正規表示式，插入 `id:` 等欄位就可能讓 `flagFailedProductsCondition()` 之類的 helper 抓不到值。
+origin: spec-deferred aa8aedecbe61
+location: src/limits.test.ts:70-116
+source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
+severity: low
+reason: `scheduleIntervalMin`／`jobTimeoutMin`／`concurrencyBlock`（`src/limits.test.ts:70-100`） 與本次新增的 `flagFailedProductsCondition()` 都是同一手法：直接對 YAML 原始文字跑正規 表示式，而非用真正的 YAML parser。這是本檔既有慣例，不是本次改動引入；本次只是比照 既有寫法新增一個同型 helper。獨立審查（blind-hunter、edge-case-hunter）皆指出，若日後 在 `- name:` 與 `if:` 之間插入 `id:`／`uses:` 等欄位，這類正規表示式會抓不到值， `assert.ok(step, …)` 會丟出「找不到步驟」的誤導性錯誤，而非指向真正的條件內容。
+status: open
+
+### DW-49: `if: success()` 判斷的是「job 到此為止沒有任何步驟失敗」，不是專門針對 `npm run fetch` 這一步；若日後在兩者之間插入會獨立失敗的新步驟，會連帶讓本應正常的 回合也被跳過標記。
+origin: spec-deferred a8795972081e
+location: .github/workflows/fetch.yml:45-56
+source_spec: `spec-dw-13-flag-failed-products-abort-skip.md`
+severity: low
+reason: intent-alignment 審查指出：目前 `npm run fetch` 與「Flag failed products」中間沒有 其他步驟，且皆無 `continue-on-error`，所以 `success()` 現況等同於「fetch 這一步成功」； 但這個等價關係是隱含的，沒有用 `steps.<id>.outcome` 明確綁定到 `npm run fetch` 這個 步驟本身。spec 的 Always 條款寫的是「緊鄰的前一步驟」，現況成立，但寫法本身不會在 未來插入新步驟時提醒維護者重新檢查這個假設。
 status: open
