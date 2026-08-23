@@ -115,11 +115,11 @@ export class BlockedError extends Error {
   readonly url: string;
   readonly status: number;
   /**
-   * The blocked response's body as a snippet: normalized and capped by
+   * A snippet of the blocked response's body: normalized and capped by
    * `snippet` above rather than kept whole. Absent when the response had no
    * body, or none that survived normalization.
    */
-  readonly body?: string;
+  readonly bodySnippet?: string;
 
   constructor(url: string, status: number, body?: string) {
     const snip = snippet(body);
@@ -127,7 +127,7 @@ export class BlockedError extends Error {
     this.name = 'BlockedError';
     this.url = url;
     this.status = status;
-    this.body = snip;
+    this.bodySnippet = snip;
   }
 }
 

@@ -142,7 +142,7 @@ test('an exhausted retry carries the blocked response body through to the error'
 
   const err = outcome.status === 'rejected' ? outcome.reason : undefined;
   assert.ok(err instanceof BlockedError, `expected a BlockedError, got ${err}`);
-  assert.equal(err.body, 'blocked by WAF', 'the body read at the throw site must not be dropped');
+  assert.equal(err.bodySnippet, 'blocked by WAF', 'the body read at the throw site must not be dropped');
   assert.ok(
     err.message.includes('blocked by WAF'),
     `the snippet must reach the message an operator reads, got: ${err.message}`,
@@ -154,8 +154,8 @@ test('an exhausted retry carries the blocked response body through to the error'
 test('a body longer than the cap is truncated to exactly BLOCKED_BODY_SNIPPET_MAX', () => {
   const err = new BlockedError(TEST_URL, 503, 'x'.repeat(500));
 
-  assert.equal(err.body?.length, BLOCKED_BODY_SNIPPET_MAX);
-  assert.equal(err.body, 'x'.repeat(BLOCKED_BODY_SNIPPET_MAX), 'the snippet is a prefix, not a sample');
+  assert.equal(err.bodySnippet?.length, BLOCKED_BODY_SNIPPET_MAX);
+  assert.equal(err.bodySnippet, 'x'.repeat(BLOCKED_BODY_SNIPPET_MAX), 'the snippet is a prefix, not a sample');
 });
 
 /**
@@ -167,13 +167,13 @@ test('a body longer than the cap is truncated to exactly BLOCKED_BODY_SNIPPET_MA
 test('only a bounded prefix of the raw body is examined, however long the body is', () => {
   const err = new BlockedError(TEST_URL, 503, `denied${' '.repeat(50_000)}tail`);
 
-  assert.equal(err.body, 'denied');
+  assert.equal(err.bodySnippet, 'denied');
 });
 
 test('a multi-line body is collapsed to a single line so the log stays one line', () => {
   const err = new BlockedError(TEST_URL, 429, '  <html>\n  <body>\n\tAccess denied  \n</body>\n');
 
-  assert.equal(err.body, '<html> <body> Access denied </body>');
+  assert.equal(err.bodySnippet, '<html> <body> Access denied </body>');
   assert.ok(!err.message.includes('\n'), `the message must stay on one line, got: ${JSON.stringify(err.message)}`);
 });
 
@@ -185,7 +185,7 @@ test('a multi-line body is collapsed to a single line so the log stays one line'
 test('control characters are stripped rather than merely collapsed, so no escape sequence survives', () => {
   const err = new BlockedError(TEST_URL, 503, 'be\x1b[31mfore\x00mid\x07dle\x7fafter\x0bend');
 
-  assert.equal(err.body, 'be [31mfore mid dle after end');
+  assert.equal(err.bodySnippet, 'be [31mfore mid dle after end');
   assert.ok(
     !/[\x00-\x1f\x7f]/.test(err.message),
     `no control character may reach the message, got: ${JSON.stringify(err.message)}`,
@@ -203,7 +203,7 @@ test('a cut landing inside a surrogate pair drops the stranded half instead of e
   // emoji, which is the only place the bug can show.
   const err = new BlockedError(TEST_URL, 503, 'z'.repeat(BLOCKED_BODY_SNIPPET_MAX - 1) + '🚫'.repeat(20));
 
-  const snippet = err.body ?? '';
+  const snippet = err.bodySnippet ?? '';
   assert.equal(snippet, 'z'.repeat(BLOCKED_BODY_SNIPPET_MAX - 1), 'the split character is dropped whole');
   assert.ok(
     ![...snippet].some(ch => {
@@ -224,7 +224,7 @@ test('an absent or empty body leaves the error at its bodyless message, with no 
     ['whitespace only', new BlockedError(TEST_URL, 503, ' \n\t ')],
     ['control characters only', new BlockedError(TEST_URL, 503, '\x00\x1b\x7f')],
   ] as const) {
-    assert.equal(err.body, undefined, `a ${label} body must read as no body at all`);
+    assert.equal(err.bodySnippet, undefined, `a ${label} body must read as no body at all`);
     assert.equal(err.message, bodyless, `a ${label} body must not append a dangling ": " to the message`);
     assert.ok(!err.message.endsWith(':'), `a ${label} body must not leave a trailing colon`);
   }
@@ -246,7 +246,7 @@ test('a body that cannot be read leaves the BlockedError otherwise unchanged', a
 
   const err = outcome.status === 'rejected' ? outcome.reason : undefined;
   assert.ok(err instanceof BlockedError, `an unreadable body must not change what is thrown, got ${err}`);
-  assert.equal(err.body, undefined);
+  assert.equal(err.bodySnippet, undefined);
   assert.equal(err.message, new BlockedError(TEST_URL, 500).message);
 });
 

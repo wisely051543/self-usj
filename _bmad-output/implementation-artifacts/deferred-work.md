@@ -401,7 +401,9 @@ location: src/limiter.ts
 source_spec: `spec-dw-8-9-10-block-abort-path-hardening.md`
 severity: low
 reason: 本輪一度更名為 `bodySnippet`，但 I/O 矩陣四列皆以 `body` 指稱該欄位，屬凍結契約，故回滾。 此欄位為本次新增，趁尚無其他消費者時更名成本最低，但同樣需先修訂 intent-contract。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-blockederror-body-rename
+resolution-undo: ff469ba8ab69a7c58296f58a95183e4d9d0ea2f8e1cd623c92149dd17e01a62a 2026-08-23 7374617475733a206f70656e
 decision: 2026-08-23 Rename now, update contract — Rename BlockedError.body to bodySnippet, update its JSDoc, and revise the I/O matrix in spec-dw-8-9-10-block-abort-path-hardening.md to match, while no other code consumes the field yet.
 
 ### DW-44: `readIndex()`／`main()` 讀 `data/index.json` 失敗（檔案不存在或非合法 JSON）時， 拋出的是原始 `ENOENT`／`SyntaxError`，不像 `schema-check.ts` 的 `readSchemaVersion()` 那樣包成具名檔案的友善訊息。

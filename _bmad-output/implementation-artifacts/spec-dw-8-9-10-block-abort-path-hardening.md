@@ -96,6 +96,7 @@ deferred:
     evidence: |-
       本輪一度更名為 `bodySnippet`，但 I/O 矩陣四列皆以 `body` 指稱該欄位，屬凍結契約，故回滾。
       此欄位為本次新增，趁尚無其他消費者時更名成本最低，但同樣需先修訂 intent-contract。
+      後於 DW-43 重新套用此改名，並同步更新本文件 I/O 矩陣（行 137-140）與 `src/limiter.ts`，此則歷史記錄予以保留。
     location: >-
       src/limiter.ts
     severity: low
@@ -134,10 +135,10 @@ deferred:
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
 |----------|--------------|---------------------------|----------------|
-| 內文可讀的封鎖 | 重試耗盡仍 429/5xx，回應內文為 `blocked by WAF` | 丟出的 `BlockedError.body === 'blocked by WAF'`，且 `message` 含該片段 | 仍為 `BlockedError`，`url`／`status` 不變 |
-| 超長內文 | 內文長度 500 字元 | `body.length` 等於匯出的上限常數（200），為前綴截斷 | 無 |
-| 多行內文 | 內文含換行與連續空白 | `body` 空白正規化為單一空格、首尾裁切，log 維持單行 | 無 |
-| 無內文可讀 | `res.text()` reject，或內文為空字串 | `body` 為 `undefined`，`message` 維持原句且不帶尾綴冒號 | `res.text()` 失敗被吞掉，不改變丟出的錯誤 |
+| 內文可讀的封鎖 | 重試耗盡仍 429/5xx，回應內文為 `blocked by WAF` | 丟出的 `BlockedError.bodySnippet === 'blocked by WAF'`，且 `message` 含該片段 | 仍為 `BlockedError`，`url`／`status` 不變 |
+| 超長內文 | 內文長度 500 字元 | `bodySnippet.length` 等於匯出的上限常數（200），為前綴截斷 | 無 |
+| 多行內文 | 內文含換行與連續空白 | `bodySnippet` 空白正規化為單一空格、首尾裁切，log 維持單行 | 無 |
+| 無內文可讀 | `res.text()` reject，或內文為空字串 | `bodySnippet` 為 `undefined`，`message` 維持原句且不帶尾綴冒號 | `res.text()` 失敗被吞掉，不改變丟出的錯誤 |
 | 取樣期間偵測到封鎖 | 取樣日期數遠多於併發度，其中一個日期持續 503 | `listProducts` 以 `BlockedError` reject；封鎖浮現後不再對任何新日期發出請求，實際請求到的日期數少於取樣日期總數 | 錯誤原樣向上傳播 |
 | 取樣遇一般錯誤 | 某日期丟出非 `BlockedError` | 記錄後略過該日期，其餘取樣照常完成、照常回傳目錄 | `console.error` 一行，不中止 |
 | 封鎖中止（product 階段） | `fetchProduct` 丟出 `BlockedError` | `exit(1)` 前先印出 `[fetch] aborted after N requests in Xs` 彙總 | 既有 `[fetch] {code} blocked` alert 保留 |
