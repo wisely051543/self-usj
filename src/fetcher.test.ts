@@ -25,8 +25,9 @@ import * as path from 'node:path';
 import { BlockedError } from './limiter';
 import * as limiter from './limiter';
 import { usjSource } from './sources/usj';
-import { handleFatalMainError, main } from './fetcher';
+import { handleFatalMainError, main, readIndex } from './fetcher';
 import { everyNthDay, shiftMonths, todayJST } from './dates';
+import { INDEX_SCHEMA_VERSION } from './schema';
 import type { CatalogEntry, ProductResult } from './types';
 
 /** Typed so the mocks below are checked against the real signatures. */
@@ -105,6 +106,52 @@ function captureErrors(t: TestContext): string[] {
   });
   return lines;
 }
+
+/** Mocks `fs.readFileSync` by basename; anything else falls through to the real fs. Mirrors i18n-check.test.ts's `withFiles()`. */
+function withFiles(t: TestContext, files: Record<string, string | Error>): void {
+  const realReadFileSync = fs.readFileSync;
+  t.mock.method(fs, 'readFileSync', ((file: unknown, ...rest: unknown[]) => {
+    const content = typeof file === 'string' ? files[path.basename(file)] : undefined;
+    if (content === undefined) return (realReadFileSync as (...args: unknown[]) => unknown)(file, ...rest);
+    if (content instanceof Error) throw content;
+    return content;
+  }) as typeof fs.readFileSync);
+}
+
+/**
+ * DW-21: `readIndex()` used to cast `data/index.json` straight to `Index` with
+ * no version check — any failure, a schema mismatch included, was swallowed the
+ * same way as a cold first run. It now calls `assertIndexSchemaVersion()`
+ * itself, logs the mismatch, and returns `null` the same way a missing file
+ * does, rather than throwing the way the page and CI gate do — this file is
+ * the writer, so treating a rejected snapshot as "no previous snapshot" is
+ * the correct in-band fallback, not a swallowed error.
+ */
+test('readIndex() returns null and logs a clear error when data/index.json is at a version this build does not recognize', (t: TestContext) => {
+  withFiles(t, {
+    'index.json': JSON.stringify({ schemaVersion: INDEX_SCHEMA_VERSION + 1, products: [] }),
+  });
+  const errors = captureErrors(t);
+
+  assert.equal(readIndex(), null, 'a version-mismatched index.json must be treated as no previous snapshot');
+  assert.ok(
+    errors.some(line =>
+      line.includes('index.json schemaVersion is')
+      && line.includes(String(INDEX_SCHEMA_VERSION + 1))
+      && line.includes(String(INDEX_SCHEMA_VERSION)),
+    ),
+    `expected a schema-version mismatch naming both the actual and expected version to be logged, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+test('readIndex() returns the parsed index unchanged when the version is current', (t: TestContext) => {
+  const index = { schemaVersion: INDEX_SCHEMA_VERSION, products: [{ code: 'TEST0001' }] };
+  withFiles(t, { 'index.json': JSON.stringify(index) });
+  const errors = captureErrors(t);
+
+  assert.deepEqual(readIndex(), index);
+  assert.equal(errors.length, 0, 'a version-correct read must not log anything');
+});
 
 /**
  * The body a blocking store serves instead of the catalogue. Multi-line on

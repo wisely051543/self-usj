@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { CatalogEntry, DateRange, DateSlot, DayEntry, DayProduct, Days, Index, ProductResult, ProductSummary } from './types';
 import { dayOfWeek, everyNthDay, shiftMonths, todayJST } from './dates';
-import { DAYS_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from './schema';
+import { assertIndexSchemaVersion, DAYS_SCHEMA_VERSION, INDEX_SCHEMA_VERSION } from './schema';
 import { usjSource } from './sources/usj';
 import { BlockedError, budgetExhausted, requestCount } from './limiter';
 
@@ -21,13 +21,42 @@ const PRODUCTS_DIR = path.join(DATA_DIR, 'products');
  */
 const DELIST_AFTER_DAYS = 14;
 
-function readIndex(): Index | null {
+/**
+ * Exported so tests can drive the version-mismatch path directly rather than
+ * through a full `main()` round.
+ *
+ * A version mismatch here is not fatal the way it is for the page or the CI
+ * gate: this file is itself the writer, so it treats a rejected snapshot the
+ * same as no snapshot — the round proceeds as a cold first run. That is safe
+ * because every code's `lastSeenAt` gets stamped with this round's time
+ * regardless (see `main()`), so `sweepDelisted()` never mistakes a version
+ * bump for a pass going off sale; the only cost is losing this round's
+ * `carriedOver` backfill.
+ */
+export function readIndex(): Index | null {
+  let raw: Index;
   try {
-    const raw = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8')) as Index;
-    return Array.isArray(raw.products) ? raw : null;
+    raw = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8')) as Index;
   } catch {
     return null;
   }
+
+  // A parsed JSON value that is not a plain object (`null`, an array, a bare
+  // number) has no `.schemaVersion` to read — that is the same "not a usable
+  // snapshot" case as a parse failure above, not a version mismatch, so it
+  // falls through to the same silent `null` rather than reaching the version
+  // check and logging a confusing message. `typeof [] === 'object'`, so an
+  // array top-level value needs its own check alongside the `typeof` guard.
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+  try {
+    assertIndexSchemaVersion(raw.schemaVersion);
+  } catch (err) {
+    console.error(`[fetch] ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+
+  return Array.isArray(raw.products) ? raw : null;
 }
 
 function productPath(code: string): string {

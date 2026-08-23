@@ -190,7 +190,9 @@ location: src/fetcher.ts:24-31
 source_spec: `spec-1-6-快照-schema-版本控制.md`
 severity: medium
 reason: 本 story 為 `index.json` 在 `index.html` 與 `schema-check.ts` 兩處加了守衛，但抓取端自己 讀回上一輪 `index.json` 的路徑未納入。在此加硬守衛會讓「升版當回合」的抓取直接失敗， 需要一併決定升版時的遷移行為，超出本 story 的 AC。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-fetcher-readindex-version-guard
+resolution-undo: bda380cbc0469d400402b31bde975cb5edc7727116cdaa6c3e5d205953e3f306 2026-08-23 7374617475733a206f70656e
 decision: 2026-08-22 版號不符時記警告並視為「沒有上一輪 index」 — 在 src/fetcher.ts 的 readIndex() 內呼叫 assertIndexSchemaVersion()（或等價比對），版號不符時印出明確的 console.error 說明版號與期望值，並回傳 null，使本回合以「無上一輪快照」的既有路徑繼續。此路徑本來就存在（首次抓取即是），且因為所有產品的 lastSeenAt 都會設為本回合時間，sweepDelisted() 不會誤刪任何票種，代價僅為升版當回合失去 carriedOver 的補撈。同時補測試涵蓋版號不符與版號正確兩條路徑。DW-27 為本項的重複副本，一併關閉。
 
 ### DW-22: `data/products/*.json` 完全沒有 `schemaVersion` 欄位，因此不在任何版本守衛的涵蓋範圍內。
@@ -569,4 +571,12 @@ location: n/a
 source_spec: `spec-dw-50-51-error-message-hardening.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260823-132556-242e; this entry preserves the lingering recommendation for a deliberate later review.
+status: open
+
+### DW-64: `readIndex()` 的檔案不存在／JSON 解析失敗路徑仍全數靜默回傳 `null`，與本 story 新加的版號不符 路徑（會 `console.error`）不對稱。
+origin: spec-deferred 80e9c435b208
+location: src/fetcher.ts:38-42（readIndex() 第一段 try/catch）
+source_spec: `spec-dw-21-fetcher-readindex-version-guard.md`
+severity: low
+reason: 版號不符與讀取／解析失敗同屬 AD-14 所指「不驗證即接受異常快照」的範疇，但本 story 依 Boundaries 「Always」第 3 條明文要求後者維持現況靜默，僅補上版號檢查一條路徑的可見度。若未來要讓抓取端的 異常快照全面可觀測，需一併決定讀取／解析失敗要不要 log、log 什麼內容（例如是否要區分 ENOENT 與 JSON 語法錯誤），超出本 story 範圍。
 status: open
