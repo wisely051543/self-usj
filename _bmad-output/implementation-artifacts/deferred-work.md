@@ -303,7 +303,9 @@ location: n/a
 source_spec: `spec-dw-6-7-header-anonymization-hardening.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260822-193604-52a6; this entry preserves the lingering recommendation for a deliberate later review.
-status: open
+status: done 2026-08-23
+resolution: closed by human decision: 該 review 的具體發現已以 DW-30～DW-33 進入帳本並列入本次 sweep 的 header-observability-hardening bundle；再跑一次獨立 follow-up 只會重新推導同一批項目，與 DW-14／DW-26 的既有先例一致。
+decision: 2026-08-23 Close now, superseded by DW-30–DW-33 — 該 review 的具體發現已以 DW-30～DW-33 進入帳本並列入本次 sweep 的 header-observability-hardening bundle；再跑一次獨立 follow-up 只會重新推導同一批項目，與 DW-14／DW-26 的既有先例一致。
 
 ### DW-35: `src/sources/usj.ts:313` 的另一處 `mapLimit`（時段庫存批次）與 `listProducts` 有完全相同的併發缺口， 本次刻意未加封鎖旗標。
 origin: spec-deferred f147c4bf3ccd
