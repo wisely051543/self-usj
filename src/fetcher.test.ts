@@ -407,7 +407,10 @@ test('the days.json a round writes spans that round\'s whole fetch range', async
  * same "how far did we get" summary behind rather than exiting silently.
  */
 test('a --product= filter that matches nothing in the catalog aborts with a summary before exit(2)', async (t: TestContext) => {
-  t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
+  // Two entries, not one: the `Known:` assertion below is only worth making if
+  // a catalog with more than a single code has to be listed in full.
+  const catalog: CatalogEntry[] = [catalogEntry, { ...catalogEntry, code: 'TEST0002' }];
+  t.mock.method(usjSource, 'listProducts', async () => catalog);
   const fetchProduct = t.mock.method(usjSource, 'fetchProduct', async () => productResult(catalogEntry.code));
 
   const originalArgv = process.argv;
@@ -437,7 +440,200 @@ test('a --product= filter that matches nothing in the catalog aborts with a summ
 
   const alertIndex = errors.findIndex(line => line.includes('No product matched'));
   assert.notEqual(alertIndex, -1, `the abort must say no product matched, got: ${JSON.stringify(errors)}`);
+
+  /**
+   * DW-59: "no product matched" on its own leaves the operator who mistyped a
+   * code with nowhere to go. The alert has to name the code that missed *and*
+   * list what the catalog actually holds, so the fix is readable off the same
+   * line that reported the failure — the half of the message that was going
+   * entirely unasserted.
+   */
+  const alert = errors[alertIndex];
+  assert.ok(
+    alert.includes('No product matched NOPE0001'),
+    `the alert must name the code that matched nothing, got: ${alert}`,
+  );
+  const knownIndex = alert.indexOf('Known: ');
+  assert.notEqual(knownIndex, -1, `the alert must list the codes the catalog does have, got: ${alert}`);
+  for (const entry of catalog) {
+    assert.notEqual(
+      alert.indexOf(entry.code, knownIndex),
+      -1,
+      `every catalog code must be listed after "Known: ", but ${entry.code} is missing from: ${alert}`,
+    );
+  }
+
   assertAbortSummaryFollows(errors, alertIndex);
+});
+
+/**
+ * DW-61: the unmatched-filter abort reports before it exits, and those
+ * reporting steps can themselves throw — `logAbortSummary` reads
+ * `requestCount()`, which is not this branch's to vouch for. Without the
+ * `try`/`finally` guard the throw would skip `process.exit(2)` and surface at
+ * `main().catch(handleFatalMainError)` instead, ending the round at exit code
+ * 1: "you asked for a code that does not exist" silently reclassified as
+ * "something blew up". The exit code is the whole contract of this branch, so
+ * it has to survive its own reporting failing.
+ */
+test('an unmatched --product= filter still exits 2 even when logAbortSummary itself throws', async (t: TestContext) => {
+  t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
+  const fetchProduct = t.mock.method(usjSource, 'fetchProduct', async () => productResult(catalogEntry.code));
+
+  const originalArgv = process.argv;
+  process.argv = [...originalArgv, '--product=NOPE0001'];
+  t.after(() => {
+    process.argv = originalArgv;
+  });
+
+  mockFs(t);
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  captureErrors(t);
+  const requestCount = t.mock.method(limiter, 'requestCount', () => {
+    throw new Error('request counter unavailable (mocked)');
+  });
+
+  await assert.rejects(main(), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 2, 'a throw while reporting the unmatched filter must still exit 2 via finally');
+    return true;
+  });
+
+  // Without this the test goes quietly vacuous the day `logAbortSummary` stops
+  // reading `requestCount()`: the exit-2 assertion above would keep passing on
+  // a branch where nothing ever threw, and the `finally` it exists to guard
+  // would be back to untested.
+  assert.ok(
+    requestCount.mock.callCount() > 0,
+    'the mocked thrower must actually have been reached, or this test asserts nothing about finally',
+  );
+  assert.equal(fetchProduct.mock.callCount(), 0, 'the round must still stop before fetching any product');
+});
+
+/**
+ * DW-61, other half: the guard wraps `console.error` as well as
+ * `logAbortSummary`, and the alert line is the step that runs *first* — a
+ * closed or replaced stderr takes the round down before the summary is ever
+ * reached. Pinning only the `logAbortSummary` case above leaves the alert free
+ * to be moved back outside the `try` with every test still green, so it needs
+ * its own test rather than borrowing that one's coverage. Mirrors the pair
+ * guarding `handleFatalMainError` below.
+ */
+test('an unmatched --product= filter still exits 2 even when printing the alert itself throws', async (t: TestContext) => {
+  t.mock.method(usjSource, 'listProducts', async () => [catalogEntry]);
+  const fetchProduct = t.mock.method(usjSource, 'fetchProduct', async () => productResult(catalogEntry.code));
+
+  const originalArgv = process.argv;
+  process.argv = [...originalArgv, '--product=NOPE0001'];
+  t.after(() => {
+    process.argv = originalArgv;
+  });
+
+  mockFs(t);
+  t.mock.method(process, 'exit', ((code?: number) => {
+    throw new ExitSignal(code);
+  }) as (code?: number) => never);
+  // Not `captureErrors`: this test needs `console.error` to fail, not to be
+  // recorded, and the alert is the very first thing it is asked to print.
+  t.mock.method(console, 'error', () => {
+    throw new Error('stderr is closed (mocked)');
+  });
+
+  await assert.rejects(main(), (err: unknown) => {
+    assert.ok(err instanceof ExitSignal, `expected process.exit to have been called, got ${err}`);
+    assert.equal(err.code, 2, 'a throw while printing the unmatched-filter alert must still exit 2 via finally');
+    return true;
+  });
+
+  assert.equal(fetchProduct.mock.callCount(), 0, 'the round must still stop before fetching any product');
+});
+
+/**
+ * DW-58, first half: several `--product=` flags are an OR, not an AND. Only a
+ * filter that matches *nothing* is an abort — one good code alongside a typo'd
+ * one must still run the round for the good code, because the alternative (any
+ * miss aborts) would make the flag unusable for the batch invocations it
+ * exists for.
+ */
+test('several --product= flags where only some match run the round for the matching codes and do not abort', async (t: TestContext) => {
+  // Two entries, one of them unrequested: with a single-entry catalog
+  // "only TEST0001 was fetched" is equally satisfied by "the filter was
+  // ignored and everything was fetched", which is the regression this is for.
+  const catalog: CatalogEntry[] = [catalogEntry, { ...catalogEntry, code: 'TEST0002' }];
+  t.mock.method(usjSource, 'listProducts', async () => catalog);
+  const fetchProduct = t.mock.method(
+    usjSource,
+    'fetchProduct',
+    async (entry: CatalogEntry) => productResult(entry.code),
+  );
+
+  const originalArgv = process.argv;
+  process.argv = [...originalArgv, '--product=TEST0001', '--product=NOPE0001'];
+  t.after(() => {
+    process.argv = originalArgv;
+  });
+
+  mockFs(t);
+  const exit = t.mock.method(process, 'exit', (() => undefined) as (code?: number) => never);
+  const errors = captureErrors(t);
+  t.mock.method(console, 'log', () => undefined);
+
+  await main();
+
+  assert.equal(exit.mock.callCount(), 0, 'a partially matching filter must not abort the round');
+  assert.ok(
+    !errors.some(line => line.includes('No product matched')),
+    `a partially matching filter must not report an unmatched filter, got: ${JSON.stringify(errors)}`,
+  );
+  assert.deepEqual(
+    fetchProduct.mock.calls.map(call => (call.arguments[0] as CatalogEntry).code),
+    ['TEST0001'],
+    'only the requested code that matched the catalog may be fetched — not the unmatched one, and not the catalog entry nobody asked for',
+  );
+});
+
+/**
+ * DW-58, second half: `--product=` with nothing after the `=` is dropped by
+ * `.filter(Boolean)`, leaving `wanted` empty, which means "no filter" and so
+ * fetches the whole catalog. That is deliberately silent rather than an error,
+ * and nothing was pinning it: drop the `filter(Boolean)` and the empty string
+ * becomes a filter matching no code, turning a harmless empty flag into an
+ * exit-2 abort. This test is the tripwire on that fork.
+ */
+test('an empty --product= value is dropped rather than treated as a filter, so the whole catalog is fetched', async (t: TestContext) => {
+  const catalog: CatalogEntry[] = [catalogEntry, { ...catalogEntry, code: 'TEST0002' }];
+  t.mock.method(usjSource, 'listProducts', async () => catalog);
+  const fetchProduct = t.mock.method(
+    usjSource,
+    'fetchProduct',
+    async (entry: CatalogEntry) => productResult(entry.code),
+  );
+
+  const originalArgv = process.argv;
+  process.argv = [...originalArgv, '--product='];
+  t.after(() => {
+    process.argv = originalArgv;
+  });
+
+  mockFs(t);
+  const exit = t.mock.method(process, 'exit', (() => undefined) as (code?: number) => never);
+  const errors = captureErrors(t);
+  t.mock.method(console, 'log', () => undefined);
+
+  await main();
+
+  assert.equal(exit.mock.callCount(), 0, 'an empty --product= value must not abort the round');
+  assert.ok(
+    !errors.some(line => line.includes('No product matched')),
+    `an empty --product= value must not be reported as an unmatched filter, got: ${JSON.stringify(errors)}`,
+  );
+  assert.deepEqual(
+    fetchProduct.mock.calls.map(call => (call.arguments[0] as CatalogEntry).code).sort(),
+    ['TEST0001', 'TEST0002'],
+    'an empty value leaves no filter at all, so every catalog entry is fetched',
+  );
 });
 
 /**

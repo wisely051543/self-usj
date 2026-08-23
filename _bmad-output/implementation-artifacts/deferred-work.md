@@ -548,7 +548,9 @@ location: src/fetcher.ts:322-326
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 這些是 `--product=` 既有解析邏輯（非本次新增）的既有行為與邊界，本次 diff 只在既有的「未命中」分支插入 `logAbortSummary`，未改動解析邏輯本身，故非本次改動造成。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-product-filter-abort-hardening
+resolution-undo: 35dbb2adc0648f50a60a9dba8f9be13ecc1c14c5db722bb081fc3e789e184cd0 2026-08-23 7374617475733a206f70656e
 
 ### DW-59: DW-38 新測試只斷言 abort 訊息含 `No product matched`，未驗證訊息中列出可用代碼的 `Known: ...` 段落內容。
 origin: spec-deferred 7b8144332ada
@@ -556,7 +558,9 @@ location: src/fetcher.ts:349
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: `Known: ...` 段落是既有訊息的一部分（非本次新增），本次只在其 `process.exit(2)` 前插入 `logAbortSummary`；若該段落遭意外刪改，既有測試不會失敗，但此屬既有訊息內容的既有驗證缺口。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-product-filter-abort-hardening
+resolution-undo: 35dbb2adc0648f50a60a9dba8f9be13ecc1c14c5db722bb081fc3e789e184cd0 2026-08-23 7374617475733a206f70656e
 
 ### DW-60: `handleFatalMainError` 遇到 `message` 為空字串的 `Error`（如 `new Error()`）時，會印出無詳細內容的 `[fetch] fatal: `。
 origin: spec-deferred b0fcda90fdb2
@@ -574,7 +578,9 @@ location: src/fetcher.ts:351-353
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 例外會往上傳遞並最終由 `main().catch(handleFatalMainError)` 接住、以 exit code 1 收尾，與 spec 「Never: 不變更 exit code 語意（2 維持 2）」的邊界產生分歧。但現有兩處封鎖中止路徑（`BlockedError`）本就未做 此保護，本次新增的 `--product=` 分支延續同一既有慣例（spec 的 Approach 明確要求「比照既有封鎖中止路徑」）； `requestCount()` 目前只讀取內部計數器變數，實務上幾乎不會拋出例外，即使觸發也仍會以 exit(1) 收尾而非靜默掛起， 風險極低，非本次早退彙總插入範圍內處理。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-product-filter-abort-hardening
+resolution-undo: 35dbb2adc0648f50a60a9dba8f9be13ecc1c14c5db722bb081fc3e789e184cd0 2026-08-23 7374617475733a206f70656e
 
 ### DW-62: `handleFatalMainError` 對 `err` 為 `null` 或 `undefined` 時的處理未被測試涵蓋；`JSON.stringify(undefined)` 回傳非字串的 `undefined`，經樣板字串隱式轉型後會印出「`[fetch] fatal: undefined`」。
 origin: spec-deferred fe1efc8168bf
@@ -752,4 +758,52 @@ location: n/a
 source_spec: `spec-dw-56-57-60-62-fatal-error-detail-hardening.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260823-162725-d1ab; this entry preserves the lingering recommendation for a deliberate later review.
+status: open
+
+### DW-84: catalog 抓取成功但回傳空陣列且未帶 `--product=` 時，會落入「未命中」分支，印出無意義的 `No product matched . Known: ` 並以 exit code 2 收尾。
+origin: spec-deferred 84e2e3c46234
+location: src/fetcher.ts:565-580
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: medium
+reason: `const targets = wanted.length ? catalog.filter(...) : catalog;` 在 `wanted` 為空、`catalog` 也為空時 仍滿足 `targets.length === 0`。實測以 `listProducts` 回傳 `[]` 執行 `main()`：stderr 為 `No product matched . Known: ` 後接彙總行，exit code 2。空 catalog 屬來源/解析失敗（語意上是 exit 1）， 被誤分類為「操作者輸入錯誤」的 exit 2。此為既有分支條件（非本次改動造成），本次只在該分支加上 `try`/`finally` 與訊息斷言，未改變其進入條件。
+status: open
+
+### DW-85: 空格形式的 `--product TEST0001`（無 `=`）會被解析靜默忽略，`wanted` 為空即等同「無篩選」， 導致一次除錯用的單品抓取變成整個 catalog 的完整回合。
+origin: spec-deferred 3b7c750ec3a0
+location: src/fetcher.ts:541-544
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: medium
+reason: 解析只認 `a.startsWith('--product=')`，空格形式兩個 argv 皆不符合，因此不會落入未命中分支、也不會有 任何未知旗標警告。與 exit-2 分支「快速失敗」的用意相反。既有解析行為，非本次改動造成； 本次 spec 的 Never 條款明確禁止改動解析語意。
+status: open
+
+### DW-86: `Known: ` 段落會無上限列出整個 catalog 的代碼，而本次新增的斷言要求「每個 catalog 代碼都須出現」， 等於把窮舉輸出釘死，未來改為「前 N 筆 +（還有 M 筆）」會變成測試失敗。
+origin: spec-deferred 5f81e0250032
+location: src/fetcher.test.ts:456-463
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: low
+reason: 實際 USJ catalog 為數十筆代碼，全部串在單行 stderr；`npm run fetch 2>&1 | tee` 時可能把其後的彙總行 推出緩衝區。訊息未設上限屬既有行為，但新斷言確實限制了往後加上限的改法；若要加上限，需同時放寬該斷言 （例如改斷言未命中代碼加抽樣代碼或總數）。
+status: open
+
+### DW-87: 未命中訊息的 `No product matched ${wanted.join(', ')}` 在「多個代碼皆未命中」時的格式仍無測試涵蓋。
+origin: spec-deferred b9a294738589
+location: src/fetcher.test.ts:449-452
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: low
+reason: 現有斷言只驗證單一未命中代碼（`No product matched NOPE0001`）。若該運算式退化為 `wanted[0]`， 只印出第一個誤植代碼，全套測試仍會通過。本次 DW-59 的範圍是 `Known: ` 段落，此為訊息另一半的既有缺口。
+status: open
+
+### DW-88: 多個 `--product=` 部分命中時，未命中的代碼被靜默略過，回合照常以綠燈結束，操作者無從得知該代碼其實沒抓到。
+origin: spec-deferred b260948b2a85
+location: src/fetcher.ts:565
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: medium
+reason: `const targets = wanted.length ? catalog.filter(e => wanted.includes(e.code)) : catalog;` 只做交集， 從不回報 `wanted` 中沒有對應 catalog 項目的代碼。本次新增的 DW-58 前半測試更明確斷言此情況 「不得印出 `No product matched`」，等於把這個沉默釘住。與未命中分支「快速失敗」的用意相反： 批次呼叫中打錯一個代碼，會得到一個看似成功的回合。加上「已忽略未知代碼」警告屬行為變更， 本次 spec 的 Never 條款禁止改動解析與回報語意，故延後。
+status: open
+
+### DW-89: `wanted.length` 在 `main()` 被讀兩次，第二處決定是否執行 `sweepDelisted`，但該分岔兩邊皆無任何測試涵蓋。
+origin: spec-deferred 97893950afb6
+location: src/fetcher.ts:655
+source_spec: `spec-dw-58-59-61-product-filter-abort-hardening.md`
+severity: medium
+reason: `src/fetcher.ts:565` 決定抓取對象，`src/fetcher.ts:655` 的 `const products = wanted.length ? merged : sweepDelisted(merged, now);` 另外決定是否清掃下架商品。 本次 DW-58 兩則新測試只斷言 `fetchProduct` 的呼叫集合，未檢查寫出的 index 內容，因此 「空值 `--product=` 等同無篩選」這個結論只在抓取面被驗證、未在清掃面被驗證。 在 `src/fetcher.test.ts` grep `sweepDelisted` 與 `delist` 皆 0 命中 — 這條分岔目前完全沒有回歸網。 行為本身正確（無篩選才清掃），缺的是驗證，屬既有缺口而非本次改動造成。
 status: open

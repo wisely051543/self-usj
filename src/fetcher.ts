@@ -564,9 +564,20 @@ export async function main() {
 
   const targets = wanted.length ? catalog.filter(e => wanted.includes(e.code)) : catalog;
   if (targets.length === 0) {
-    console.error(`No product matched ${wanted.join(', ')}. Known: ${catalog.map(e => e.code).join(', ')}`);
-    logAbortSummary(startedAt);
-    process.exit(2);
+    // The reporting steps are wrapped in `try`/`finally` for the same reason
+    // `handleFatalMainError` wraps its own: if `console.error` or
+    // `logAbortSummary` (e.g. its `requestCount()` call) throws, a bare
+    // sequence would skip `process.exit(2)` entirely and let the throw travel
+    // up to `main().catch(handleFatalMainError)`, which ends the round at exit
+    // code 1 — silently downgrading "you asked for a product that does not
+    // exist" (2) to "something blew up" (1). `finally` keeps exit 2 the answer
+    // whether or not the two lines explaining it made it out.
+    try {
+      console.error(`No product matched ${wanted.join(', ')}. Known: ${catalog.map(e => e.code).join(', ')}`);
+      logAbortSummary(startedAt);
+    } finally {
+      process.exit(2);
+    }
   }
 
   fs.mkdirSync(PRODUCTS_DIR, { recursive: true });
