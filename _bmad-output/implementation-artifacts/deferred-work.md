@@ -110,7 +110,9 @@ location: src/fetcher.ts:333-338
 source_spec: `spec-1-4-429-5xx-退避與封鎖告警.md`
 severity: medium
 reason: 唯一 import `fetcher.ts` 的是 `src/fetcher.test.ts`，它直接呼叫 `main()`，因此閘門 本身在測試中永遠不會被求值；`src/limits.test.ts` 只做原始碼字串檢查。目前在 `tsconfig.json` 的 `"module": "CommonJS"` + ts-node 下行為正確（已實測 `node --require ts-node/register src/fetcher.ts` 仍會跑 `main()`），風險屬未來變更。 這正是 AD-16 要防的「靜默失敗」形態，但補強手段（CI 冒煙步驟）屬新增 CI 介面。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-fetch-entrypoint-smoke-check
+resolution-undo: 05acb5a0c853638836181f61a99a89f751c877d64e6c6f3a4cc81b08474dea93 2026-08-23 7374617475733a206f70656e
 
 ### DW-13: `.github/workflows/fetch.yml` 的 `Flag failed products` 步驟為 `if: always()` 且 讀取 `data/index.json`；封鎖中止的回合並未改寫該檔，因此該步驟會把「上一回合」的 失敗產品重新標成本次執行的 `::warning`。
 origin: spec-deferred 02fdacdb5bbd
@@ -446,4 +448,12 @@ location: src/sources/usj.ts:174,262,374,448
 source_spec: `spec-dw-36-response-snippet-consistency.md`
 severity: low
 reason: 這是既有行為：變更前的三個 `.slice(0, 200)` 版本與 Calendar 的無截斷版本同樣沒有 帶入 productCode/date，DW-36 的範圍只在統一截斷/正規化慣例，未涉及訊息應包含哪些 欄位，因此不屬於本次變更造成的問題。
+status: open
+
+### DW-52: 新增的 `Smoke-check fetch entry point` 步驟本身（`[ -s fetch-output.log ]` 這個判準）沒有任何自動化測試釘住，未來若有人把 `-s` 誤改成 `-e`/`-f`，會靜默弱化這個檢查而不被任何 `npm test` 抓到。
+origin: spec-deferred 6555d043b2b0
+location: .github/workflows/fetch.yml (Smoke-check fetch entry point step); src/limits.test.ts
+source_spec: `spec-dw-12-fetch-entrypoint-smoke-check-2.md`
+severity: low
+reason: repo 內已有同類先例：`src/limits.test.ts` 用 `flagFailedProductsCondition()` 這類 regex-parse helper 釘住 `fetch.yml` 鄰近步驟（`Flag failed products`）的 `if:` 條件字串，並在 `ci.yml` 的 `npm test`（merge-blocking gate）下每次 push/PR 執行；但這次新增的 `Smoke-check` 步驟的腳本內容（尤其是 `-s` 而非 `-e`/`-f`）沒有對應的 pin 測試。本次 spec 的 Never 條款明確排除新增測試檔案、且 Design Notes 已論證選 CI 冒煙步驟正是為了避免另外設計測試方式，因此在本次範圍內不處理；若要處理，屬於修改既有 `src/limits.test.ts`（非新增檔案）的後續加強項。
 status: open

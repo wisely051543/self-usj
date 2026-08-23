@@ -40,7 +40,31 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run fetch
+      - name: Fetch
+        id: fetch
+        shell: bash
+        run: npm run fetch --silent 2>&1 | tee fetch-output.log
+
+      # Guards against src/fetcher.ts's `if (require.main === module) { main(); }`
+      # gate silently evaluating to false (e.g. after a future ESM/tsx/launcher
+      # change): if that gate stops firing, `main()` never runs, the process
+      # exits 0, and this job would otherwise go green with no data fetched.
+      # Every real path through main() logs at least one line (success summary,
+      # a single product failure, a BlockedError abort, catalog failure, or an
+      # empty target set), so an empty output file means the entry point never
+      # executed. if: always() so aborted rounds (which still log before
+      # exiting non-zero) are checked too, not just the success path.
+      - name: Smoke-check fetch entry point
+        if: always()
+        run: |
+          if [ "${{ steps.fetch.outcome }}" == "skipped" ]; then
+            echo "::notice::Fetch step did not run (an earlier step failed); skipping entry-point smoke check."
+          elif [ -s fetch-output.log ]; then
+            echo "Smoke check passed: npm run fetch produced output."
+          else
+            echo "::error::npm run fetch produced no output -- the 'if (require.main === module)' gate in src/fetcher.ts may have failed to fire, meaning main() never ran (or an earlier failure inside 'npm run fetch' produced no output)."
+            exit 1
+          fi
 
       # success() only: an aborted round (BlockedError, catalog failure, or an
       # unmatched --product=) exits before index.json is rewritten, so running
