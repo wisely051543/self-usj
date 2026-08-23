@@ -601,6 +601,7 @@ source_spec: `spec-dw-50-51-error-message-hardening.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260823-132556-242e; this entry preserves the lingering recommendation for a deliberate later review.
 status: open
+decision: 2026-08-23 Run the deferred follow-up review as a bundle — Re-review the diff of commit cfc7b3c against spec-dw-50-51-error-message-hardening.md — focusing on the error-message construction paths in src/sources/usj.ts and their tests — and fix any defect the review confirms. If the review finds nothing, make no code change and record that outcome.
 
 ### DW-64: `readIndex()` 的檔案不存在／JSON 解析失敗路徑仍全數靜默回傳 `null`，與本 story 新加的版號不符 路徑（會 `console.error`）不對稱。
 origin: spec-deferred 80e9c435b208
