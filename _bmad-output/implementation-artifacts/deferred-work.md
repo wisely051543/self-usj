@@ -610,6 +610,7 @@ source_spec: `spec-dw-21-fetcher-readindex-version-guard.md`
 severity: low
 reason: 版號不符與讀取／解析失敗同屬 AD-14 所指「不驗證即接受異常快照」的範疇，但本 story 依 Boundaries 「Always」第 3 條明文要求後者維持現況靜默，僅補上版號檢查一條路徑的可見度。若未來要讓抓取端的 異常快照全面可觀測，需一併決定讀取／解析失敗要不要 log、log 什麼內容（例如是否要區分 ENOENT 與 JSON 語法錯誤），超出本 story 範圍。
 status: open
+decision: 2026-08-23 Log parse failures, stay silent on a missing file — In src/fetcher.ts's readIndex(), split the first try/catch so a genuinely absent data/index.json (ENOENT) still returns null silently — that is a legitimate cold first run — while a JSON syntax error, or a parsed value that is not a plain object, logs a `[fetch] ...` line naming data/index.json and the reason before returning null. Match the message shape of the version-mismatch branch below it, and add tests for both paths.
 
 ### DW-65: ci.yml 的閘門 pin 只證明指令字串還在，無法察覺閘門被 continue-on-error、步驟或 job 層的 if: false 停用，或 workflow 的 on: push/pull_request 觸發被移除。
 origin: spec-deferred 3d5610d5e489

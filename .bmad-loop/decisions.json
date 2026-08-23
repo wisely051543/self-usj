@@ -43,5 +43,14 @@
     "key": "1",
     "label": "Run the deferred follow-up review as a bundle",
     "resolution": ""
+  },
+  "DW-64": {
+    "answered_at": "2026-08-23",
+    "bundle_name": "",
+    "effect": "build",
+    "intent": "In src/fetcher.ts's readIndex(), split the first try/catch so a genuinely absent data/index.json (ENOENT) still returns null silently \u2014 that is a legitimate cold first run \u2014 while a JSON syntax error, or a parsed value that is not a plain object, logs a `[fetch] ...` line naming data/index.json and the reason before returning null. Match the message shape of the version-mismatch branch below it, and add tests for both paths.",
+    "key": "1",
+    "label": "Log parse failures, stay silent on a missing file",
+    "resolution": ""
   }
 }
