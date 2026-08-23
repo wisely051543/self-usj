@@ -32,7 +32,9 @@ location: _bmad-output/implementation-artifacts/epic-1-context.md:55-60
 source_spec: `spec-1-2-禁止抓取回合重疊.md`
 severity: low
 reason: 同文件其餘每條可對應到單一 story 的限制都在 Cross-Story Dependencies 有對應說明，唯獨 Story 1.2 這條被省略，屬編譯完整性小缺口。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-epic-context-cross-story-dep
+resolution-undo: 550612e1d3de030b1c6278f02afd2b0dc45b97e48d0f24d4861d9112b579ab5a 2026-08-23 7374617475733a206f70656e
 
 ### DW-5: HEADERS 的 forbidden-string 比對僅涵蓋 package.json 的 name 字串，未涵蓋未來若指定 repo 名稱、hosting 網域，或 Referer/Origin 標頭等其他可能洩漏本站身分的形式。
 origin: spec-deferred 0c18c33c5655
@@ -391,4 +393,12 @@ location: index.html:1061（loadCalendar()）
 source_spec: `spec-dw-23-25-index-json-consumer-guards.md`
 severity: low
 reason: grep `src/*.test.ts` 未找到任何 `ok: false`／`status: 404`／`status: 500` 的 fetch stub， `runPage()`（`src/schema.test.ts:487-538`）的 `fetch` 固定回傳 `ok: true`， `loadCalendar()` 相關測試（`src/schema.test.ts:552-564`）僅涵蓋版號守衛，不涵蓋 HTTP 狀態守衛。此缺口在本次變更之前就存在，範圍與本次 patch 的 `boot()` 守衛測試不同。
+status: open
+
+### DW-47: Cross-Story Dependencies 段落未記錄 Story 1.2（禁止抓取回合重疊）與 Story 1.4（429/5xx 退避與封鎖告警）之間的潛在互動：持續封鎖觸發 1.4 的「停止該回合並告警」時，1.2 排隊中的下一回合應如何處理未被說明。
+origin: spec-deferred 6ef86f4999f8
+location: _bmad-output/implementation-artifacts/epic-1-context.md:57-64
+source_spec: `spec-dw-4-epic-context-cross-story-dep.md`
+severity: low
+reason: Requirements & Constraints 同時列有「同一時間只允許一個抓取回合，未跑完的回合須排隊而非並行」（Story 1.2）與 「遇 429/5xx 須遞增延遲退避；持續封鎖須停止該回合並告警，不得改以其他方式續抓」（Story 1.4）， 兩者交界（封鎖中止進行中回合時，佇列中回合的行為）在 Cross-Story Dependencies 段落無對應說明， 屬本次 review（blind-hunter 層）於既有文件中發現、非本次變更引入的既存缺口。
 status: open
