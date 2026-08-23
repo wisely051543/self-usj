@@ -461,7 +461,9 @@ location: src/sources/usj.ts:174,262,374,448
 source_spec: `spec-dw-36-response-snippet-consistency.md`
 severity: low
 reason: 四處（fetchInventory/fetchTimeSlots/fetchProductInfo/fetchCatalogPage）在本次變更前 就已經是 `await res.text()` 沒有 `.catch()`；DW-36 只重構了截斷/正規化邏輯，沒有改變 這個讀取行為，屬於既有問題而非本次變更造成。limiter.ts 內 BlockedError 對應的讀取 路徑已經有 `.catch(() => undefined)` 保護（見 limitedFetch 的 body 讀取），可作為修法參考。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-usj-error-message-hardening
+resolution-undo: 3f13beab102a47ef9a203e72a7f59827d39f812ca7bc7b8e45d5499684fa61cb 2026-08-23 7374617475733a206f70656e
 
 ### DW-51: 四個 API 錯誤訊息都沒有帶入呼叫當下的識別資訊（productCode/date/query）， 光看 log 行看不出是哪一個請求失敗。
 origin: spec-deferred 0d32661b291d
@@ -469,7 +471,9 @@ location: src/sources/usj.ts:174,262,374,448
 source_spec: `spec-dw-36-response-snippet-consistency.md`
 severity: low
 reason: 這是既有行為：變更前的三個 `.slice(0, 200)` 版本與 Calendar 的無截斷版本同樣沒有 帶入 productCode/date，DW-36 的範圍只在統一截斷/正規化慣例，未涉及訊息應包含哪些 欄位，因此不屬於本次變更造成的問題。
-status: open
+status: done 2026-08-23
+resolution: resolved by sweep bundle dw-dw-usj-error-message-hardening
+resolution-undo: 3f13beab102a47ef9a203e72a7f59827d39f812ca7bc7b8e45d5499684fa61cb 2026-08-23 7374617475733a206f70656e
 
 ### DW-52: 新增的 `Smoke-check fetch entry point` 步驟本身（`[ -s fetch-output.log ]` 這個判準）沒有任何自動化測試釘住，未來若有人把 `-s` 誤改成 `-e`/`-f`，會靜默弱化這個檢查而不被任何 `npm test` 抓到。
 origin: spec-deferred 6555d043b2b0
@@ -557,4 +561,12 @@ location: src/fetcher.ts:307-314
 source_spec: `spec-dw-38-39-fetcher-abort-summary-gaps.md`
 severity: low
 reason: 目前測試只涵蓋 `Error` 與一般物件（`{ code, path }`）兩種情境，未涵蓋 `Promise.reject()` 或 `throw null`/`throw undefined` 這類邊界輸入；雖不會如循環參照物件般印出 `[object Object]`，但「undefined」 字串本身診斷價值有限。此輸入形態罕見，非本次兩處早退彙總插入點的範圍。
+status: open
+
+### DW-63: Follow-up review still recommended for dw-dw-usj-error-message-hardening after the damping cap was spent
+origin: review-budget-followup
+location: n/a
+source_spec: `spec-dw-50-51-error-message-hardening.md`
+severity: low
+reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260823-132556-242e; this entry preserves the lingering recommendation for a deliberate later review.
 status: open

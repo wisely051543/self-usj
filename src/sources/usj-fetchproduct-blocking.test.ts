@@ -247,7 +247,7 @@ test(
     assert.ok(expectedSnippet, 'this raw body must normalize to a non-empty snippet');
     assert.equal(
       (reason as Error).message,
-      `Calendar API returned 404: ${expectedSnippet}`,
+      `Calendar API returned 404 for ${entry.code} (${range.start}..${range.end}): ${expectedSnippet}`,
       'the message must carry the same normalized, capped snippet that snippet() itself would produce',
     );
     assert.ok(
@@ -281,8 +281,284 @@ test("an empty Calendar API body leaves fetchProduct's rejection message without
   assert.ok(reason instanceof Error, `expected an Error, got ${reason}`);
   assert.equal(
     (reason as Error).message,
-    'Calendar API returned 404',
+    `Calendar API returned 404 for ${entry.code} (${range.start}..${range.end})`,
     'an empty body must leave no dangling ": " suffix on the message',
+  );
+});
+
+/**
+ * DW-50: a body that fails to *read* (a dropped connection mid-response, the
+ * same shape `limiter.test.ts` exercises against `BlockedError`'s own read)
+ * must not let the raw stream rejection replace the status message. Without
+ * `res.text().catch(() => undefined)` at the Calendar throw site, this test's
+ * `fetchProduct` call would reject with the mocked 'stream reset' Error
+ * instead of the well-formed "Calendar API returned ..." message.
+ */
+test("a Calendar API response whose body fails to read still rejects with the plain status message", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 96_000_000 });
+  t.mock.method(console, 'error', () => undefined);
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) {
+      return {
+        ok: false,
+        status: 404,
+        text: () => Promise.reject(new Error('stream reset')),
+      } as unknown as Response;
+    }
+    return json(PRODUCT_INFO);
+  });
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'rejected', 'a non-ok calendar response must still reject fetchProduct');
+  const reason = outcome.status === 'rejected' ? outcome.reason : undefined;
+  assert.ok(reason instanceof Error, `expected an Error, got ${reason}`);
+  assert.equal(
+    (reason as Error).message,
+    `Calendar API returned 404 for ${entry.code} (${range.start}..${range.end})`,
+    'a body read failure must fall back to the bodyless message shape, not the raw stream rejection',
+  );
+});
+
+/**
+ * DW-51, the other three sites: `fetchProductInfo` and `fetchTimeSlots` never
+ * reject `fetchProduct` on an ordinary failure -- they are caught and logged,
+ * so the identifying context has to be checked in the logged line rather than
+ * a rejection message the way the Calendar tests above do it.
+ */
+test("an ordinary product-info failure's logged message names the product and language", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 97_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+  mockStore(t, 'info', notFound);
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'an ordinary product-info failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => line.includes(`Product API returned 404 for ${entry.code} (ja)`)),
+    `expected the logged failure to carry the product code and language, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+test("an ordinary translated-name failure's logged message names the product and language", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 98_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+  mockStore(t, 'names', notFound);
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'an ordinary translated-name failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => line.includes(`Product API returned 404 for ${entry.code} (en)`)),
+    `expected the logged failure to carry the product code and language, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+test("an ordinary slot-lookup failure's logged message names the product and date", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 99_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+  mockStore(t, 'slots', notFound);
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'an ordinary slot-lookup failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => new RegExp(`Variant API returned 404 for ${entry.code} on \\d{4}-\\d{2}-\\d{2}`).test(line)),
+    `expected the logged failure to carry the product code and date, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+/**
+ * DW-50 at a second site, to confirm the `.catch(() => undefined)` guard is
+ * the same protection at every throw site rather than something special-cased
+ * for Calendar alone.
+ */
+test("a slot-lookup response whose body fails to read still logs the plain status message", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 101_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('getExpressPassVariantDetails')) {
+      return {
+        ok: false,
+        status: 404,
+        text: () => Promise.reject(new Error('stream reset')),
+      } as unknown as Response;
+    }
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) return json(CALENDAR);
+    return json(PRODUCT_INFO);
+  });
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'an ordinary slot-lookup failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => new RegExp(`Variant API returned 404 for ${entry.code} on \\d{4}-\\d{2}-\\d{2}`).test(line)),
+    `expected a body read failure to fall back to the bodyless message shape, got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    !errors.some(line => line.includes('stream reset')),
+    'the raw stream rejection must never leak into the logged message',
+  );
+});
+
+/**
+ * DW-50 at the remaining two sites (Product and Search APIs), so the guard is
+ * confirmed at all four throw sites rather than just the two above.
+ */
+test("a product-info response whose body fails to read still logs the plain status message", async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 102_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+  mockStore(
+    t,
+    'info',
+    () =>
+      ({
+        ok: false,
+        status: 404,
+        text: () => Promise.reject(new Error('stream reset')),
+      }) as unknown as Response,
+  );
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'an ordinary product-info failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => line.includes(`Product API returned 404 for ${entry.code} (ja)`)),
+    `expected a body read failure to fall back to the bodyless message shape, got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    !errors.some(line => line.includes('stream reset')),
+    'the raw stream rejection must never leak into the logged message',
+  );
+});
+
+/**
+ * DW-51: `fetchInventory`'s new part-count formatting has three branches
+ * (no parts, up to three named directly, more than three collapsed to a
+ * count) but every other test in this file drives it with a single query, so
+ * only the one-part branch has ever been exercised. This drives a stock
+ * batch with more than three variant codes -- the shape `fetchSlotStock`
+ * sends in production -- straight through `usjSource.fetchProduct` and reads
+ * the count-fallback branch off the logged batch failure.
+ */
+test('a stock batch failure with more than three variant codes logs a part count, not a joined list', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 103_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  const FOUR_SLOT_EVENTS = [0, 1, 2, 3].map(i => ({ ...TIMED_EVENT, eventCode: `EXP_TEST_${i}` }));
+  const FOUR_VARIANT_DETAILS = {
+    products: FOUR_SLOT_EVENTS.map((event, i) => ({ code: `VAR${i}`, attractions: { events: [event] } })),
+  };
+  let inventoryCalls = 0;
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) {
+      inventoryCalls++;
+      // The product's own calendar lookup answers normally; the stock batch
+      // that follows (the only later inventory call) is the one that fails.
+      if (inventoryCalls > 1) {
+        return {
+          ok: false,
+          status: 404,
+          text: () => Promise.resolve(''),
+        } as unknown as Response;
+      }
+      return json(CALENDAR);
+    }
+    if (url.includes('getExpressPassVariantDetails')) return json(FOUR_VARIANT_DETAILS);
+    return json(PRODUCT_INFO);
+  });
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'a stock batch failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => line.includes('Calendar API returned 404 for 4 parts (2026-09-01..2026-09-02)')),
+    `expected the batch failure to name a 4-part count with the dates in ascending order (not the query-arrival ` +
+      `order, which puts the latest date first), got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    !errors.some(line => line.includes('VAR0') || line.includes('VAR1')),
+    `a batch over the naming threshold must not list individual variant codes, got: ${JSON.stringify(errors)}`,
+  );
+});
+
+/**
+ * DW-51: the other branch of `fetchInventory`'s part-count formatting -- two
+ * or three unique part numbers named directly rather than collapsed to a
+ * count -- is not exercised by any existing test (the single-query tests
+ * above only ever produce one part, and the batch test above produces four).
+ * This drives a two-variant-code stock batch through the same path to lock
+ * down the comma-joined-list shape of that branch.
+ */
+test('a stock batch failure with two variant codes names both, not a count', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 104_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  const TWO_SLOT_EVENTS = [0, 1].map(i => ({ ...TIMED_EVENT, eventCode: `EXP_TEST_${i}` }));
+  const TWO_VARIANT_DETAILS = {
+    products: TWO_SLOT_EVENTS.map((event, i) => ({ code: `VAR${i}`, attractions: { events: [event] } })),
+  };
+  let inventoryCalls = 0;
+
+  t.mock.method(globalThis, 'fetch', async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('fetchCalendarDatesWithPriceAndInventory')) {
+      inventoryCalls++;
+      // The product's own calendar lookup answers normally; the stock batch
+      // that follows (the only later inventory call) is the one that fails.
+      if (inventoryCalls > 1) {
+        return {
+          ok: false,
+          status: 404,
+          text: () => Promise.resolve(''),
+        } as unknown as Response;
+      }
+      return json(CALENDAR);
+    }
+    if (url.includes('getExpressPassVariantDetails')) return json(TWO_VARIANT_DETAILS);
+    return json(PRODUCT_INFO);
+  });
+
+  const outcome = await settle(t, usjSource.fetchProduct(entry, range, null));
+
+  assert.equal(outcome.status, 'fulfilled', 'a stock batch failure must degrade, not reject');
+  assert.ok(
+    errors.some(line => line.includes('Calendar API returned 404 for VAR0, VAR1 (2026-09-01..2026-09-02)')),
+    `expected the batch failure to name both variant codes directly rather than a count, got: ${JSON.stringify(errors)}`,
   );
 });
 

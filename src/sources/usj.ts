@@ -171,8 +171,18 @@ async function fetchInventory(queries: InventoryQuery[]): Promise<Availability[]
   });
 
   if (!res.ok) {
-    const snip = snippet(await res.text());
-    throw new Error(`Calendar API returned ${res.status}${snip ? `: ${snip}` : ''}`);
+    const snip = snippet(await res.text().catch(() => undefined));
+    // Named directly when there are few enough part numbers to stay readable;
+    // a full stock batch (up to STOCK_BATCH_SIZE) falls back to a count so the
+    // log line does not balloon into a list of variant codes.
+    const parts = [...new Set(queries.map(q => q.partNumber))];
+    const partsDesc = parts.length === 0 ? '' : parts.length <= 3 ? parts.join(', ') : `${parts.length} parts`;
+    // Sorted rather than taking the first/last query as-is: batch callers do not
+    // guarantee chronological order (e.g. the newest date is queried first), so
+    // the min/max of every date in the batch is what actually bounds the span.
+    const dates = queries.flatMap(q => [q.startDate, q.endDate]).sort();
+    const span = dates.length ? ` for ${partsDesc} (${dates[0]}..${dates[dates.length - 1]})` : '';
+    throw new Error(`Calendar API returned ${res.status}${span}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as CalendarResponse;
@@ -259,8 +269,8 @@ async function fetchTimeSlots(
 
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    const snip = snippet(await res.text());
-    throw new Error(`Variant API returned ${res.status}${snip ? `: ${snip}` : ''}`);
+    const snip = snippet(await res.text().catch(() => undefined));
+    throw new Error(`Variant API returned ${res.status} for ${productCode} on ${date}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { products?: VariantProduct[] };
@@ -371,8 +381,8 @@ async function fetchProductInfo(
   const url = `${API_BASE}/products/${productCode}?fields=FULL&lang=${lang}&curr=${CURRENCY}`;
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    const snip = snippet(await res.text());
-    throw new Error(`Product API returned ${res.status}${snip ? `: ${snip}` : ''}`);
+    const snip = snippet(await res.text().catch(() => undefined));
+    throw new Error(`Product API returned ${res.status} for ${productCode} (${lang})${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { attractions?: { events?: VariantEvent[] } };
@@ -445,8 +455,8 @@ async function fetchCatalogPage(date: string): Promise<SearchProduct[]> {
 
   const res = await limitedFetch(url, { headers: HEADERS });
   if (!res.ok) {
-    const snip = snippet(await res.text());
-    throw new Error(`Search API returned ${res.status}${snip ? `: ${snip}` : ''}`);
+    const snip = snippet(await res.text().catch(() => undefined));
+    throw new Error(`Search API returned ${res.status} for ${date}${snip ? `: ${snip}` : ''}`);
   }
 
   const body = (await res.json()) as { products?: SearchProduct[] };

@@ -177,4 +177,54 @@ test('an ordinary catalog failure is logged and skipped, leaving the remaining s
     errors.some(line => line.includes(failedDate)),
     `the skipped sample must be logged, got: ${JSON.stringify(errors)}`,
   );
+  assert.ok(
+    errors.some(line => line.includes(`Search API returned 404 for ${failedDate}`)),
+    `the logged failure must carry the Search API's own identifying context (DW-51), got: ${JSON.stringify(errors)}`,
+  );
+});
+
+/**
+ * DW-50, the Search API site: a body that fails to read must not let the raw
+ * stream rejection replace the status message here either, matching the
+ * guard already proven at the Calendar and Variant sites in
+ * usj-fetchproduct-blocking.test.ts.
+ */
+test('a catalog sample whose body fails to read still logs the plain status message', async (t: TestContext) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 8_000_000 });
+  t.mock.method(console, 'log', () => undefined);
+  const errors: string[] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => {
+    errors.push(args.map(String).join(' '));
+  });
+
+  // A single-day range yields exactly one catalog sample, so there is only one
+  // place the body-read failure can come from.
+  const range = { start: '2026-09-01', end: '2026-09-01' };
+  t.mock.method(
+    globalThis,
+    'fetch',
+    async () =>
+      ({
+        ok: false,
+        status: 404,
+        text: () => Promise.reject(new Error('stream reset')),
+      }) as unknown as Response,
+  );
+
+  const outcome = await settle(t, usjSource.listProducts(range, []));
+
+  assert.equal(outcome.status, 'fulfilled', 'a body read failure must degrade, not reject the catalogue');
+  assert.deepEqual(
+    outcome.status === 'fulfilled' ? outcome.value : [],
+    [],
+    'the single failing sample must leave an empty catalogue',
+  );
+  assert.ok(
+    errors.some(line => line.includes(`Search API returned 404 for ${range.start}`)),
+    `expected a body read failure to fall back to the bodyless message shape, got: ${JSON.stringify(errors)}`,
+  );
+  assert.ok(
+    !errors.some(line => line.includes('stream reset')),
+    'the raw stream rejection must never leak into the logged message',
+  );
 });
