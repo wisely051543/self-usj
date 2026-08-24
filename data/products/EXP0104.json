@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-24T04:47:28.254Z",
+  "fetchedAt": "2026-08-24T05:42:02.975Z",
   "calendarStart": "2026-08-24",
   "calendarEnd": "2027-02-24",
   "latestDate": "2026-10-25",
@@ -161,9 +161,9 @@
       "date": "2026-09-24",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 40,
+      "availableUnits": 38,
       "maxAvailable": 4,
-      "totalCapacity": 40,
+      "totalCapacity": 38,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": null,
@@ -173,9 +173,9 @@
       "date": "2026-09-25",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 15,
+      "availableUnits": 12,
       "maxAvailable": 4,
-      "totalCapacity": 15,
+      "totalCapacity": 12,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": [
@@ -275,7 +275,7 @@
           "variantCode": "E4FBJ63Z01A007",
           "from": "14:25",
           "to": "19:30",
-          "availableUnits": 4,
+          "availableUnits": 1,
           "events": [
             {
               "code": "EXP_LTO",
@@ -295,7 +295,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-24T04:47:43.251Z"
+      "slotsFetchedAt": "2026-08-24T05:42:05.175Z"
     },
     {
       "date": "2026-09-26",
@@ -7828,9 +7828,9 @@
       "date": "2026-10-23",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 42,
+      "availableUnits": 46,
       "maxAvailable": 4,
-      "totalCapacity": 42,
+      "totalCapacity": 46,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -7941,6 +7941,29 @@
               "code": "EXP_LTO",
               "from": "15:25",
               "to": "15:55"
+            },
+            {
+              "code": "EXP_JPD",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ63Z01A007",
+          "from": "14:25",
+          "to": "19:30",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_LTO",
+              "from": "14:25",
+              "to": "14:55"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "15:30",
+              "to": "16:00"
             },
             {
               "code": "EXP_JPD",
@@ -8088,7 +8111,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-24T04:47:43.251Z"
+      "slotsFetchedAt": "2026-08-24T05:42:05.175Z"
     },
     {
       "date": "2026-10-24",
@@ -8643,7 +8666,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-23T22:50:00.751Z"
+      "slotsFetchedAt": "2026-08-24T05:42:05.175Z"
     }
   ],
   "attractionNames": {
