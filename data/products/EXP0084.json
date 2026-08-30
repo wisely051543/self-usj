@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-08-30T14:48:51.355Z",
-  "calendarStart": "2026-08-30",
-  "calendarEnd": "2027-03-02",
-  "latestDate": "2026-10-31",
+  "fetchedAt": "2026-08-30T18:33:05.753Z",
+  "calendarStart": "2026-08-31",
+  "calendarEnd": "2027-03-03",
+  "latestDate": "2026-11-01",
   "dates": [
     {
       "date": "2026-09-02",
@@ -344,7 +344,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-30T09:51:23.164Z"
+      "slotsFetchedAt": "2026-08-30T18:33:06.876Z"
     },
     {
       "date": "2026-10-08",
@@ -926,9 +926,9 @@
       "date": "2026-10-31",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 32,
-      "maxAvailable": 32,
-      "totalCapacity": 32,
+      "availableUnits": 30,
+      "maxAvailable": 30,
+      "totalCapacity": 30,
       "pricePerPerson": 22800,
       "formattedPrice": "¥22,800",
       "timeSlots": [
@@ -936,7 +936,7 @@
           "variantCode": "E4MKC45D49A046",
           "from": "19:40",
           "to": "20:40",
-          "availableUnits": 32,
+          "availableUnits": 30,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -956,7 +956,43 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-08-30T14:49:01.266Z"
+      "slotsFetchedAt": "2026-08-30T18:33:06.876Z"
+    },
+    {
+      "date": "2026-11-01",
+      "dayOfWeek": 0,
+      "available": true,
+      "availableUnits": 40,
+      "maxAvailable": 40,
+      "totalCapacity": 40,
+      "pricePerPerson": 18800,
+      "formattedPrice": "¥18,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC45D49A046",
+          "from": "19:40",
+          "to": "20:40",
+          "availableUnits": 40,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "19:40",
+              "to": "20:40"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "19:40",
+              "to": "20:10"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-08-30T18:33:06.876Z"
     }
   ],
   "attractionNames": {
