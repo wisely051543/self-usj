@@ -8,11 +8,23 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-09-08T13:30:06.038Z",
-  "calendarStart": "2026-09-08",
-  "calendarEnd": "2027-03-08",
+  "fetchedAt": "2026-09-08T17:25:11.543Z",
+  "calendarStart": "2026-09-09",
+  "calendarEnd": "2027-03-09",
   "latestDate": "2026-11-08",
   "dates": [
+    {
+      "date": "2026-09-15",
+      "dayOfWeek": 2,
+      "available": true,
+      "availableUnits": 1,
+      "maxAvailable": 1,
+      "totalCapacity": 1,
+      "pricePerPerson": 13800,
+      "formattedPrice": "¥13,800",
+      "timeSlots": null,
+      "slotsFetchedAt": null
+    },
     {
       "date": "2026-09-16",
       "dayOfWeek": 3,
@@ -1679,9 +1691,9 @@
       "date": "2026-10-13",
       "dayOfWeek": 2,
       "available": true,
-      "availableUnits": 46,
+      "availableUnits": 44,
       "maxAvailable": 4,
-      "totalCapacity": 46,
+      "totalCapacity": 44,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -1896,7 +1908,7 @@
           "variantCode": "E4FBJ63Z01A012",
           "from": "15:00",
           "to": "21:00",
-          "availableUnits": 4,
+          "availableUnits": 2,
           "events": [
             {
               "code": "EXP_FOF",
@@ -1962,7 +1974,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T13:30:23.049Z"
+      "slotsFetchedAt": "2026-09-08T17:25:14.346Z"
     },
     {
       "date": "2026-10-14",
@@ -5183,9 +5195,9 @@
       "date": "2026-10-26",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 41,
+      "availableUnits": 43,
       "maxAvailable": 4,
-      "totalCapacity": 41,
+      "totalCapacity": 43,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -5400,7 +5412,7 @@
           "variantCode": "E4FBJ63Z01A012",
           "from": "15:00",
           "to": "21:00",
-          "availableUnits": 2,
+          "availableUnits": 4,
           "events": [
             {
               "code": "EXP_FOF",
@@ -5466,7 +5478,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T13:30:23.049Z"
+      "slotsFetchedAt": "2026-09-08T17:25:14.346Z"
     },
     {
       "date": "2026-10-27",
@@ -6310,7 +6322,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T09:01:38.767Z"
+      "slotsFetchedAt": "2026-09-08T17:25:14.346Z"
     },
     {
       "date": "2026-10-30",
@@ -9152,7 +9164,5 @@
       "en": "Jurassic Park - The Ride in the Dark"
     }
   },
-  "nonTimedAttractions": [
-    "EXP_FBJ"
-  ]
+  "nonTimedAttractions": []
 }

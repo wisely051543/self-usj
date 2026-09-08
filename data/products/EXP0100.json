@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-09-08T13:36:28.094Z",
-  "calendarStart": "2026-09-08",
-  "calendarEnd": "2027-03-08",
-  "latestDate": "2026-11-09",
+  "fetchedAt": "2026-09-08T17:27:35.700Z",
+  "calendarStart": "2026-09-09",
+  "calendarEnd": "2027-03-09",
+  "latestDate": "2026-11-10",
   "dates": [
     {
       "date": "2026-09-10",
@@ -142,63 +142,8 @@
       "totalCapacity": 3,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
-      "timeSlots": [
-        {
-          "variantCode": "E4FBJ61D49A033",
-          "from": "11:50",
-          "to": "14:50",
-          "availableUnits": 1,
-          "events": [
-            {
-              "code": "EXP_BDR",
-              "from": "11:50",
-              "to": "12:20"
-            },
-            {
-              "code": "EXP_FOH",
-              "from": "14:20",
-              "to": "14:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ61D49A030",
-          "from": "12:00",
-          "to": "20:50",
-          "availableUnits": 1,
-          "events": [
-            {
-              "code": "EXP_FOH",
-              "from": "12:00",
-              "to": "12:30"
-            },
-            {
-              "code": "EXP_BDR",
-              "from": "20:20",
-              "to": "20:50"
-            }
-          ]
-        },
-        {
-          "variantCode": "E4FBJ61D49A032",
-          "from": "12:50",
-          "to": "19:50",
-          "availableUnits": 1,
-          "events": [
-            {
-              "code": "EXP_BDR",
-              "from": "12:50",
-              "to": "13:20"
-            },
-            {
-              "code": "EXP_FOH",
-              "from": "19:20",
-              "to": "19:50"
-            }
-          ]
-        }
-      ],
-      "slotsFetchedAt": "2026-09-08T13:36:34.812Z"
+      "timeSlots": null,
+      "slotsFetchedAt": null
     },
     {
       "date": "2026-10-12",
@@ -291,7 +236,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T09:06:22.878Z"
+      "slotsFetchedAt": "2026-09-08T17:27:38.143Z"
     },
     {
       "date": "2026-10-18",
@@ -972,7 +917,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T09:06:22.878Z"
+      "slotsFetchedAt": "2026-09-08T17:27:38.143Z"
     },
     {
       "date": "2026-11-06",
@@ -1070,15 +1015,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T09:06:22.878Z"
+      "slotsFetchedAt": "2026-09-08T17:27:38.143Z"
     },
     {
       "date": "2026-11-08",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 37,
+      "availableUnits": 39,
       "maxAvailable": 20,
-      "totalCapacity": 37,
+      "totalCapacity": 39,
       "pricePerPerson": 19800,
       "formattedPrice": "¥19,800",
       "timeSlots": [
@@ -1086,7 +1031,7 @@
           "variantCode": "E4FBJ61D49A035",
           "from": "11:50",
           "to": "14:50",
-          "availableUnits": 17,
+          "availableUnits": 19,
           "events": [
             {
               "code": "EXP_BDR",
@@ -1119,7 +1064,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-08T13:36:34.812Z"
+      "slotsFetchedAt": "2026-09-08T17:27:38.143Z"
     },
     {
       "date": "2026-11-09",
@@ -1169,6 +1114,55 @@
         }
       ],
       "slotsFetchedAt": "2026-09-08T13:36:34.812Z"
+    },
+    {
+      "date": "2026-11-10",
+      "dayOfWeek": 2,
+      "available": true,
+      "availableUnits": 40,
+      "maxAvailable": 30,
+      "totalCapacity": 40,
+      "pricePerPerson": 11800,
+      "formattedPrice": "¥11,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ61D65A021",
+          "from": "12:10",
+          "to": "17:20",
+          "availableUnits": 30,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:10",
+              "to": "12:40"
+            },
+            {
+              "code": "EXP_FOH",
+              "from": "16:50",
+              "to": "17:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ61D65A022",
+          "from": "13:30",
+          "to": "18:00",
+          "availableUnits": 10,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "13:30",
+              "to": "14:00"
+            },
+            {
+              "code": "EXP_BDR",
+              "from": "17:30",
+              "to": "18:00"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-09-08T17:27:38.143Z"
     }
   ],
   "attractionNames": {
@@ -1189,8 +1183,5 @@
       "en": "Flight of the Hippogriff™"
     }
   },
-  "nonTimedAttractions": [
-    "EXP_FBJ",
-    "EXP_FLD"
-  ]
+  "nonTimedAttractions": []
 }
