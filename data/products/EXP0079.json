@@ -8,11 +8,23 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-09-13T19:17:31.990Z",
+  "fetchedAt": "2026-09-13T21:37:42.194Z",
   "calendarStart": "2026-09-14",
   "calendarEnd": "2027-03-14",
   "latestDate": "2026-11-09",
   "dates": [
+    {
+      "date": "2026-09-15",
+      "dayOfWeek": 2,
+      "available": true,
+      "availableUnits": 1,
+      "maxAvailable": 1,
+      "totalCapacity": 1,
+      "pricePerPerson": 33900,
+      "formattedPrice": "¥33,900",
+      "timeSlots": null,
+      "slotsFetchedAt": null
+    },
     {
       "date": "2026-10-17",
       "dayOfWeek": 6,
@@ -1160,9 +1172,9 @@
       "date": "2026-11-08",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 25,
+      "availableUnits": 28,
       "maxAvailable": 6,
-      "totalCapacity": 25,
+      "totalCapacity": 28,
       "pricePerPerson": 31900,
       "formattedPrice": "¥31,900",
       "timeSlots": [
@@ -1512,7 +1524,7 @@
           "variantCode": "E8DKT03Z01A064",
           "from": "12:00",
           "to": "17:00",
-          "availableUnits": 2,
+          "availableUnits": 5,
           "events": [
             {
               "code": "EXP_VLC",
@@ -1547,7 +1559,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-09-13T19:17:32.897Z"
+      "slotsFetchedAt": "2026-09-13T21:37:42.965Z"
     },
     {
       "date": "2026-11-09",
