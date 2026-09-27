@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>嵯峨野小火車 剩餘座位</title>
+  <!-- Private tool: keep it out of search engines and AI crawlers.
+       robots.txt cannot work on a project Pages site, so this list is the only place it is kept. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="GPTBot" content="noindex, nofollow, noarchive">
+  <meta name="ClaudeBot" content="noindex, nofollow, noarchive">
+  <meta name="Google-Extended" content="noindex, nofollow, noarchive">
+  <meta name="CCBot" content="noindex, nofollow, noarchive">
+  <meta name="Bytespider" content="noindex, nofollow, noarchive">
+  <meta name="Applebot-Extended" content="noindex, nofollow, noarchive">
+  <meta name="meta-externalagent" content="noindex, nofollow, noarchive">
+  <meta name="OAI-SearchBot" content="noindex, nofollow, noarchive">
+  <meta name="ChatGPT-User" content="noindex, nofollow, noarchive">
+  <meta name="PerplexityBot" content="noindex, nofollow, noarchive">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 24px;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .toggle { display: flex; gap: 2px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 2px; }
+    .toggle button {
+      min-height: 44px; padding: 0 12px;
+      background: none; border: none; border-radius: 6px;
+      color: #8b949e; font-family: inherit; font-size: 16px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+    .toggle button[aria-pressed="true"] { background: #1f6feb33; color: #79c0ff; }
+
+    .official {
+      display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px;
+      color: #58a6ff; text-decoration: none; font-size: 16px;
+    }
+    .official:hover { text-decoration: underline; }
+
+    .times { font-size: 16px; color: #8b949e; }
+    .times div + div { margin-top: 2px; }
+    .stale {
+      display: inline-block; margin-top: 8px;
+      background: #f0883e22; border: 1px solid #f0883e55;
+      color: #f0883e; border-radius: 6px; padding: 4px 10px; font-size: 16px;
+    }
+    .stale[hidden] { display: none; }
+
+    /* Matrix card has no inner padding so 9 train columns fit at 375px. */
+    .matrix-card { padding: 0; overflow: hidden; }
+    .matrix {
+      width: 100%; table-layout: fixed; border-collapse: collapse;
+      font-size: 16px; font-variant-numeric: tabular-nums;
+    }
+    .matrix col.c-date { width: 52px; }
+    .matrix th, .matrix td {
+      border-bottom: 1px solid #21262d; text-align: center; padding: 6px 0; overflow: hidden;
+    }
+    /* Faint column rules keep adjacent 3-digit numbers from reading as one. */
+    .matrix td:nth-child(odd) { background: #ffffff08; }
+    .matrix thead th { color: #8b949e; font-weight: 600; background: #0d1117; border-bottom-color: #30363d; }
+    .matrix thead th .hh, .matrix thead th .mm { display: block; font-size: 16px; line-height: 1.15; }
+    .matrix .corner { font-size: 16px; }
+    .matrix tbody th { font-weight: 600; }
+    .matrix tbody th .d, .matrix tbody th .w { display: block; font-size: 16px; line-height: 1.2; }
+    .matrix tbody th .w { color: #8b949e; }
+    .matrix tbody th .w.sat { color: #79c0ff; }
+    .matrix tbody th .w.sun { color: #f85149; }
+    .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: none; }
+
+    .loading, .empty { color: #8b949e; text-align: center; padding: 40px 12px; font-size: 16px; }
+    .error-box {
+      margin: 12px;
+      background: #f8514922; border: 1px solid #f8514966;
+      border-radius: 8px; padding: 14px; color: #f85149; font-size: 16px;
+      word-break: break-word;
+    }
+
+    footer { font-size: 16px; color: #8b949e; line-height: 1.5; padding: 0 4px 16px; }
+
+    @media (max-width: 720px) {
+      body { padding: 12px; }
+      .card { padding: 16px; border-radius: 10px; }
+      .matrix-card { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>嵯峨野小火車 剩餘座位</h1>
+      <div class="controls">
+        <div class="toggle" role="group" aria-label="方向">
+          <button type="button" data-dir="down" aria-pressed="true">下行 嵯峨→亀岡</button>
+          <button type="button" data-dir="up" aria-pressed="false">上行 亀岡→嵯峨</button>
+        </div>
+        <a class="official" href="https://ars-saganokanko.triplabo.jp/activity/ja/LINKTIVITY-YRBTL" target="_blank" rel="noopener noreferrer">官方訂票 ↗</a>
+      </div>
+      <div class="times">
+        <div>最後檢查：<span id="updated-at">—</span></div>
+        <div>最後抓取：<span id="fetched-at">—</span></div>
+      </div>
+      <div id="stale" class="stale" hidden>資料可能已過期</div>
+    </div>
+
+    <div class="card matrix-card">
+      <div id="matrix"><div class="loading">載入中…</div></div>
+    </div>
+
+    <footer>非官方、與營運方無隸屬、僅供個人參考、資料可能有誤、以官方為準。</footer>
+  </div>
+
+  <script src="./sagano.js"></script>
+</body>
+</html>
