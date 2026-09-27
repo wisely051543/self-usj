@@ -21,6 +21,9 @@
   // Fewer seats than this marks a train 即將售完. Sagano's own value, not USJ's.
   const SCARCE_THRESHOLD = 20;
 
+  // Rows shown before 「顯示全部」 is tapped, so the page stays short on a phone.
+  const ROW_LIMIT = 7;
+
   function trainsOf(day, direction) {
     const list = day && day[direction];
     return Array.isArray(list) && list.length > 0 ? list : null;
@@ -87,6 +90,16 @@
     return { columns, rows };
   }
 
+  /**
+   * Display order: newest date first. Collapsed, only the first `limit` rows;
+   * `hidden` is how many were left out.
+   */
+  function visibleRows(rows, expanded, limit) {
+    const ordered = rows.slice().reverse();
+    const shown = expanded ? ordered : ordered.slice(0, limit);
+    return { rows: shown, hidden: ordered.length - shown.length };
+  }
+
   /** Stale when the fetcher said so, or the last fetch is over STALE_MS old. */
   function isStale(data, nowMs) {
     if (!data || data.stale === true) return true;
@@ -135,7 +148,7 @@
     return json;
   }
 
-  const api = { STALE_MS, SCARCE_THRESHOLD, buildMatrix, isStale, fmtJST, todayJST, checkDays, stopsFor };
+  const api = { STALE_MS, SCARCE_THRESHOLD, ROW_LIMIT, buildMatrix, visibleRows, isStale, fmtJST, todayJST, checkDays, stopsFor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   if (typeof document === 'undefined') return;
@@ -146,6 +159,8 @@
   let direction = 'down';
   // Train id whose timetable panel is open, or null.
   let openId = null;
+  // Whether every date is listed, or only the newest ROW_LIMIT.
+  let expanded = false;
 
   const ROW_LABELS = { suspended: '運休', notOnSale: '尚未開賣' };
 
@@ -172,7 +187,8 @@
         `aria-controls="timetable" title="${esc(label)}" aria-label="${esc(label)}">` +
         `<span class="hh">${esc(h ? Number(h) : '')}</span><span class="mm">${esc(m || '')}</span></button></th>`;
     }).join('');
-    const body = rows.map(r => {
+    const visible = visibleRows(rows, expanded, ROW_LIMIT);
+    const body = visible.rows.map(r => {
       const [, mo, dd] = r.date.split('-');
       const wd = weekday(r.date);
       const wdClass = wd === '六' ? ' sat' : wd === '日' ? ' sun' : '';
@@ -185,7 +201,13 @@
     }).join('');
     host.innerHTML =
       `<table class="matrix"><colgroup><col class="c-date">${columns.map(() => '<col>').join('')}</colgroup>` +
-      `<thead><tr><th scope="col" class="corner">日期</th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      `<thead><tr><th scope="col" class="corner">日期</th>${head}</tr></thead><tbody>${body}</tbody></table>` +
+      (visible.hidden > 0 || expanded && rows.length > ROW_LIMIT
+        ? `<button type="button" class="more-btn" aria-expanded="${expanded}">` +
+          `${expanded ? '收合' : `顯示全部（還有 ${visible.hidden} 天）`}</button>`
+        : '');
+    const more = host.querySelector('.more-btn');
+    if (more) more.addEventListener('click', () => { expanded = !expanded; renderMatrix(); });
     host.querySelectorAll('.col-btn').forEach(b => {
       b.addEventListener('click', () => toggleTimetable(b.dataset.id, columns));
     });

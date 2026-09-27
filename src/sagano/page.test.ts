@@ -220,3 +220,16 @@ test('real producer output: 10/14 SUSPENDED and an empty-inventory day read é‹ä
   assert.equal((byDate.get('2026-11-30') as Row).status, 'notOnSale');
   assert.deepEqual((byDate.get('2026-10-16') as Row).cells, []);
 });
+
+test('visibleRows: newest date first, collapsed to ROW_LIMIT rows until expanded', () => {
+  const rows = ['2026-09-27', '2026-09-28', '2026-09-29', '2026-09-30'].map(date => ({ date }));
+  const collapsed = page.visibleRows(rows, false, 3);
+  assert.deepEqual(collapsed.rows.map((r: { date: string }) => r.date), ['2026-09-30', '2026-09-29', '2026-09-28']);
+  assert.equal(collapsed.hidden, 1);
+  const expanded = page.visibleRows(rows, true, 3);
+  assert.deepEqual(expanded.rows.map((r: { date: string }) => r.date), ['2026-09-30', '2026-09-29', '2026-09-28', '2026-09-27']);
+  assert.equal(expanded.hidden, 0);
+  assert.equal(page.visibleRows(rows, false, 10).hidden, 0);
+  assert.deepEqual(rows.map(r => r.date)[0], '2026-09-27', 'input not mutated');
+  assert.equal(typeof page.ROW_LIMIT, 'number');
+});
