@@ -52,11 +52,44 @@ export interface Day {
   up?: Train[];
 }
 
+/** One diagram item of `daily-services/{date}` (only the fields we read). */
+export interface ApiDiagramItem {
+  station_id: string;
+  station_name_labels: { short_name: string; labels?: Array<{ language_id: string; text: string }> };
+  arrival_hhmm: string;
+  departure_hhmm: string;
+  display_order: number;
+}
+
+/** One service of `daily-services/{date}` (only the fields we read). */
+export interface ApiServiceSummary {
+  service_id: string;
+  direction_id: string;
+  status: string;
+  diagram_items: ApiDiagramItem[];
+}
+
+export interface DailyServicesResponse {
+  service_summaries: ApiServiceSummary[];
+}
+
+/** One station stop of a train. Empty `arrival`/`departure` stay ''. */
+export interface Stop {
+  station: string;
+  arrival: string;
+  departure: string;
+}
+
+/** Train id -> its stops in `display_order` order. */
+export type Timetable = Record<string, Stop[]>;
+
 export interface SaganoDays {
   updatedAt: string;
   fetchedAt: string;
   saleWindowEnd: string;
   stale: boolean;
+  /** Absent in files written before Story 1.5. */
+  timetable?: Timetable;
   days: Day[];
 }
 
@@ -120,8 +153,55 @@ export function inventoryDates(
   return out;
 }
 
+/**
+ * The earliest inventory date of each non-SUSPENDED pattern, ascending: one
+ * `daily-services` call per pattern present in the window, none otherwise.
+ */
+export function representativeDates(calendar: Map<string, ServicePattern>, dates: string[]): string[] {
+  const byPattern = new Map<ServicePattern, string>();
+  for (const d of [...dates].sort()) {
+    const p = calendar.get(d);
+    if (!p || p === 'SUSPENDED' || byPattern.has(p)) continue;
+    byPattern.set(p, d);
+  }
+  return [...byPattern.values()].sort();
+}
+
+const zhHant = (n: { short_name: string; labels?: Array<{ language_id: string; text: string }> }) =>
+  n.labels?.find(l => l.language_id === 'zh-hant')?.text ?? n.short_name;
+
+function toStops(items: ApiDiagramItem[]): Stop[] {
+  return [...items]
+    .sort((a, b) => a.display_order - b.display_order)
+    .map(i => ({
+      station: zhHant(i.station_name_labels),
+      arrival: i.arrival_hhmm ?? '',
+      departure: i.departure_hhmm ?? '',
+    }));
+}
+
+/**
+ * Merge `daily-services` responses into train id -> stops. When an id shows
+ * up again with different stops, the first one is kept and the id is listed
+ * in `conflicts` (once).
+ */
+export function buildTimetable(responses: DailyServicesResponse[]): { timetable: Timetable; conflicts: string[] } {
+  const timetable: Timetable = {};
+  const conflicts: string[] = [];
+  for (const r of responses) {
+    for (const s of r.service_summaries) {
+      const id = String(s.service_id);
+      const stops = toStops(s.diagram_items);
+      const prev = timetable[id];
+      if (!prev) timetable[id] = stops;
+      else if (JSON.stringify(prev) !== JSON.stringify(stops) && !conflicts.includes(id)) conflicts.push(id);
+    }
+  }
+  return { timetable, conflicts };
+}
+
 export function toTrain(s: ApiService): Train {
-  const zh = s.name.labels?.find(l => l.language_id === 'zh-hant')?.text;
+  const zh = zhHant(s.name);
   let remaining = 0;
   let total = 0;
   for (const car of s.inventories) {
@@ -130,7 +210,7 @@ export function toTrain(s: ApiService): Train {
   }
   return {
     id: s.id,
-    name: zh ?? s.name.short_name,
+    name: zh,
     departure: s.departure_hhmm,
     arrival: s.arrival_hhmm,
     available: s.available,

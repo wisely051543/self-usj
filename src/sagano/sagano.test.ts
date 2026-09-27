@@ -5,10 +5,13 @@ import * as os from 'os';
 import * as path from 'path';
 import {
   buildDays,
+  buildTimetable,
   CalendarResponse,
+  DailyServicesResponse,
   InventoryResponse,
   mergeCalendars,
   monthsToFetch,
+  representativeDates,
   saleWindowEnd,
   toTrain,
 } from './core';
@@ -20,6 +23,8 @@ const fx = (name: string) =>
 const CALENDAR: CalendarResponse = fx('calendar-2026-10.json');
 const INV_1010: InventoryResponse = fx('search-inventory-2026-10-10.json');
 const INV_1014: InventoryResponse = fx('search-inventory-2026-10-14.json');
+const DS_1001: DailyServicesResponse = fx('daily-services-2026-10-01.json');
+const DS_1010: DailyServicesResponse = fx('daily-services-2026-10-10.json');
 
 const noSleep = () => Promise.resolve();
 const fast = { minGapMs: 0, retryDelaysMs: [0, 0, 0], sleep: noSleep };
@@ -38,6 +43,8 @@ function fixtureFetch() {
     if (url.includes('/services-pattern-calendar/')) return json(CALENDAR);
     if (url.includes('/search-inventory/2026-10-14/')) return json(INV_1014);
     if (url.includes('/search-inventory/')) return json(INV_1010);
+    if (url.includes('/daily-services/2026-10-10')) return json(DS_1010);
+    if (url.includes('/daily-services/')) return json(DS_1001);
     return new Response('not found', { status: 404 });
   }) as typeof fetch;
   return { impl, urls };
@@ -106,7 +113,10 @@ test('run: happy path fetches only non-SUSPENDED window days', async () => {
     if (date >= '2026-09-27' && date <= '2026-10-27' && p !== 'SUSPENDED') expected.push(date);
   }
   const invUrls = urls.filter(u => u.includes('/search-inventory/'));
-  assert.equal(urls.length, 2 + expected.length);
+  const dsUrls = urls.filter(u => u.includes('/daily-services/'));
+  // Earliest ORDINARY (09-27) and earliest SPECIAL (10-10) in the window.
+  assert.deepEqual(dsUrls.map(u => u.split('/').at(-1)), ['2026-09-27', '2026-10-10']);
+  assert.equal(urls.length, 2 + expected.length + 2);
   assert.ok(urls.length <= 60);
   assert.deepEqual(invUrls.map(u => u.split('/').at(-2)), expected);
   assert.ok(invUrls.every(u => u.endsWith('/2,3')));
@@ -120,6 +130,90 @@ test('run: happy path fetches only non-SUSPENDED window days', async () => {
   const d0926 = data.days.find(d => d.date === '2026-09-26')!;
   assert.equal(d0926.down, undefined, 'past days carry no trains');
   assert.equal(data.days.find(d => d.date === '2026-10-10')!.down!.length, 9);
+
+  const tt = data.timetable!;
+  assert.equal(Object.keys(tt).length, 18);
+  assert.ok(Object.values(tt).every(stops => stops.length === 4));
+  assert.ok(tt['52'] && tt['62'], '81/82號 come from the SPECIAL day');
+  assert.deepEqual(tt['44'][1], { station: '小火車嵐山', arrival: '09:05', departure: '09:05' });
+  assert.deepEqual(tt['44'][0], { station: '小火車嵯峨', arrival: '', departure: '09:02' });
+  assert.equal(tt['44'][3].departure, '');
+});
+
+test('representativeDates: earliest date per non-SUSPENDED pattern; absent pattern gets none', () => {
+  const cal = mergeCalendars([CALENDAR]);
+  assert.deepEqual(representativeDates(cal, ['2026-10-12', '2026-10-01', '2026-10-10', '2026-10-02']), ['2026-10-01', '2026-10-10']);
+  assert.deepEqual(representativeDates(cal, ['2026-10-01', '2026-10-02']), ['2026-10-01']);
+  assert.deepEqual(representativeDates(cal, ['2026-10-14']), []);
+  assert.deepEqual(representativeDates(cal, []), []);
+});
+
+test('buildTimetable: 16 ids for ORDINARY only; conflicting stops keep the first and report the id', () => {
+  const one = buildTimetable([DS_1001]);
+  assert.equal(Object.keys(one.timetable).length, 16);
+  assert.deepEqual(one.conflicts, []);
+  assert.deepEqual(buildTimetable([DS_1001, DS_1010]).conflicts, [], 'shared trains have identical times');
+
+  const altered: DailyServicesResponse = JSON.parse(JSON.stringify(DS_1010));
+  const s44 = altered.service_summaries.find(s => s.service_id === '44')!;
+  s44.diagram_items[1].arrival_hhmm = '09:99';
+  const r = buildTimetable([DS_1001, altered]);
+  assert.deepEqual(r.conflicts, ['44']);
+  assert.equal(r.timetable['44'][1].arrival, '09:05');
+  assert.equal(Object.keys(r.timetable).length, 18);
+
+  // Out-of-order diagram items are sorted by display_order; missing zh-hant falls back to short_name.
+  const shuffled: DailyServicesResponse = JSON.parse(JSON.stringify(DS_1001));
+  const s = shuffled.service_summaries[0];
+  s.diagram_items.reverse();
+  s.diagram_items[0].station_name_labels.labels = [];
+  const t = buildTimetable([shuffled]).timetable[s.service_id];
+  assert.deepEqual(t.map(x => x.station), ['小火車嵯峨', '小火車嵐山', '小火車保津峽', '亀岡']);
+});
+
+test('run: a timetable conflict keeps the first stops and logs a ::warning', async () => {
+  const altered: DailyServicesResponse = JSON.parse(JSON.stringify(DS_1010));
+  altered.service_summaries.find(s => s.service_id === '44')!.diagram_items[1].arrival_hhmm = '09:99';
+  const { impl } = fixtureFetch();
+  const conflicting = (async (input: string | URL | Request, init?: RequestInit) =>
+    String(input).includes('/daily-services/2026-10-10') ? json(altered) : impl(input, init)) as typeof fetch;
+  const lines: string[] = [];
+  const log = console.log;
+  console.log = (...a: unknown[]) => { lines.push(a.join(' ')); };
+  try {
+    const data = await run({ client: createClient(conflicting, fast), today: '2026-09-27', now: new Date() });
+    assert.equal(data.timetable!['44'][1].arrival, '09:05');
+  } finally {
+    console.log = log;
+  }
+  assert.equal(lines.filter(l => l.startsWith('::warning') && l.includes('train 44')).length, 1);
+});
+
+test('run: a daily-services failure fails the whole run', async () => {
+  const { impl } = fixtureFetch();
+  const failing = (async (input: string | URL | Request, init?: RequestInit) =>
+    String(input).includes('/daily-services/') ? new Response('', { status: 404 }) : impl(input, init)) as typeof fetch;
+  await assert.rejects(
+    run({ client: createClient(failing, fast), today: '2026-09-27', now: new Date() }),
+    FetchFailedError,
+  );
+});
+
+test('run: cap pre-check counts daily-services calls', async () => {
+  const cal = mergeCalendars([CALENDAR]);
+  let invCount = 0;
+  for (const [date, p] of cal) if (date >= '2026-09-27' && date <= '2026-10-27' && p !== 'SUSPENDED') invCount++;
+  // Room for calendar + inventory but not the 2 daily-services calls.
+  const { impl, urls } = fixtureFetch();
+  await assert.rejects(
+    run({ client: createClient(impl, { ...fast, maxRequests: 2 + invCount + 1 }), today: '2026-09-27', now: new Date() }),
+    RequestCapError,
+  );
+  assert.equal(urls.length, 2, 'no inventory call before the cap abort');
+
+  const ok = fixtureFetch();
+  await run({ client: createClient(ok.impl, { ...fast, maxRequests: 2 + invCount + 2 }), today: '2026-09-27', now: new Date() });
+  assert.equal(ok.urls.length, 2 + invCount + 2);
 });
 
 test('run: aborts before any inventory call when the window exceeds the cap', async () => {
@@ -208,9 +302,15 @@ test('fetchAndWrite: 5xx exhaustion keeps previous file, only stale/updatedAt ch
   }
 });
 
-test('serialize round-trips', () => {
+test('serialize round-trips, with and without timetable', () => {
   const data = { updatedAt: 'a', fetchedAt: 'b', saleWindowEnd: 'c', stale: false, days: [{ date: 'd', servicePattern: null }] };
   assert.deepEqual(JSON.parse(serialize(data)), data);
+  const timetable = buildTimetable([DS_1001, DS_1010]).timetable;
+  const withTt = { ...data, timetable };
+  const text = serialize(withTt);
+  assert.deepEqual(JSON.parse(text), withTt);
+  assert.ok(text.includes('\n    "44": [{"station":"小火車嵯峨"'), 'one line per train id');
+  assert.deepEqual(JSON.parse(serialize({ ...data, timetable: {} })), { ...data, timetable: {} });
 });
 
 test('run: next-month calendar 404 is "no days", other calendar errors stay fatal', async () => {
@@ -225,6 +325,7 @@ test('run: next-month calendar 404 is "no days", other calendar errors stay fata
     if (url.endsWith('/services-pattern-calendar/2026-12')) return json(dec);
     if (url.endsWith('/services-pattern-calendar/2027-01')) return new Response('', { status: 404 });
     if (url.includes('/search-inventory/')) return json(INV_1014);
+    if (url.includes('/daily-services/')) return json(DS_1001);
     return new Response('', { status: 500 });
   }) as typeof fetch;
   const log = console.log;
@@ -237,6 +338,7 @@ test('run: next-month calendar 404 is "no days", other calendar errors stay fata
     assert.equal(invDates.length, 15);
     assert.equal(invDates[0], '2026-12-15');
     assert.equal(invDates.at(-1), '2026-12-29');
+    assert.deepEqual(urls.filter(u => u.includes('/daily-services/')).map(u => u.split('/').at(-1)), ['2026-12-15']);
     const byDate = new Map(data.days.map(d => [d.date, d]));
     assert.deepEqual(byDate.get('2026-12-30'), { date: '2026-12-30', servicePattern: null });
     assert.deepEqual(byDate.get('2027-01-10'), { date: '2027-01-10', servicePattern: null });

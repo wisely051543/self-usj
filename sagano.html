@@ -82,6 +82,16 @@
     .matrix thead th { color: #8b949e; font-weight: 600; background: #0d1117; border-bottom-color: #30363d; }
     .matrix thead th .hh, .matrix thead th .mm { display: block; font-size: 16px; line-height: 1.15; }
     .matrix .corner { font-size: 16px; }
+    /* The whole header cell is the tap target (~32x48px at 375px): 44px of width
+       would not fit 9 columns without horizontal scroll. */
+    .matrix thead th:not(.corner) { padding: 0; }
+    .matrix .col-btn {
+      display: block; width: 100%; min-height: 48px; padding: 6px 0;
+      background: none; border: none; color: inherit;
+      font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    .matrix thead th.open { background: #1f6feb33; color: #79c0ff; }
+    .matrix tbody th .t { display: block; font-size: 16px; line-height: 1.2; color: #8b949e; font-weight: 400; }
     .matrix tbody th { font-weight: 600; }
     .matrix tbody th .d, .matrix tbody th .w { display: block; font-size: 16px; line-height: 1.2; }
     .matrix tbody th .w { color: #8b949e; }
@@ -93,6 +103,18 @@
     .matrix td.scarce { color: #f0883e; font-weight: 700; background: #f0883e26; }
     .matrix td.row-label { color: #8b949e; background: none; letter-spacing: 4px; }
     .matrix td.row-label.notOnSale { color: #79c0ff99; }
+
+    .timetable { padding: 12px 16px; border-bottom: 1px solid #30363d; font-size: 16px; }
+    .timetable[hidden] { display: none; }
+    .tt-title { font-weight: 700; margin-bottom: 6px; }
+    .tt { width: 100%; border-collapse: collapse; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .tt th, .tt td { padding: 4px 0; text-align: left; border-bottom: 1px solid #21262d; }
+    .tt td { text-align: center; width: 25%; }
+    .tt thead th { color: #8b949e; font-weight: 600; }
+    .tt thead th + th { text-align: center; }
+    .tt tbody th { font-weight: 400; }
+    .tt tbody tr:last-child th, .tt tbody tr:last-child td { border-bottom: none; }
+    .tt-empty { color: #8b949e; }
 
     .legend { font-size: 16px; color: #8b949e; margin-top: 8px; }
     .legend .scarce-mark { color: #f0883e; font-weight: 700; }
@@ -133,10 +155,13 @@
       <div class="legend">
         <div><span class="scarce-mark">橘色</span>：剩不到 <span id="scarce-threshold">20</span> 位</div>
         <div>售完：目前無位，之後仍可能釋出</div>
+        <div>日期下方數字：當日該方向剩餘合計</div>
+        <div>點班次時間：看各站時刻</div>
       </div>
     </div>
 
     <div class="card matrix-card">
+      <div id="timetable" class="timetable" role="region" aria-label="各站時刻" hidden></div>
       <div id="matrix"><div class="loading">載入中…</div></div>
     </div>
 

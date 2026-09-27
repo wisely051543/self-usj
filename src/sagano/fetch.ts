@@ -2,7 +2,8 @@
  * Sagano fetch step (`npm run fetch:sagano`).
  *
  * calendar (current + next month) -> sale window -> one search-inventory per
- * non-SUSPENDED window day -> data/sagano/days.json, written atomically.
+ * non-SUSPENDED window day -> one daily-services per service pattern present
+ * in the window (its earliest day) -> data/sagano/days.json, written atomically.
  * Any failure keeps the previous file and only flips `stale`/`updatedAt`.
  */
 
@@ -12,11 +13,14 @@ import { todayJST } from '../dates';
 import { createClient, RequestCapError, FetchFailedError, SaganoClient } from './client';
 import {
   buildDays,
+  buildTimetable,
   CalendarResponse,
+  DailyServicesResponse,
   InventoryResponse,
   inventoryDates,
   mergeCalendars,
   monthsToFetch,
+  representativeDates,
   saleWindowEnd,
   SaganoDays,
 } from './core';
@@ -32,6 +36,15 @@ function assertCalendar(body: unknown, where: string): CalendarResponse {
 function assertInventory(body: unknown, where: string): InventoryResponse {
   const r = body as InventoryResponse;
   if (!r || !Array.isArray(r.down_services) || !Array.isArray(r.up_services)) {
+    throw new FetchFailedError(`${where}: unexpected shape`);
+  }
+  return r;
+}
+
+function assertDailyServices(body: unknown, where: string): DailyServicesResponse {
+  const r = body as DailyServicesResponse;
+  if (!r || !Array.isArray(r.service_summaries) ||
+      !r.service_summaries.every(s => s && Array.isArray(s.diagram_items))) {
     throw new FetchFailedError(`${where}: unexpected shape`);
   }
   return r;
@@ -62,9 +75,11 @@ export async function run(opts: { client: SaganoClient; today: string; now: Date
 
   const windowEnd = saleWindowEnd(today);
   const dates = inventoryDates(calendar, today, windowEnd);
-  if (client.requestCount() + dates.length > client.maxRequests) {
+  const repDates = representativeDates(calendar, dates);
+  if (client.requestCount() + dates.length + repDates.length > client.maxRequests) {
     throw new RequestCapError(
-      `window needs ${dates.length} inventory calls; would exceed cap of ${client.maxRequests}`,
+      `window needs ${dates.length} inventory + ${repDates.length} daily-services calls; ` +
+        `would exceed cap of ${client.maxRequests}`,
     );
   }
 
@@ -74,17 +89,28 @@ export async function run(opts: { client: SaganoClient; today: string; now: Date
     inventory.set(date, assertInventory(await client.get(p), p));
   }
 
+  const daily: DailyServicesResponse[] = [];
+  for (const date of repDates) {
+    const p = `daily-services/${date}`;
+    daily.push(assertDailyServices(await client.get(p), p));
+  }
+  const { timetable, conflicts } = buildTimetable(daily);
+  for (const id of conflicts) {
+    console.log(`::warning title=Sagano timetable conflict::train ${id} has different stops across service patterns; kept the first`);
+  }
+
   const iso = now.toISOString();
   return {
     updatedAt: iso,
     fetchedAt: iso,
     saleWindowEnd: windowEnd,
     stale: false,
+    timetable,
     days: buildDays(calendar, inventory, today, windowEnd),
   };
 }
 
-/** One line per day, so a moved seat count is a one-line diff. */
+/** One line per day (and per timetable train), so a moved seat count is a one-line diff. */
 export function serialize(data: SaganoDays): string {
   const out = [
     '{',
@@ -92,8 +118,19 @@ export function serialize(data: SaganoDays): string {
     `  "fetchedAt": ${JSON.stringify(data.fetchedAt)},`,
     `  "saleWindowEnd": ${JSON.stringify(data.saleWindowEnd)},`,
     `  "stale": ${JSON.stringify(data.stale)},`,
-    '  "days": [',
   ];
+  if (data.timetable) {
+    const ids = Object.keys(data.timetable);
+    if (ids.length === 0) out.push('  "timetable": {},');
+    else {
+      out.push('  "timetable": {');
+      ids.forEach((id, i) => {
+        out.push(`    ${JSON.stringify(id)}: ${JSON.stringify(data.timetable![id])}${i < ids.length - 1 ? ',' : ''}`);
+      });
+      out.push('  },');
+    }
+  }
+  out.push('  "days": [');
   data.days.forEach((day, i) => {
     out.push(`    ${JSON.stringify(day)}${i < data.days.length - 1 ? ',' : ''}`);
   });
@@ -132,7 +169,9 @@ export async function fetchAndWrite(opts: {
     const data = await run({ client, today, now });
     writeAtomic(outPath, serialize(data));
     console.log(
-      `Sagano: ${data.days.length} days, window ends ${data.saleWindowEnd}, ${client.requestCount()} requests`,
+      `Sagano: ${data.days.length} days, window ends ${data.saleWindowEnd}, ` +
+        `${Object.keys(data.timetable ?? {}).length} timetable trains, ` +
+        `${client.requestCount()}/${client.maxRequests} requests`,
     );
     return 0;
   } catch (err) {

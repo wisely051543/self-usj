@@ -109,6 +109,44 @@ test('bad input yields an empty matrix, not a throw', () => {
   assert.deepEqual(page.buildMatrix([null, {}], 'down', TODAY, WINDOW_END), { columns: [], rows: [] });
 });
 
+test('daily total: open rows sum remaining over the direction (sold-out as 0); suspended / notOnSale rows have none', () => {
+  const down = page.buildMatrix(DAYS, 'down', TODAY, WINDOW_END);
+  const totals = (m: { rows: Array<Row & { total?: number }> }) => m.rows.map(r => `${r.date} ${r.total}`);
+  assert.deepEqual(totals(down), [
+    '2026-09-27 345', // 70 + 0 + 26 + 249
+    '2026-09-28 96', // 70 + 0 (sold out) + 26
+    '2026-09-29 undefined',
+    '2026-09-30 undefined',
+    '2026-10-14 undefined',
+    '2026-11-30 undefined',
+  ]);
+  const up = page.buildMatrix(DAYS, 'up', TODAY, WINDOW_END);
+  assert.deepEqual(totals(up).slice(0, 4), ['2026-09-27 275', '2026-09-28 174', '2026-09-29 undefined', '2026-09-30 1']);
+
+  // available:false counts as 0 whatever remaining says.
+  const day = { date: '2026-10-01', servicePattern: 'ORDINARY', down: [
+    t('44', '09:02', 70), { ...t('45', '10:02', 12), available: false }, t('46', '11:02', 26),
+  ] };
+  assert.equal(page.buildMatrix([day], 'down', TODAY, WINDOW_END).rows[0].total, 96);
+  // A date past saleWindowEnd is notOnSale, and non-open rows never carry a total.
+  assert.equal(page.buildMatrix([{ ...day, date: '2026-10-28' }], 'down', TODAY, WINDOW_END).rows[0].total, undefined);
+});
+
+test('stopsFor: returns the train stops, null when absent or when days.json predates the timetable', () => {
+  const stops = [
+    { station: '小火車嵯峨', arrival: '', departure: '09:02' },
+    { station: '小火車嵐山', arrival: '09:05', departure: '09:05' },
+  ];
+  const data = { days: [], saleWindowEnd: 'x', timetable: { '44': stops } };
+  assert.equal(page.stopsFor(data, '44'), stops);
+  assert.equal(page.stopsFor(data, 44), stops);
+  assert.equal(page.stopsFor(data, '45'), null);
+  assert.equal(page.stopsFor(data, 'toString'), null);
+  assert.equal(page.stopsFor({ days: [], saleWindowEnd: 'x' }, '44'), null);
+  assert.equal(page.stopsFor(null, '44'), null);
+  assert.equal(page.stopsFor({ timetable: { '44': [] } }, '44'), null);
+});
+
 test('todayJST rolls over at 15:00 UTC', () => {
   assert.equal(page.todayJST(Date.parse('2026-09-27T14:59:59Z')), '2026-09-27');
   assert.equal(page.todayJST(Date.parse('2026-09-27T15:00:00Z')), '2026-09-28');
