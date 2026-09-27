@@ -91,13 +91,19 @@
   }
 
   /**
-   * Display order: newest date first. Collapsed, only the first `limit` rows;
-   * `hidden` is how many were left out.
+   * Display order: newest date first. All 尚未開賣 dates fold into one top row
+   * (`dateEnd` set when it spans several dates) that does not count toward
+   * `limit`. Collapsed, only the first `limit` other rows; `hidden` is how
+   * many were left out.
    */
   function visibleRows(rows, expanded, limit) {
-    const ordered = rows.slice().reverse();
+    const notOnSale = rows.filter(r => r.status === 'notOnSale');
+    const ordered = rows.filter(r => r.status !== 'notOnSale').reverse();
     const shown = expanded ? ordered : ordered.slice(0, limit);
-    return { rows: shown, hidden: ordered.length - shown.length };
+    const top = notOnSale.length === 0 ? []
+      : [notOnSale.length === 1 ? notOnSale[0]
+        : { ...notOnSale[0], dateEnd: notOnSale[notOnSale.length - 1].date }];
+    return { rows: top.concat(shown), hidden: ordered.length - shown.length };
   }
 
   /** Stale when the fetcher said so, or the last fetch is over STALE_MS old. */
@@ -196,13 +202,18 @@
         : `<td class="row-label ${r.status}" colspan="${Math.max(columns.length, 1)}">${ROW_LABELS[r.status]}</td>`;
       const total = r.status === 'open' && typeof r.total === 'number'
         ? `<span class="t" title="當日剩餘合計">${esc(r.total)}</span>` : '';
+      if (r.dateEnd) {
+        const [, mo2, dd2] = r.dateEnd.split('-');
+        return `<tr><th scope="row"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
+          `<span class="w">~${Number(mo2)}/${esc(dd2)}</span></th>${cells}</tr>`;
+      }
       return `<tr><th scope="row"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
         `<span class="w${wdClass}">${wd}</span>${total}</th>${cells}</tr>`;
     }).join('');
     host.innerHTML =
       `<table class="matrix"><colgroup><col class="c-date">${columns.map(() => '<col>').join('')}</colgroup>` +
       `<thead><tr><th scope="col" class="corner">日期</th>${head}</tr></thead><tbody>${body}</tbody></table>` +
-      (visible.hidden > 0 || expanded && rows.length > ROW_LIMIT
+      (visible.hidden > 0 || expanded && rows.filter(r => r.status !== 'notOnSale').length > ROW_LIMIT
         ? `<button type="button" class="more-btn" aria-expanded="${expanded}">` +
           `${expanded ? '收合' : `顯示全部（還有 ${visible.hidden} 天）`}</button>`
         : '');

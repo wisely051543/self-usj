@@ -222,7 +222,7 @@ test('real producer output: 10/14 SUSPENDED and an empty-inventory day read 運�
 });
 
 test('visibleRows: newest date first, collapsed to ROW_LIMIT rows until expanded', () => {
-  const rows = ['2026-09-27', '2026-09-28', '2026-09-29', '2026-09-30'].map(date => ({ date }));
+  const rows = ['2026-09-27', '2026-09-28', '2026-09-29', '2026-09-30'].map(date => ({ date, status: 'open' }));
   const collapsed = page.visibleRows(rows, false, 3);
   assert.deepEqual(collapsed.rows.map((r: { date: string }) => r.date), ['2026-09-30', '2026-09-29', '2026-09-28']);
   assert.equal(collapsed.hidden, 1);
@@ -232,4 +232,18 @@ test('visibleRows: newest date first, collapsed to ROW_LIMIT rows until expanded
   assert.equal(page.visibleRows(rows, false, 10).hidden, 0);
   assert.deepEqual(rows.map(r => r.date)[0], '2026-09-27', 'input not mutated');
   assert.equal(typeof page.ROW_LIMIT, 'number');
+});
+
+test('visibleRows: 尚未開賣 dates fold into one top row that does not count toward the limit', () => {
+  const rows = [
+    ...['2026-10-25', '2026-10-26', '2026-10-27'].map(date => ({ date, status: 'open' })),
+    ...['2026-10-28', '2026-10-29', '2026-10-30'].map(date => ({ date, status: 'notOnSale' })),
+  ];
+  const v = page.visibleRows(rows, false, 2);
+  assert.deepEqual(v.rows.map((r: { date: string; dateEnd?: string; status: string }) => `${r.date}~${r.dateEnd || ''} ${r.status}`),
+    ['2026-10-28~2026-10-30 notOnSale', '2026-10-27~ open', '2026-10-26~ open']);
+  assert.equal(v.hidden, 1);
+  // A single not-on-sale date carries no range end.
+  const one = page.visibleRows([{ date: '2026-10-28', status: 'notOnSale' }], false, 2);
+  assert.equal(one.rows[0].dateEnd, undefined);
 });
