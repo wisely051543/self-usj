@@ -8,6 +8,16 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
+# One group for both sources (USJ and Sagano), so two runs never write data/
+# or push at the same time. GitHub allows one running and at most one pending
+# run per group: a newer pending run replaces (cancels) an older pending one,
+# and with cancel-in-progress: false a running job is never cancelled.
+concurrency:
+  group: fetch
+  cancel-in-progress: false
+
+# Kill switches: set repo variable USJ_FETCH_ENABLED or SAGANO_FETCH_ENABLED to
+# 'false' to skip that source. Unset means enabled.
 jobs:
   fetch:
     runs-on: ubuntu-latest
@@ -25,10 +35,25 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run fetch
+      - name: Fetch USJ
+        if: vars.USJ_FETCH_ENABLED != 'false'
+        run: npm run fetch
 
+      # Independent of USJ: runs even when the USJ step failed, and its own
+      # failure (which keeps the previous days.json marked stale) must not stop
+      # the USJ data from committing below. 1 req/s, <=60 requests per run.
+      # 12 min covers the worst successful case (~33 requests each near the
+      # 15 s request timeout) so the step is not killed before it can mark
+      # stale, and still fits the 25-min job after a ~10-min cold USJ run.
+      - name: Fetch Sagano
+        if: ${{ !cancelled() && vars.SAGANO_FETCH_ENABLED != 'false' }}
+        continue-on-error: true
+        timeout-minutes: 12
+        run: npm run fetch:sagano
+
+      # Skipped when USJ is disabled, so it does not re-emit the last run's warnings.
       - name: Flag failed products
-        if: always()
+        if: always() && vars.USJ_FETCH_ENABLED != 'false'
         run: |
           node -e "
             const r = JSON.parse(require('fs').readFileSync('data/index.json','utf8'));

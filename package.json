@@ -5,7 +5,9 @@
   "scripts": {
     "fetch": "ts-node src/fetcher.ts",
     "i18n:check": "ts-node src/i18n-check.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "fetch:sagano": "ts-node src/sagano/fetch.ts",
+    "test": "node --require ts-node/register --test src/sagano/sagano.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
