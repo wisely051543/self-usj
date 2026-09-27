@@ -88,6 +88,14 @@
     .matrix tbody th .w.sat { color: #79c0ff; }
     .matrix tbody th .w.sun { color: #f85149; }
     .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: none; }
+    /* Two CJK glyphs at 16px (~32px) just fit a 9-column cell at 375px. */
+    .matrix td.soldout { color: #8b949e; white-space: nowrap; letter-spacing: -1px; }
+    .matrix td.scarce { color: #f0883e; font-weight: 700; background: #f0883e26; }
+    .matrix td.row-label { color: #8b949e; background: none; letter-spacing: 4px; }
+    .matrix td.row-label.notOnSale { color: #79c0ff99; }
+
+    .legend { font-size: 16px; color: #8b949e; margin-top: 8px; }
+    .legend .scarce-mark { color: #f0883e; font-weight: 700; }
 
     .loading, .empty { color: #8b949e; text-align: center; padding: 40px 12px; font-size: 16px; }
     .error-box {
@@ -122,6 +130,10 @@
         <div>最後抓取：<span id="fetched-at">—</span></div>
       </div>
       <div id="stale" class="stale" hidden>資料可能已過期</div>
+      <div class="legend">
+        <div><span class="scarce-mark">橘色</span>：剩不到 <span id="scarce-threshold">20</span> 位</div>
+        <div>售完：目前無位，之後仍可能釋出</div>
+      </div>
     </div>
 
     <div class="card matrix-card">

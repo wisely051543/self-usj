@@ -18,23 +18,42 @@
     return new Date(nowMs + JST_OFFSET_MS).toISOString().slice(0, 10);
   }
 
+  // Fewer seats than this marks a train 即將售完. Sagano's own value, not USJ's.
+  const SCARCE_THRESHOLD = 20;
+
   function trainsOf(day, direction) {
     const list = day && day[direction];
     return Array.isArray(list) && list.length > 0 ? list : null;
   }
 
+  /** 'soldout' | 'scarce' | 'ok' for one train. */
+  function cellState(train) {
+    const n = train.remaining;
+    if (train.available === false || n === 0) return 'soldout';
+    return n > 0 && n < SCARCE_THRESHOLD ? 'scarce' : 'ok';
+  }
+
   /**
-   * Rows are dates from today (JST) whose day carries this direction's trains;
-   * columns are the union of those trains by id, ordered by origin departure.
-   * A train missing on a given day leaves that cell null.
+   * Rows are every date from today (JST), ascending, each with a status:
+   * 'notOnSale' past saleWindowEnd (decided by the sale rule alone),
+   * 'suspended' when the day is SUSPENDED or has no trains this direction,
+   * otherwise 'open'. Columns are the union of open rows' trains by id,
+   * ordered by origin departure. An open row's cell is null when that train
+   * does not run that day, else { remaining, state }.
    */
-  function buildMatrix(days, direction, today) {
+  function buildMatrix(days, direction, today, saleWindowEnd) {
     const shown = (Array.isArray(days) ? days : [])
-      .filter(d => d && typeof d.date === 'string' && d.date >= today && trainsOf(d, direction))
+      .filter(d => d && typeof d.date === 'string' && d.date >= today)
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    const statusOf = day =>
+      day.date > saleWindowEnd ? 'notOnSale'
+        : day.servicePattern === 'SUSPENDED' || !trainsOf(day, direction) ? 'suspended'
+          : 'open';
 
     const byId = new Map();
     for (const day of shown) {
+      if (statusOf(day) !== 'open') continue;
       for (const t of trainsOf(day, direction)) {
         const id = String(t.id);
         if (!byId.has(id)) byId.set(id, { id, departure: String(t.departure || ''), name: String(t.name || '') });
@@ -44,10 +63,16 @@
       a.departure < b.departure ? -1 : a.departure > b.departure ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
     const rows = shown.map(day => {
-      const remainingById = new Map(trainsOf(day, direction).map(t => [String(t.id), t.remaining]));
+      const status = statusOf(day);
+      if (status !== 'open') return { date: day.date, status, cells: [] };
+      const byTrain = new Map(trainsOf(day, direction).map(t => [String(t.id), t]));
       return {
         date: day.date,
-        cells: columns.map(c => (remainingById.has(c.id) && remainingById.get(c.id) != null ? remainingById.get(c.id) : null)),
+        status,
+        cells: columns.map(c => {
+          const t = byTrain.get(c.id);
+          return t && t.remaining != null ? { remaining: t.remaining, state: cellState(t) } : null;
+        }),
       };
     });
     return { columns, rows };
@@ -86,11 +111,11 @@
 
   /** Throws unless the response body looks like days.json. */
   function checkDays(json) {
-    if (!json || !Array.isArray(json.days)) throw new Error('資料格式不符');
+    if (!json || !Array.isArray(json.days) || typeof json.saleWindowEnd !== 'string') throw new Error('資料格式不符');
     return json;
   }
 
-  const api = { STALE_MS, buildMatrix, isStale, fmtJST, todayJST, checkDays };
+  const api = { STALE_MS, SCARCE_THRESHOLD, buildMatrix, isStale, fmtJST, todayJST, checkDays };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   if (typeof document === 'undefined') return;
@@ -100,10 +125,18 @@
   let data = null;
   let direction = 'down';
 
+  const ROW_LABELS = { suspended: '運休', notOnSale: '尚未開賣' };
+
+  function renderCell(c) {
+    if (c == null) return '<td></td>';
+    if (c.state === 'soldout') return '<td class="soldout">售完</td>';
+    return `<td${c.state === 'scarce' ? ' class="scarce"' : ''}>${esc(c.remaining)}</td>`;
+  }
+
   function renderMatrix() {
     const host = document.getElementById('matrix');
-    const { columns, rows } = buildMatrix(data.days, direction, todayJST(Date.now()));
-    if (columns.length === 0 || rows.length === 0) {
+    const { columns, rows } = buildMatrix(data.days, direction, todayJST(Date.now()), data.saleWindowEnd);
+    if (rows.length === 0) {
       host.innerHTML = '<div class="empty">目前沒有可顯示的班次資料。</div>';
       return;
     }
@@ -117,7 +150,8 @@
       const [, mo, dd] = r.date.split('-');
       const wd = weekday(r.date);
       const wdClass = wd === '六' ? ' sat' : wd === '日' ? ' sun' : '';
-      const cells = r.cells.map(v => `<td>${v == null ? '' : esc(v)}</td>`).join('');
+      const cells = r.status === 'open' ? r.cells.map(renderCell).join('')
+        : `<td class="row-label ${r.status}" colspan="${Math.max(columns.length, 1)}">${ROW_LABELS[r.status]}</td>`;
       return `<tr><th scope="row"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
         `<span class="w${wdClass}">${wd}</span></th>${cells}</tr>`;
     }).join('');
@@ -159,6 +193,7 @@
   }
 
   function init() {
+    document.getElementById('scarce-threshold').textContent = String(SCARCE_THRESHOLD);
     document.querySelectorAll('.toggle button').forEach(b => {
       b.addEventListener('click', () => setDirection(b.dataset.dir));
     });

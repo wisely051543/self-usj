@@ -29,47 +29,84 @@ const DAYS = [
 ];
 
 const TODAY = '2026-09-27';
+const WINDOW_END = '2026-10-27';
 
-test('down: rows are dates >= today with a down array, ascending; columns union sorted by departure', () => {
-  const m = page.buildMatrix(DAYS, 'down', TODAY);
-  assert.deepEqual(m.rows.map((r: { date: string }) => r.date), ['2026-09-27', '2026-09-28']);
+type Cell = { remaining: number; state: string } | null;
+type Row = { date: string; status: string; cells: Cell[] };
+const statuses = (m: { rows: Row[] }) => m.rows.map(r => `${r.date} ${r.status}`);
+const cellText = (r: Row) => r.cells.map(c => (c ? `${c.remaining}:${c.state}` : null));
+
+test('down: every date >= today is a row with its status; columns come from open rows, sorted by departure', () => {
+  const m = page.buildMatrix(DAYS, 'down', TODAY, WINDOW_END);
+  assert.deepEqual(statuses(m), [
+    '2026-09-27 open',
+    '2026-09-28 open',
+    '2026-09-29 suspended',
+    '2026-09-30 suspended', // runs up only
+    '2026-10-14 suspended', // no trains at all
+    '2026-11-30 notOnSale',
+  ]);
   assert.deepEqual(m.columns.map((c: { departure: string }) => c.departure), ['09:02', '10:02', '11:02', '17:10']);
   assert.deepEqual(m.columns[0], { id: '44', departure: '09:02', name: '嵯峨野1號' });
   assert.deepEqual(m.columns[3], { id: '52', departure: '17:10', name: '嵯峨野81號' });
 });
 
-test('down: cell is remaining, 0 stays 0, missing train is null', () => {
-  const m = page.buildMatrix(DAYS, 'down', TODAY);
-  assert.deepEqual(m.rows[0].cells, [70, 0, 26, 249]);
-  assert.deepEqual(m.rows[1].cells, [70, 0, 26, null]);
+test('down: open cells carry remaining and state; remaining 0 is soldout; missing train is null; other rows have no cells', () => {
+  const m = page.buildMatrix(DAYS, 'down', TODAY, WINDOW_END);
+  assert.deepEqual(cellText(m.rows[0]), ['70:ok', '0:soldout', '26:ok', '249:ok']);
+  assert.deepEqual(cellText(m.rows[1]), ['70:ok', '0:soldout', '26:ok', null]);
+  for (const r of m.rows.slice(2)) assert.deepEqual(r.cells, []);
 });
 
-test('up: uses up[] and its own columns; days without up array are skipped', () => {
-  const m = page.buildMatrix(DAYS, 'up', TODAY);
-  assert.deepEqual(m.rows.map((r: { date: string }) => r.date), ['2026-09-27', '2026-09-28', '2026-09-30']);
-  assert.deepEqual(m.columns.map((c: { departure: string }) => c.departure), ['09:30', '10:30', '17:43']);
-  assert.deepEqual(m.rows.map((r: { cells: unknown[] }) => r.cells), [
-    [7, null, 268],
-    [116, 58, null],
-    [1, null, null],
+test('up: uses up[] and its own columns; scarce below threshold', () => {
+  const m = page.buildMatrix(DAYS, 'up', TODAY, WINDOW_END);
+  assert.deepEqual(statuses(m), [
+    '2026-09-27 open', '2026-09-28 open', '2026-09-29 suspended',
+    '2026-09-30 open', '2026-10-14 suspended', '2026-11-30 notOnSale',
   ]);
+  assert.deepEqual(m.columns.map((c: { departure: string }) => c.departure), ['09:30', '10:30', '17:43']);
+  assert.deepEqual(m.rows.filter((r: Row) => r.status === 'open').map(cellText), [
+    ['7:scarce', null, '268:ok'],
+    ['116:ok', '58:ok', null],
+    ['1:scarce', null, null],
+  ]);
+});
+
+test('scarcity threshold is 20: 19 scarce, 20 ok, 1 scarce; available:false is soldout whatever remaining says', () => {
+  assert.equal(page.SCARCE_THRESHOLD, 20);
+  const day = { date: '2026-10-01', servicePattern: 'ORDINARY', down: [
+    t('44', '09:02', 19), t('45', '10:02', 20), t('46', '11:02', 1),
+    { ...t('47', '12:02', 12), available: false },
+  ] };
+  const m = page.buildMatrix([day], 'down', TODAY, WINDOW_END);
+  assert.deepEqual(cellText(m.rows[0]), ['19:scarce', '20:ok', '1:scarce', '12:soldout']);
+});
+
+test('not on sale is decided by saleWindowEnd only: trains beyond it and SUSPENDED beyond it both read notOnSale', () => {
+  const days = [
+    { date: '2026-10-27', servicePattern: 'ORDINARY', down: ORDINARY_DOWN },
+    { date: '2026-10-28', servicePattern: 'ORDINARY', down: ORDINARY_DOWN }, // stock the API reports anyway
+    { date: '2026-10-29', servicePattern: 'SUSPENDED' },
+  ];
+  const m = page.buildMatrix(days, 'down', TODAY, WINDOW_END);
+  assert.deepEqual(statuses(m), ['2026-10-27 open', '2026-10-28 notOnSale', '2026-10-29 notOnSale']);
 });
 
 test('column count comes from data: real days.json shape gives 9 down / 9 up on SPECIAL window', () => {
   const special = { date: '2026-10-10', servicePattern: 'SPECIAL',
-    down: ['09:02', '10:02', '11:02', '12:02', '13:02', '14:02', '15:02', '16:02', '17:10'].map((d, i) => t(String(44 + i), d, i)),
+    down: ['09:02', '10:02', '11:02', '12:02', '13:02', '14:02', '15:02', '16:02', '17:10'].map((d, i) => t(String(44 + i), d, i + 30)),
   };
   const ordinary = { date: '2026-10-09', servicePattern: 'ORDINARY', down: special.down.slice(0, 8) };
-  const m = page.buildMatrix([special, ordinary], 'down', TODAY);
+  const m = page.buildMatrix([special, ordinary], 'down', TODAY, WINDOW_END);
   assert.equal(m.columns.length, 9);
   assert.equal(m.rows[0].date, '2026-10-09');
   assert.equal(m.rows[0].cells[8], null);
-  assert.equal(page.buildMatrix([ordinary], 'down', TODAY).columns.length, 8);
+  assert.equal(page.buildMatrix([ordinary], 'down', TODAY, WINDOW_END).columns.length, 8);
 });
 
 test('bad input yields an empty matrix, not a throw', () => {
-  assert.deepEqual(page.buildMatrix(undefined, 'down', TODAY), { columns: [], rows: [] });
-  assert.deepEqual(page.buildMatrix([null, {}], 'down', TODAY), { columns: [], rows: [] });
+  assert.deepEqual(page.buildMatrix(undefined, 'down', TODAY, WINDOW_END), { columns: [], rows: [] });
+  assert.deepEqual(page.buildMatrix([null, {}], 'down', TODAY, WINDOW_END), { columns: [], rows: [] });
 });
 
 test('todayJST rolls over at 15:00 UTC', () => {
@@ -100,7 +137,8 @@ test('fmtJST shows Japan time with JST suffix', () => {
 test('checkDays rejects bodies that are not days.json', () => {
   assert.throws(() => page.checkDays(null), /資料格式不符/);
   assert.throws(() => page.checkDays({ days: 'x' }), /資料格式不符/);
-  const ok = { days: [] };
+  assert.throws(() => page.checkDays({ days: [] }), /資料格式不符/); // no saleWindowEnd
+  const ok = { days: [], saleWindowEnd: '2026-10-27' };
   assert.equal(page.checkDays(ok), ok);
 });
 
@@ -114,9 +152,33 @@ test('real producer output: buildDays/toTrain over 2026-10 fixtures feeds buildM
   const expected = [...day.down!]
     .sort((a, b) => (a.departure < b.departure ? -1 : a.departure > b.departure ? 1 : 0))
     .map(tr => tr.remaining);
-  const m = page.buildMatrix(days, 'down', '2026-10-10');
+  const m = page.buildMatrix(days, 'down', '2026-10-10', '2026-10-10');
   assert.equal(m.columns.length, 9);
-  const row = m.rows.find((r: { date: string }) => r.date === '2026-10-10');
+  const row = m.rows.find((r: Row) => r.date === '2026-10-10');
   assert.ok(row);
-  assert.deepEqual(row.cells, expected);
+  assert.deepEqual(row.cells.map((c: Cell) => c && c.remaining), expected);
+});
+
+test('real producer output: 10/14 SUSPENDED and an empty-inventory day read 運休, dates past the window 尚未開賣', () => {
+  const fx = (name: string) =>
+    JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf-8'));
+  const calendar: CalendarResponse = fx('calendar-2026-10.json');
+  const inv1010: InventoryResponse = fx('search-inventory-2026-10-10.json');
+  const inv1014: InventoryResponse = fx('search-inventory-2026-10-14.json');
+  const merged = mergeCalendars([calendar]);
+  assert.equal(merged.get('2026-10-14'), 'SUSPENDED');
+  const windowEnd = '2026-10-15';
+  // 10/13 as the "calendar says ORDINARY but search-inventory is empty" case.
+  merged.set('2026-10-13', 'ORDINARY');
+  const inv = new Map<string, InventoryResponse>();
+  for (const d of ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-15']) inv.set(d, inv1010);
+  inv.set('2026-10-13', inv1014);
+  const days = buildDays(merged, inv, '2026-10-10', windowEnd);
+  const byDate = new Map(page.buildMatrix(days, 'down', '2026-10-10', windowEnd).rows.map((r: Row) => [r.date, r]));
+  assert.equal((byDate.get('2026-10-13') as Row).status, 'suspended');
+  assert.equal((byDate.get('2026-10-14') as Row).status, 'suspended');
+  assert.equal((byDate.get('2026-10-15') as Row).status, 'open');
+  assert.equal((byDate.get('2026-10-16') as Row).status, 'notOnSale');
+  assert.equal((byDate.get('2026-11-30') as Row).status, 'notOnSale');
+  assert.deepEqual((byDate.get('2026-10-16') as Row).cells, []);
 });
