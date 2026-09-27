@@ -247,3 +247,14 @@ test('visibleRows: 尚未開賣 dates fold into one top row that does not count 
   const one = page.visibleRows([{ date: '2026-10-28', status: 'notOnSale' }], false, 2);
   assert.equal(one.rows[0].dateEnd, undefined);
 });
+
+test('readQuery / pageUrl: a shared link pins one date and a direction', () => {
+  assert.deepEqual(page.readQuery('?date=2026-10-10&dir=up'), { date: '2026-10-10', dir: 'up' });
+  assert.deepEqual(page.readQuery(''), { date: null, dir: null });
+  assert.deepEqual(page.readQuery('?date=10-10&dir=sideways'), { date: null, dir: null });
+  assert.deepEqual(page.readQuery('?date=2026-02-31'), { date: null, dir: null });
+  assert.equal(page.pageUrl('2026-10-10', 'down'), 'sagano.html?date=2026-10-10');
+  assert.equal(page.pageUrl('2026-10-10', 'up'), 'sagano.html?date=2026-10-10&dir=up');
+  assert.equal(page.pageUrl(null, 'up'), 'sagano.html?dir=up');
+  assert.equal(page.pageUrl(null, 'down'), 'sagano.html');
+});

@@ -106,6 +106,28 @@
     return { rows: top.concat(shown), hidden: ordered.length - shown.length };
   }
 
+  /**
+   * `?date=YYYY-MM-DD&dir=up` from a shared link. Anything malformed reads as
+   * absent, so a bad link falls back to the full matrix.
+   */
+  function readQuery(search) {
+    const q = new URLSearchParams(search);
+    const date = q.get('date');
+    const dir = q.get('dir');
+    const valid = date != null && /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+      new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) === date;
+    return { date: valid ? date : null, dir: DIRECTIONS.includes(dir) ? dir : null };
+  }
+
+  /** The link that reopens this view; 'down' is the default and left out. */
+  function pageUrl(date, dir) {
+    const q = new URLSearchParams();
+    if (date) q.set('date', date);
+    if (dir && dir !== 'down') q.set('dir', dir);
+    const qs = q.toString();
+    return qs ? `sagano.html?${qs}` : 'sagano.html';
+  }
+
   /** Stale when the fetcher said so, or the last fetch is over STALE_MS old. */
   function isStale(data, nowMs) {
     if (!data || data.stale === true) return true;
@@ -154,7 +176,7 @@
     return json;
   }
 
-  const api = { STALE_MS, SCARCE_THRESHOLD, ROW_LIMIT, buildMatrix, visibleRows, isStale, fmtJST, todayJST, checkDays, stopsFor };
+  const api = { STALE_MS, SCARCE_THRESHOLD, ROW_LIMIT, buildMatrix, visibleRows, readQuery, pageUrl, isStale, fmtJST, todayJST, checkDays, stopsFor };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 
   if (typeof document === 'undefined') return;
@@ -167,6 +189,8 @@
   let openId = null;
   // Whether every date is listed, or only the newest ROW_LIMIT.
   let expanded = false;
+  // Date pinned by a shared link (?date=), or null for every date.
+  let lockedDate = null;
 
   const ROW_LABELS = { suspended: '運休', notOnSale: '尚未開賣' };
 
@@ -178,9 +202,16 @@
 
   function renderMatrix() {
     const host = document.getElementById('matrix');
-    const { columns, rows } = buildMatrix(data.days, direction, todayJST(Date.now()), data.saleWindowEnd);
+    const days = lockedDate ? data.days.filter(d => d && d.date === lockedDate) : data.days;
+    const { columns, rows } = buildMatrix(days, direction, todayJST(Date.now()), data.saleWindowEnd);
+    const lockBar = lockedDate
+      ? `<div class="lock-bar"><span>只看 ${Number(lockedDate.slice(5, 7))}/${esc(lockedDate.slice(8))}` +
+        `（${weekday(lockedDate)}）</span><a href="${esc(pageUrl(null, direction))}">顯示全部日期</a></div>`
+      : '';
     if (rows.length === 0) {
-      host.innerHTML = '<div class="empty">目前沒有可顯示的班次資料。</div>';
+      host.innerHTML = lockBar + (lockedDate
+        ? '<div class="empty">這一天已經過了，或不在資料範圍內。</div>'
+        : '<div class="empty">目前沒有可顯示的班次資料。</div>');
       return;
     }
     if (openId != null && !columns.some(c => c.id === openId)) openId = null;
@@ -193,7 +224,7 @@
         `aria-controls="timetable" title="${esc(label)}" aria-label="${esc(label)}">` +
         `<span class="hh">${esc(h ? Number(h) : '')}</span><span class="mm">${esc(m || '')}</span></button></th>`;
     }).join('');
-    const visible = visibleRows(rows, expanded, ROW_LIMIT);
+    const visible = visibleRows(rows, expanded || lockedDate != null, ROW_LIMIT);
     const body = visible.rows.map(r => {
       const [, mo, dd] = r.date.split('-');
       const wd = weekday(r.date);
@@ -207,10 +238,11 @@
         return `<tr><th scope="row"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
           `<span class="w">~${Number(mo2)}/${esc(dd2)}</span></th>${cells}</tr>`;
       }
-      return `<tr><th scope="row"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
-        `<span class="w${wdClass}">${wd}</span>${total}</th>${cells}</tr>`;
+      return `<tr><th scope="row"><a class="day-link" href="${esc(pageUrl(r.date, direction))}" ` +
+        `title="只看這一天（可分享連結）"><span class="d">${Number(mo)}/${esc(dd)}</span>` +
+        `<span class="w${wdClass}">${wd}</span></a>${total}</th>${cells}</tr>`;
     }).join('');
-    host.innerHTML =
+    host.innerHTML = lockBar +
       `<table class="matrix"><colgroup><col class="c-date">${columns.map(() => '<col>').join('')}</colgroup>` +
       `<thead><tr><th scope="col" class="corner">日期</th>${head}</tr></thead><tbody>${body}</tbody></table>` +
       (visible.hidden > 0 || expanded && rows.filter(r => r.status !== 'notOnSale').length > ROW_LIMIT
@@ -265,6 +297,8 @@
     if (!DIRECTIONS.includes(next)) return;
     if (next !== direction) openId = null;
     direction = next;
+    // Keep the address bar a link to exactly this view, ready to share.
+    history.replaceState(null, '', pageUrl(lockedDate, direction));
     document.querySelectorAll('.toggle button').forEach(b => {
       b.setAttribute('aria-pressed', String(b.dataset.dir === direction));
     });
@@ -293,7 +327,9 @@
     document.querySelectorAll('.toggle button').forEach(b => {
       b.addEventListener('click', () => setDirection(b.dataset.dir));
     });
-    setDirection('down');
+    const query = readQuery(location.search);
+    lockedDate = query.date;
+    setDirection(query.dir || 'down');
     load();
     // A phone tab restored from the background must not keep showing old numbers.
     document.addEventListener('visibilitychange', () => {
