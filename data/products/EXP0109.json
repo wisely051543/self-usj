@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-02T21:00:52.816Z",
-  "calendarStart": "2026-10-03",
-  "calendarEnd": "2027-04-03",
-  "latestDate": "2026-12-04",
+  "fetchedAt": "2026-10-03T15:21:37.282Z",
+  "calendarStart": "2026-10-04",
+  "calendarEnd": "2027-04-04",
+  "latestDate": "2026-12-05",
   "dates": [
     {
       "date": "2026-12-02",
@@ -141,7 +141,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-02T16:38:57.090Z"
+      "slotsFetchedAt": "2026-10-03T15:21:40.681Z"
     },
     {
       "date": "2026-12-03",
@@ -310,15 +310,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-02T21:00:53.738Z"
+      "slotsFetchedAt": "2026-10-03T15:21:40.681Z"
     },
     {
       "date": "2026-12-04",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 806,
+      "availableUnits": 804,
       "maxAvailable": 91,
-      "totalCapacity": 806,
+      "totalCapacity": 804,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": [
@@ -443,7 +443,7 @@
           "variantCode": "E4FBJ65D61A008",
           "from": "15:20",
           "to": "15:50",
-          "availableUnits": 91,
+          "availableUnits": 89,
           "events": [
             {
               "code": "EXP_VLC",
@@ -466,7 +466,176 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-02T16:38:57.090Z"
+      "slotsFetchedAt": "2026-10-03T15:21:40.681Z"
+    },
+    {
+      "date": "2026-12-05",
+      "dayOfWeek": 6,
+      "available": true,
+      "availableUnits": 885,
+      "maxAvailable": 120,
+      "totalCapacity": 885,
+      "pricePerPerson": 11800,
+      "formattedPrice": "¥11,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ65D65A001",
+          "from": "10:10",
+          "to": "10:40",
+          "availableUnits": 63,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:10",
+              "to": "10:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A004",
+          "from": "10:20",
+          "to": "10:50",
+          "availableUnits": 70,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:20",
+              "to": "10:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A008",
+          "from": "10:40",
+          "to": "11:10",
+          "availableUnits": 59,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:40",
+              "to": "11:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A006",
+          "from": "10:50",
+          "to": "11:20",
+          "availableUnits": 64,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:50",
+              "to": "11:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A003",
+          "from": "11:20",
+          "to": "11:50",
+          "availableUnits": 59,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "11:20",
+              "to": "11:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A012",
+          "from": "12:20",
+          "to": "12:50",
+          "availableUnits": 79,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "12:20",
+              "to": "12:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A009",
+          "from": "13:50",
+          "to": "14:20",
+          "availableUnits": 11,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "13:50",
+              "to": "14:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A010",
+          "from": "16:50",
+          "to": "17:20",
+          "availableUnits": 84,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "16:50",
+              "to": "17:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A011",
+          "from": "17:50",
+          "to": "18:20",
+          "availableUnits": 84,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "17:50",
+              "to": "18:20"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A007",
+          "from": "19:00",
+          "to": "19:30",
+          "availableUnits": 119,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A005",
+          "from": "19:10",
+          "to": "19:40",
+          "availableUnits": 73,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "19:10",
+              "to": "19:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ65D65A002",
+          "from": "19:30",
+          "to": "20:00",
+          "availableUnits": 120,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "19:30",
+              "to": "20:00"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-03T15:21:40.681Z"
     }
   ],
   "attractionNames": {
