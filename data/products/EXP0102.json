@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-13T16:50:37.590Z",
+  "fetchedAt": "2026-10-13T21:43:52.054Z",
   "calendarStart": "2026-10-14",
   "calendarEnd": "2027-04-14",
   "latestDate": "2026-11-08",
@@ -17,9 +17,9 @@
       "date": "2026-10-14",
       "dayOfWeek": 3,
       "available": true,
-      "availableUnits": 647,
+      "availableUnits": 638,
       "maxAvailable": 22,
-      "totalCapacity": 647,
+      "totalCapacity": 638,
       "pricePerPerson": 13800,
       "formattedPrice": "¥13,800",
       "timeSlots": [
@@ -384,6 +384,24 @@
           ]
         },
         {
+          "variantCode": "E4HDR02D49A105",
+          "from": "14:50",
+          "to": "19:10",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "14:50",
+              "to": "15:20"
+            },
+            {
+              "code": "EXP_JPD",
+              "from": "18:40",
+              "to": "19:10"
+            }
+          ]
+        },
+        {
           "variantCode": "E4HDR02D49A132",
           "from": "15:00",
           "to": "20:30",
@@ -423,7 +441,7 @@
           "variantCode": "E4HDR02D49A113",
           "from": "15:30",
           "to": "19:10",
-          "availableUnits": 16,
+          "availableUnits": 12,
           "events": [
             {
               "code": "EXP_FOF",
@@ -495,7 +513,7 @@
           "variantCode": "E4HDR02D49A126",
           "from": "16:10",
           "to": "20:50",
-          "availableUnits": 20,
+          "availableUnits": 15,
           "events": [
             {
               "code": "EXP_FOF",
@@ -726,15 +744,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-13T16:51:07.099Z"
+      "slotsFetchedAt": "2026-10-13T21:43:56.029Z"
     },
     {
       "date": "2026-10-15",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 813,
+      "availableUnits": 811,
       "maxAvailable": 23,
-      "totalCapacity": 813,
+      "totalCapacity": 811,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -760,7 +778,7 @@
           "variantCode": "E4HDR02D49A097",
           "from": "10:40",
           "to": "19:10",
-          "availableUnits": 19,
+          "availableUnits": 17,
           "events": [
             {
               "code": "EXP_FOF",
@@ -1567,7 +1585,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-13T16:51:07.099Z"
+      "slotsFetchedAt": "2026-10-13T21:43:56.029Z"
     },
     {
       "date": "2026-10-16",
