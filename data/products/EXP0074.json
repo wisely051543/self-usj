@@ -8,11 +8,35 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-18T16:23:08.455Z",
+  "fetchedAt": "2026-10-18T18:52:05.554Z",
   "calendarStart": "2026-10-19",
   "calendarEnd": "2027-04-19",
   "latestDate": "2026-12-20",
   "dates": [
+    {
+      "date": "2026-10-21",
+      "dayOfWeek": 3,
+      "available": true,
+      "availableUnits": 7,
+      "maxAvailable": 5,
+      "totalCapacity": 7,
+      "pricePerPerson": 18800,
+      "formattedPrice": "¥18,800",
+      "timeSlots": null,
+      "slotsFetchedAt": null
+    },
+    {
+      "date": "2026-10-22",
+      "dayOfWeek": 4,
+      "available": true,
+      "availableUnits": 1,
+      "maxAvailable": 1,
+      "totalCapacity": 1,
+      "pricePerPerson": 18800,
+      "formattedPrice": "¥18,800",
+      "timeSlots": null,
+      "slotsFetchedAt": null
+    },
     {
       "date": "2026-10-23",
       "dayOfWeek": 5,
@@ -53,9 +77,9 @@
       "date": "2026-10-27",
       "dayOfWeek": 2,
       "available": true,
-      "availableUnits": 69,
-      "maxAvailable": 59,
-      "totalCapacity": 69,
+      "availableUnits": 64,
+      "maxAvailable": 61,
+      "totalCapacity": 64,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
       "timeSlots": null,
@@ -77,9 +101,9 @@
       "date": "2026-10-29",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 27,
-      "maxAvailable": 27,
-      "totalCapacity": 27,
+      "availableUnits": 29,
+      "maxAvailable": 29,
+      "totalCapacity": 29,
       "pricePerPerson": 16800,
       "formattedPrice": "¥16,800",
       "timeSlots": null,
@@ -101,9 +125,9 @@
       "date": "2026-10-31",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 305,
+      "availableUnits": 308,
       "maxAvailable": 143,
-      "totalCapacity": 305,
+      "totalCapacity": 308,
       "pricePerPerson": 22800,
       "formattedPrice": "¥22,800",
       "timeSlots": null,
@@ -113,9 +137,9 @@
       "date": "2026-11-01",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 165,
+      "availableUnits": 174,
       "maxAvailable": 124,
-      "totalCapacity": 165,
+      "totalCapacity": 174,
       "pricePerPerson": 18800,
       "formattedPrice": "¥18,800",
       "timeSlots": null,
@@ -125,9 +149,9 @@
       "date": "2026-11-02",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 1,
-      "maxAvailable": 1,
-      "totalCapacity": 1,
+      "availableUnits": 18,
+      "maxAvailable": 15,
+      "totalCapacity": 18,
       "pricePerPerson": 20800,
       "formattedPrice": "¥20,800",
       "timeSlots": null,
@@ -149,9 +173,9 @@
       "date": "2026-11-04",
       "dayOfWeek": 3,
       "available": true,
-      "availableUnits": 88,
-      "maxAvailable": 88,
-      "totalCapacity": 88,
+      "availableUnits": 87,
+      "maxAvailable": 84,
+      "totalCapacity": 87,
       "pricePerPerson": 16800,
       "formattedPrice": "¥16,800",
       "timeSlots": null,
@@ -161,9 +185,9 @@
       "date": "2026-11-05",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 37,
-      "maxAvailable": 37,
-      "totalCapacity": 37,
+      "availableUnits": 36,
+      "maxAvailable": 33,
+      "totalCapacity": 36,
       "pricePerPerson": 16800,
       "formattedPrice": "¥16,800",
       "timeSlots": null,
@@ -173,9 +197,9 @@
       "date": "2026-11-06",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 296,
+      "availableUnits": 300,
       "maxAvailable": 155,
-      "totalCapacity": 296,
+      "totalCapacity": 300,
       "pricePerPerson": 20800,
       "formattedPrice": "¥20,800",
       "timeSlots": null,
@@ -185,9 +209,9 @@
       "date": "2026-11-07",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 306,
+      "availableUnits": 308,
       "maxAvailable": 164,
-      "totalCapacity": 306,
+      "totalCapacity": 308,
       "pricePerPerson": 22800,
       "formattedPrice": "¥22,800",
       "timeSlots": null,
@@ -230,12 +254,43 @@
       "slotsFetchedAt": null
     },
     {
+      "date": "2026-11-21",
+      "dayOfWeek": 6,
+      "available": true,
+      "availableUnits": 2,
+      "maxAvailable": 2,
+      "totalCapacity": 2,
+      "pricePerPerson": 24800,
+      "formattedPrice": "¥24,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4MKC42D08A053",
+          "from": "10:20",
+          "to": "11:20",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "10:20",
+              "to": "11:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "10:20",
+              "to": "10:50"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
+    },
+    {
       "date": "2026-11-24",
       "dayOfWeek": 2,
       "available": true,
-      "availableUnits": 44,
-      "maxAvailable": 44,
-      "totalCapacity": 44,
+      "availableUnits": 42,
+      "maxAvailable": 42,
+      "totalCapacity": 42,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
@@ -243,7 +298,7 @@
           "variantCode": "E4MKC42D65A069",
           "from": "19:20",
           "to": "20:20",
-          "availableUnits": 44,
+          "availableUnits": 42,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -258,7 +313,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T16:23:12.789Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-11-25",
@@ -320,15 +375,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-11-28",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 14,
+      "availableUnits": 16,
       "maxAvailable": 8,
-      "totalCapacity": 14,
+      "totalCapacity": 16,
       "pricePerPerson": 16800,
       "formattedPrice": "¥16,800",
       "timeSlots": [
@@ -336,7 +391,7 @@
           "variantCode": "E4MKC42D57A102",
           "from": "18:00",
           "to": "19:00",
-          "availableUnits": 6,
+          "availableUnits": 8,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -369,7 +424,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T16:23:12.789Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-11-29",
@@ -539,7 +594,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-02",
@@ -570,7 +625,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-03",
@@ -668,7 +723,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-06",
@@ -684,7 +739,7 @@
           "variantCode": "E4MKC42D65A072",
           "from": "10:10",
           "to": "11:10",
-          "availableUnits": 1,
+          "availableUnits": 3,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -702,7 +757,7 @@
           "variantCode": "E4MKC42D65A070",
           "from": "13:50",
           "to": "14:50",
-          "availableUnits": 3,
+          "availableUnits": 1,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -753,7 +808,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-07",
@@ -815,7 +870,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-09",
@@ -852,12 +907,30 @@
       "date": "2026-12-10",
       "dayOfWeek": 4,
       "available": true,
-      "availableUnits": 4,
+      "availableUnits": 5,
       "maxAvailable": 4,
-      "totalCapacity": 4,
+      "totalCapacity": 5,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
+        {
+          "variantCode": "E4MKC42D65A070",
+          "from": "13:50",
+          "to": "14:50",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:50",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:50",
+              "to": "14:20"
+            }
+          ]
+        },
         {
           "variantCode": "E4MKC42D65A071",
           "from": "19:20",
@@ -877,15 +950,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-11",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 2,
-      "maxAvailable": 2,
-      "totalCapacity": 2,
+      "availableUnits": 4,
+      "maxAvailable": 4,
+      "totalCapacity": 4,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
@@ -893,7 +966,7 @@
           "variantCode": "E4MKC42D61A005",
           "from": "12:40",
           "to": "13:40",
-          "availableUnits": 2,
+          "availableUnits": 4,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -908,15 +981,15 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-12",
       "dayOfWeek": 6,
       "available": true,
-      "availableUnits": 45,
-      "maxAvailable": 45,
-      "totalCapacity": 45,
+      "availableUnits": 48,
+      "maxAvailable": 48,
+      "totalCapacity": 48,
       "pricePerPerson": 16800,
       "formattedPrice": "¥16,800",
       "timeSlots": [
@@ -924,7 +997,7 @@
           "variantCode": "E4MKC42D48A010",
           "from": "09:20",
           "to": "10:20",
-          "availableUnits": 45,
+          "availableUnits": 48,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -939,18 +1012,36 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-13",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 49,
+      "availableUnits": 54,
       "maxAvailable": 41,
-      "totalCapacity": 49,
+      "totalCapacity": 54,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
+        {
+          "variantCode": "E4MKC42D65A070",
+          "from": "13:50",
+          "to": "14:50",
+          "availableUnits": 5,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:50",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:50",
+              "to": "14:20"
+            }
+          ]
+        },
         {
           "variantCode": "E4MKC42D65A073",
           "from": "16:50",
@@ -988,18 +1079,36 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T16:23:12.789Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-14",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 31,
+      "availableUnits": 36,
       "maxAvailable": 28,
-      "totalCapacity": 31,
+      "totalCapacity": 36,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
+        {
+          "variantCode": "E4MKC42D65A070",
+          "from": "13:50",
+          "to": "14:50",
+          "availableUnits": 5,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:50",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:50",
+              "to": "14:20"
+            }
+          ]
+        },
         {
           "variantCode": "E4MKC42D65A073",
           "from": "16:50",
@@ -1037,7 +1146,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T16:23:12.789Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-15",
@@ -1092,9 +1201,9 @@
       "date": "2026-12-16",
       "dayOfWeek": 3,
       "available": true,
-      "availableUnits": 42,
-      "maxAvailable": 41,
-      "totalCapacity": 42,
+      "availableUnits": 37,
+      "maxAvailable": 36,
+      "totalCapacity": 37,
       "pricePerPerson": 14800,
       "formattedPrice": "¥14,800",
       "timeSlots": [
@@ -1120,7 +1229,7 @@
           "variantCode": "E4MKC42D65A071",
           "from": "19:20",
           "to": "20:20",
-          "availableUnits": 41,
+          "availableUnits": 36,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -1135,7 +1244,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T16:23:12.789Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-17",
@@ -1184,7 +1293,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-18T12:47:13.941Z"
+      "slotsFetchedAt": "2026-10-18T18:52:11.262Z"
     },
     {
       "date": "2026-12-18",
