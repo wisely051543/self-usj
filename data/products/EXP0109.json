@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-24T14:52:02.276Z",
-  "calendarStart": "2026-10-24",
-  "calendarEnd": "2027-04-24",
-  "latestDate": "2026-12-25",
+  "fetchedAt": "2026-10-24T17:56:06.982Z",
+  "calendarStart": "2026-10-25",
+  "calendarEnd": "2027-04-25",
+  "latestDate": "2026-12-26",
   "dates": [
     {
       "date": "2026-12-02",
@@ -1759,9 +1759,9 @@
       "date": "2026-12-14",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 886,
+      "availableUnits": 884,
       "maxAvailable": 122,
-      "totalCapacity": 886,
+      "totalCapacity": 884,
       "pricePerPerson": 11800,
       "formattedPrice": "¥11,800",
       "timeSlots": [
@@ -1821,7 +1821,7 @@
           "variantCode": "E4FBJ65D65A003",
           "from": "11:20",
           "to": "11:50",
-          "availableUnits": 57,
+          "availableUnits": 55,
           "events": [
             {
               "code": "EXP_VLC",
@@ -1922,7 +1922,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-24T14:52:14.102Z"
+      "slotsFetchedAt": "2026-10-24T17:56:08.557Z"
     },
     {
       "date": "2026-12-15",
@@ -3280,9 +3280,9 @@
       "date": "2026-12-25",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 39,
-      "maxAvailable": 39,
-      "totalCapacity": 39,
+      "availableUnits": 40,
+      "maxAvailable": 40,
+      "totalCapacity": 40,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
@@ -3290,7 +3290,7 @@
           "variantCode": "E4FBJ65D56A001",
           "from": "19:00",
           "to": "19:30",
-          "availableUnits": 39,
+          "availableUnits": 40,
           "events": [
             {
               "code": "EXP_VLC",
@@ -3300,7 +3300,33 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-24T14:52:14.102Z"
+      "slotsFetchedAt": "2026-10-24T17:56:08.557Z"
+    },
+    {
+      "date": "2026-12-26",
+      "dayOfWeek": 6,
+      "available": true,
+      "availableUnits": 43,
+      "maxAvailable": 43,
+      "totalCapacity": 43,
+      "pricePerPerson": 17800,
+      "formattedPrice": "¥17,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ65D56A001",
+          "from": "19:00",
+          "to": "19:30",
+          "availableUnits": 43,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-24T17:56:08.557Z"
     }
   ],
   "attractionNames": {
