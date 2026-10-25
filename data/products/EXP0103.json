@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-25T21:06:18.390Z",
+  "fetchedAt": "2026-10-25T23:29:59.497Z",
   "calendarStart": "2026-10-26",
   "calendarEnd": "2027-04-26",
   "latestDate": "2026-11-08",
@@ -666,9 +666,9 @@
       "date": "2026-11-02",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 76,
+      "availableUnits": 80,
       "maxAvailable": 17,
-      "totalCapacity": 76,
+      "totalCapacity": 80,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -946,7 +946,7 @@
           "variantCode": "E4FBJ62D49A080",
           "from": "15:50",
           "to": "19:50",
-          "availableUnits": 2,
+          "availableUnits": 6,
           "events": [
             {
               "code": "EXP_BIO",
@@ -1015,7 +1015,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-25T21:06:25.957Z"
+      "slotsFetchedAt": "2026-10-25T23:30:00.790Z"
     },
     {
       "date": "2026-11-03",
@@ -1790,12 +1790,48 @@
       "date": "2026-11-04",
       "dayOfWeek": 3,
       "available": true,
-      "availableUnits": 1,
+      "availableUnits": 3,
       "maxAvailable": 1,
-      "totalCapacity": 1,
+      "totalCapacity": 3,
       "pricePerPerson": 13800,
       "formattedPrice": "¥13,800",
       "timeSlots": [
+        {
+          "variantCode": "E4FBJ62D49A061",
+          "from": "10:30",
+          "to": "20:50",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "10:30",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "20:20",
+              "to": "20:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A078",
+          "from": "12:30",
+          "to": "20:40",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        },
         {
           "variantCode": "E4FBJ62D49A077",
           "from": "17:10",
@@ -1815,7 +1851,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-25T18:10:43.396Z"
+      "slotsFetchedAt": "2026-10-25T23:30:00.790Z"
     },
     {
       "date": "2026-11-05",
