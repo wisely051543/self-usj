@@ -1,0 +1,97 @@
+{
+  "code": "EXPL115",
+  "name": "ユニバーサル・エクスプレス・パス 4 ～バラエティセレクション～",
+  "eyebrow": "",
+  "imageUrl": "",
+  "legalDesc": "",
+  "url": "https://store.usj.co.jp/ja/jp/store/c/expresspass/EXPL115",
+  "currency": "JPY",
+  "people": 1,
+  "deep": true,
+  "fetchedAt": "2026-10-28T17:13:01.736Z",
+  "calendarStart": "2026-10-29",
+  "calendarEnd": "2027-04-29",
+  "latestDate": "2026-12-31",
+  "dates": [
+    {
+      "date": "2026-12-31",
+      "dayOfWeek": 4,
+      "available": true,
+      "availableUnits": 123,
+      "maxAvailable": 41,
+      "totalCapacity": 123,
+      "pricePerPerson": 13000,
+      "formattedPrice": "¥13,000",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ67Z01L001",
+          "from": "20:00",
+          "to": "20:30",
+          "availableUnits": 41,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "20:00",
+              "to": "20:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ67Z01L002",
+          "from": "21:00",
+          "to": "21:30",
+          "availableUnits": 41,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "21:00",
+              "to": "21:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ67Z01L003",
+          "from": "22:00",
+          "to": "22:30",
+          "availableUnits": 41,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "22:00",
+              "to": "22:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-28T17:13:02.160Z"
+    }
+  ],
+  "attractionNames": {
+    "EXP_FOH": {
+      "ja": "フライト・オブ・ザ・ヒッポグリフ™",
+      "en": "Flight of the Hippogriff™"
+    },
+    "EXP_JRA": {
+      "ja": "ジョーズ ～レッド・アラート～",
+      "en": "JAWS: Red Alert"
+    },
+    "EXP_FBJ": {
+      "ja": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+      "en": "Harry Potter and the Forbidden Journey™"
+    },
+    "EXP_JPK": {
+      "ja": "ジュラシック・パーク・ザ・ライド",
+      "en": "Jurassic Park - The Ride"
+    },
+    "EXP_SDK": {
+      "ja": "貞子の呪い ～ダーク・ホラー・ライド～",
+      "en": "SADAKO'S CURSE: DARK HORROR RIDE"
+    }
+  },
+  "nonTimedAttractions": [
+    "EXP_FBJ",
+    "EXP_JPK",
+    "EXP_JRA",
+    "EXP_SDK"
+  ]
+}

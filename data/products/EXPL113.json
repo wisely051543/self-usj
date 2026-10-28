@@ -1,0 +1,120 @@
+{
+  "code": "EXPL113",
+  "name": "ユニバーサル・エクスプレス・パス 3 ～レース＆ミニオン～",
+  "eyebrow": "",
+  "imageUrl": "",
+  "legalDesc": "",
+  "url": "https://store.usj.co.jp/ja/jp/store/c/expresspass/EXPL113",
+  "currency": "JPY",
+  "people": 1,
+  "deep": true,
+  "fetchedAt": "2026-10-28T17:12:56.078Z",
+  "calendarStart": "2026-10-29",
+  "calendarEnd": "2027-04-29",
+  "latestDate": "2026-12-31",
+  "dates": [
+    {
+      "date": "2026-12-31",
+      "dayOfWeek": 4,
+      "available": true,
+      "availableUnits": 37,
+      "maxAvailable": 15,
+      "totalCapacity": 37,
+      "pricePerPerson": 18900,
+      "formattedPrice": "¥18,900",
+      "timeSlots": [
+        {
+          "variantCode": "E3MKC02Z01L001",
+          "from": "20:00",
+          "to": "21:30",
+          "availableUnits": 11,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "20:00",
+              "to": "21:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "20:00",
+              "to": "20:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "21:00",
+              "to": "21:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E3MKC02Z01L002",
+          "from": "20:30",
+          "to": "22:30",
+          "availableUnits": 11,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "20:30",
+              "to": "21:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "20:30",
+              "to": "21:00"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "22:00",
+              "to": "22:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E3MKC02Z01L003",
+          "from": "20:30",
+          "to": "23:30",
+          "availableUnits": 15,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "20:30",
+              "to": "21:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "20:30",
+              "to": "21:00"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "23:00",
+              "to": "23:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-28T17:12:56.551Z"
+    }
+  ],
+  "attractionNames": {
+    "EXP_MKC": {
+      "ja": "マリオカート ～クッパの挑戦状～™",
+      "en": "Mario Kart: Koopa's Challenge™"
+    },
+    "EXP_A_SNW": {
+      "ja": "スーパー・ニンテンドー・ワールド™",
+      "en": "SUPER NINTENDO WORLD™"
+    },
+    "EXP_VLC": {
+      "ja": "ミニオン・ハチャメチャ・ミッション ～大悪党への道～",
+      "en": "Illumination’s Villain-Con Minion Blast"
+    },
+    "EXP_MNR": {
+      "ja": "ミニオン・ハチャメチャ・ライド",
+      "en": "Despicable Me: Minion Mayhem"
+    }
+  },
+  "nonTimedAttractions": [
+    "EXP_MNR"
+  ]
+}

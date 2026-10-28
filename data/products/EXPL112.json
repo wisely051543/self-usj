@@ -1,0 +1,97 @@
+{
+  "code": "EXPL112",
+  "name": "ユニバーサル・エクスプレス・パス 3 ～トロッコ＆レース～",
+  "eyebrow": "",
+  "imageUrl": "",
+  "legalDesc": "",
+  "url": "https://store.usj.co.jp/ja/jp/store/c/expresspass/EXPL112",
+  "currency": "JPY",
+  "people": 1,
+  "deep": true,
+  "fetchedAt": "2026-10-28T17:12:57.260Z",
+  "calendarStart": "2026-10-29",
+  "calendarEnd": "2027-04-29",
+  "latestDate": "2026-12-31",
+  "dates": [
+    {
+      "date": "2026-12-31",
+      "dayOfWeek": 4,
+      "available": true,
+      "availableUnits": 97,
+      "maxAvailable": 78,
+      "totalCapacity": 97,
+      "pricePerPerson": 18900,
+      "formattedPrice": "¥18,900",
+      "timeSlots": [
+        {
+          "variantCode": "E3MKC01Z01L002",
+          "from": "20:30",
+          "to": "21:30",
+          "availableUnits": 78,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "20:30",
+              "to": "21:30"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "20:30",
+              "to": "21:00"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "21:00",
+              "to": "21:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E3MKC01Z01L001",
+          "from": "21:00",
+          "to": "22:00",
+          "availableUnits": 19,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "21:00",
+              "to": "22:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "21:00",
+              "to": "21:30"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "21:30",
+              "to": "22:00"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-28T17:12:57.848Z"
+    }
+  ],
+  "attractionNames": {
+    "EXP_MKC": {
+      "ja": "マリオカート ～クッパの挑戦状～™",
+      "en": "Mario Kart: Koopa's Challenge™"
+    },
+    "EXP_A_SNW": {
+      "ja": "スーパー・ニンテンドー・ワールド™",
+      "en": "SUPER NINTENDO WORLD™"
+    },
+    "EXP_DKT": {
+      "ja": "ドンキーコングのクレイジー・トロッコ",
+      "en": "Mine Cart Madness™"
+    },
+    "EXP_FBJ": {
+      "ja": "ハリー・ポッター・アンド・ザ・フォービドゥン・ジャーニー™",
+      "en": "Harry Potter and the Forbidden Journey™"
+    }
+  },
+  "nonTimedAttractions": [
+    "EXP_FBJ"
+  ]
+}

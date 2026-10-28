@@ -8,10 +8,10 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-28T11:05:37.978Z",
-  "calendarStart": "2026-10-28",
-  "calendarEnd": "2027-04-28",
-  "latestDate": "2026-12-29",
+  "fetchedAt": "2026-10-28T17:13:30.013Z",
+  "calendarStart": "2026-10-29",
+  "calendarEnd": "2027-04-29",
+  "latestDate": "2026-12-30",
   "dates": [
     {
       "date": "2026-12-28",
@@ -284,7 +284,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-28T11:05:39.547Z"
+      "slotsFetchedAt": "2026-10-28T17:13:32.239Z"
     },
     {
       "date": "2026-12-29",
@@ -557,7 +557,85 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-28T11:05:39.547Z"
+      "slotsFetchedAt": "2026-10-28T17:13:32.239Z"
+    },
+    {
+      "date": "2026-12-30",
+      "dayOfWeek": 3,
+      "available": true,
+      "availableUnits": 98,
+      "maxAvailable": 22,
+      "totalCapacity": 98,
+      "pricePerPerson": 21800,
+      "formattedPrice": "¥21,800",
+      "timeSlots": [
+        {
+          "variantCode": "E4FBJ66D48A001",
+          "from": "09:00",
+          "to": "09:30",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "09:00",
+              "to": "09:30"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ66D48A002",
+          "from": "12:40",
+          "to": "13:10",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "12:40",
+              "to": "13:10"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ66D48A005",
+          "from": "15:30",
+          "to": "16:00",
+          "availableUnits": 12,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "15:30",
+              "to": "16:00"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ66D48A003",
+          "from": "16:10",
+          "to": "16:40",
+          "availableUnits": 22,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "16:10",
+              "to": "16:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ66D48A004",
+          "from": "19:00",
+          "to": "19:30",
+          "availableUnits": 20,
+          "events": [
+            {
+              "code": "EXP_BDR",
+              "from": "19:00",
+              "to": "19:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-10-28T17:13:32.239Z"
     }
   ],
   "attractionNames": {
