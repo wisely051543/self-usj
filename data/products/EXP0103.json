@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-10-31T15:05:12.535Z",
+  "fetchedAt": "2026-10-31T19:30:25.736Z",
   "calendarStart": "2026-11-01",
   "calendarEnd": "2027-05-01",
   "latestDate": "2026-11-08",
@@ -17,12 +17,48 @@
       "date": "2026-11-01",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 1,
-      "maxAvailable": 1,
-      "totalCapacity": 1,
+      "availableUnits": 5,
+      "maxAvailable": 3,
+      "totalCapacity": 5,
       "pricePerPerson": 15800,
       "formattedPrice": "¥15,800",
       "timeSlots": [
+        {
+          "variantCode": "E4FBJ62D49A078",
+          "from": "12:30",
+          "to": "20:40",
+          "availableUnits": 3,
+          "events": [
+            {
+              "code": "EXP_FOF",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_BIO",
+              "from": "20:10",
+              "to": "20:40"
+            }
+          ]
+        },
+        {
+          "variantCode": "E4FBJ62D49A055",
+          "from": "14:20",
+          "to": "19:10",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_BIO",
+              "from": "14:20",
+              "to": "14:50"
+            },
+            {
+              "code": "EXP_FOF",
+              "from": "18:40",
+              "to": "19:10"
+            }
+          ]
+        },
         {
           "variantCode": "E4FBJ62D49A057",
           "from": "15:30",
@@ -42,7 +78,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-31T15:05:19.293Z"
+      "slotsFetchedAt": "2026-10-31T19:30:31.234Z"
     },
     {
       "date": "2026-11-02",
@@ -115,9 +151,9 @@
       "date": "2026-11-03",
       "dayOfWeek": 2,
       "available": true,
-      "availableUnits": 683,
+      "availableUnits": 685,
       "maxAvailable": 29,
-      "totalCapacity": 683,
+      "totalCapacity": 685,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -251,7 +287,7 @@
           "variantCode": "E4FBJ62D57A105",
           "from": "11:30",
           "to": "15:20",
-          "availableUnits": 2,
+          "availableUnits": 4,
           "events": [
             {
               "code": "EXP_FOF",
@@ -896,7 +932,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-31T15:05:19.293Z"
+      "slotsFetchedAt": "2026-10-31T19:30:31.234Z"
     },
     {
       "date": "2026-11-04",
@@ -1000,9 +1036,9 @@
       "date": "2026-11-06",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 147,
+      "availableUnits": 149,
       "maxAvailable": 22,
-      "totalCapacity": 147,
+      "totalCapacity": 149,
       "pricePerPerson": 17800,
       "formattedPrice": "¥17,800",
       "timeSlots": [
@@ -1352,7 +1388,7 @@
           "variantCode": "E4FBJ62D49A076",
           "from": "18:30",
           "to": "20:10",
-          "availableUnits": 1,
+          "availableUnits": 3,
           "events": [
             {
               "code": "EXP_BIO",
@@ -1367,7 +1403,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-31T15:05:19.293Z"
+      "slotsFetchedAt": "2026-10-31T19:30:31.234Z"
     },
     {
       "date": "2026-11-07",
@@ -1746,9 +1782,9 @@
       "date": "2026-11-08",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 169,
+      "availableUnits": 170,
       "maxAvailable": 19,
-      "totalCapacity": 169,
+      "totalCapacity": 170,
       "pricePerPerson": 19800,
       "formattedPrice": "¥19,800",
       "timeSlots": [
@@ -1882,7 +1918,7 @@
           "variantCode": "E4FBJ62D49A071",
           "from": "12:00",
           "to": "15:50",
-          "availableUnits": 1,
+          "availableUnits": 2,
           "events": [
             {
               "code": "EXP_FOF",
@@ -2095,7 +2131,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-10-31T15:05:19.293Z"
+      "slotsFetchedAt": "2026-10-31T19:30:31.234Z"
     }
   ],
   "attractionNames": {
