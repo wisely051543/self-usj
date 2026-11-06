@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-11-06T18:16:26.424Z",
+  "fetchedAt": "2026-11-06T23:23:46.681Z",
   "calendarStart": "2026-11-07",
   "calendarEnd": "2027-05-07",
   "latestDate": "2027-01-08",
@@ -89,9 +89,9 @@
       "date": "2026-12-04",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 29,
+      "availableUnits": 26,
       "maxAvailable": 14,
-      "totalCapacity": 29,
+      "totalCapacity": 26,
       "pricePerPerson": 33900,
       "formattedPrice": "¥33,900",
       "timeSlots": null,
@@ -1368,6 +1368,146 @@
       "slotsFetchedAt": "2026-11-06T18:16:35.009Z"
     },
     {
+      "date": "2026-12-28",
+      "dayOfWeek": 1,
+      "available": true,
+      "availableUnits": 3,
+      "maxAvailable": 3,
+      "totalCapacity": 3,
+      "pricePerPerson": 31900,
+      "formattedPrice": "¥31,900",
+      "timeSlots": [
+        {
+          "variantCode": "E8DKT03Z01A057",
+          "from": "10:30",
+          "to": "15:30",
+          "availableUnits": 3,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "10:30",
+              "to": "11:00"
+            },
+            {
+              "code": "EXP_FOH",
+              "from": "12:50",
+              "to": "13:20"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:00",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:00",
+              "to": "14:30"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "14:30",
+              "to": "15:00"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "15:00",
+              "to": "15:30"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-11-06T23:23:49.039Z"
+    },
+    {
+      "date": "2027-01-01",
+      "dayOfWeek": 5,
+      "available": true,
+      "availableUnits": 8,
+      "maxAvailable": 4,
+      "totalCapacity": 8,
+      "pricePerPerson": 29900,
+      "formattedPrice": "¥29,900",
+      "timeSlots": [
+        {
+          "variantCode": "E8DKT03D65A003",
+          "from": "12:30",
+          "to": "18:50",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_VLC",
+              "from": "12:30",
+              "to": "13:00"
+            },
+            {
+              "code": "EXP_FOH",
+              "from": "15:20",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "17:20",
+              "to": "18:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "17:20",
+              "to": "17:50"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "17:50",
+              "to": "18:20"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
+          "variantCode": "E8DKT03D65A007",
+          "from": "13:10",
+          "to": "19:20",
+          "availableUnits": 4,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "13:10",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "13:10",
+              "to": "13:40"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "13:40",
+              "to": "14:10"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "14:10",
+              "to": "14:40"
+            },
+            {
+              "code": "EXP_FOH",
+              "from": "17:00",
+              "to": "17:30"
+            },
+            {
+              "code": "EXP_VLC",
+              "from": "18:50",
+              "to": "19:20"
+            }
+          ]
+        }
+      ],
+      "slotsFetchedAt": "2026-11-06T23:23:49.039Z"
+    },
+    {
       "date": "2027-01-02",
       "dayOfWeek": 6,
       "available": true,
@@ -1663,9 +1803,9 @@
       "date": "2027-01-04",
       "dayOfWeek": 1,
       "available": true,
-      "availableUnits": 19,
-      "maxAvailable": 15,
-      "totalCapacity": 19,
+      "availableUnits": 16,
+      "maxAvailable": 12,
+      "totalCapacity": 16,
       "pricePerPerson": 29900,
       "formattedPrice": "¥29,900",
       "timeSlots": [
@@ -1787,7 +1927,7 @@
           "variantCode": "E8DKT03D56A033",
           "from": "13:50",
           "to": "18:10",
-          "availableUnits": 15,
+          "availableUnits": 12,
           "events": [
             {
               "code": "EXP_FOH",
@@ -1822,7 +1962,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-11-06T18:16:35.009Z"
+      "slotsFetchedAt": "2026-11-06T23:23:49.039Z"
     },
     {
       "date": "2027-01-05",
@@ -2095,9 +2235,9 @@
       "date": "2027-01-08",
       "dayOfWeek": 5,
       "available": true,
-      "availableUnits": 295,
-      "maxAvailable": 34,
-      "totalCapacity": 295,
+      "availableUnits": 92,
+      "maxAvailable": 30,
+      "totalCapacity": 92,
       "pricePerPerson": 29900,
       "formattedPrice": "¥29,900",
       "timeSlots": [
@@ -2105,7 +2245,7 @@
           "variantCode": "E8DKT03D65A022",
           "from": "10:10",
           "to": "15:30",
-          "availableUnits": 10,
+          "availableUnits": 1,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -2143,7 +2283,7 @@
           "variantCode": "E8DKT03D65A035",
           "from": "10:10",
           "to": "19:00",
-          "availableUnits": 23,
+          "availableUnits": 8,
           "events": [
             {
               "code": "EXP_FOH",
@@ -2174,82 +2314,6 @@
               "code": "EXP_VLC",
               "from": "18:30",
               "to": "19:00"
-            }
-          ]
-        },
-        {
-          "variantCode": "E8DKT03D65A036",
-          "from": "10:10",
-          "to": "18:20",
-          "availableUnits": 25,
-          "events": [
-            {
-              "code": "EXP_VLC",
-              "from": "10:10",
-              "to": "10:40"
-            },
-            {
-              "code": "EXP_A_SNW",
-              "from": "11:40",
-              "to": "12:40"
-            },
-            {
-              "code": "EXP_MKC",
-              "from": "11:40",
-              "to": "12:10"
-            },
-            {
-              "code": "EXP_YSA",
-              "from": "12:10",
-              "to": "12:40"
-            },
-            {
-              "code": "EXP_DKT",
-              "from": "12:40",
-              "to": "13:10"
-            },
-            {
-              "code": "EXP_FOH",
-              "from": "17:50",
-              "to": "18:20"
-            }
-          ]
-        },
-        {
-          "variantCode": "E8DKT03D65A027",
-          "from": "10:30",
-          "to": "16:10",
-          "availableUnits": 28,
-          "events": [
-            {
-              "code": "EXP_FOH",
-              "from": "10:30",
-              "to": "11:00"
-            },
-            {
-              "code": "EXP_VLC",
-              "from": "12:10",
-              "to": "12:40"
-            },
-            {
-              "code": "EXP_A_SNW",
-              "from": "14:40",
-              "to": "15:40"
-            },
-            {
-              "code": "EXP_MKC",
-              "from": "14:40",
-              "to": "15:10"
-            },
-            {
-              "code": "EXP_YSA",
-              "from": "15:10",
-              "to": "15:40"
-            },
-            {
-              "code": "EXP_DKT",
-              "from": "15:40",
-              "to": "16:10"
             }
           ]
         },
@@ -2295,7 +2359,7 @@
           "variantCode": "E8DKT03D65A032",
           "from": "10:50",
           "to": "15:40",
-          "availableUnits": 22,
+          "availableUnits": 3,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -2330,48 +2394,10 @@
           ]
         },
         {
-          "variantCode": "E8DKT03D65A030",
-          "from": "11:10",
-          "to": "17:30",
-          "availableUnits": 23,
-          "events": [
-            {
-              "code": "EXP_VLC",
-              "from": "11:10",
-              "to": "11:40"
-            },
-            {
-              "code": "EXP_FOH",
-              "from": "13:00",
-              "to": "13:30"
-            },
-            {
-              "code": "EXP_A_SNW",
-              "from": "16:00",
-              "to": "17:00"
-            },
-            {
-              "code": "EXP_MKC",
-              "from": "16:00",
-              "to": "16:30"
-            },
-            {
-              "code": "EXP_YSA",
-              "from": "16:30",
-              "to": "17:00"
-            },
-            {
-              "code": "EXP_DKT",
-              "from": "17:00",
-              "to": "17:30"
-            }
-          ]
-        },
-        {
           "variantCode": "E8DKT03D65A034",
           "from": "12:00",
           "to": "17:30",
-          "availableUnits": 34,
+          "availableUnits": 10,
           "events": [
             {
               "code": "EXP_VLC",
@@ -2409,7 +2435,7 @@
           "variantCode": "E8DKT03D65A040",
           "from": "12:00",
           "to": "17:50",
-          "availableUnits": 27,
+          "availableUnits": 3,
           "events": [
             {
               "code": "EXP_VLC",
@@ -2447,7 +2473,7 @@
           "variantCode": "E8DKT03D65A037",
           "from": "12:10",
           "to": "18:00",
-          "availableUnits": 34,
+          "availableUnits": 10,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -2485,7 +2511,7 @@
           "variantCode": "E8DKT03D65A029",
           "from": "12:50",
           "to": "19:00",
-          "availableUnits": 34,
+          "availableUnits": 30,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -2523,7 +2549,7 @@
           "variantCode": "E8DKT03D65A024",
           "from": "13:10",
           "to": "18:30",
-          "availableUnits": 34,
+          "availableUnits": 22,
           "events": [
             {
               "code": "EXP_A_SNW",
@@ -2558,7 +2584,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-11-06T18:16:35.009Z"
+      "slotsFetchedAt": "2026-11-06T23:23:49.039Z"
     }
   ],
   "attractionNames": {
