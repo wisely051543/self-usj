@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-11-08T22:45:30.620Z",
+  "fetchedAt": "2026-11-09T02:27:56.804Z",
   "calendarStart": "2026-11-09",
   "calendarEnd": "2027-05-09",
   "latestDate": "2026-12-28",
@@ -240,9 +240,9 @@
       "date": "2026-11-29",
       "dayOfWeek": 0,
       "available": true,
-      "availableUnits": 106,
+      "availableUnits": 108,
       "maxAvailable": 30,
-      "totalCapacity": 106,
+      "totalCapacity": 108,
       "pricePerPerson": 27800,
       "formattedPrice": "¥27,800",
       "timeSlots": [
@@ -412,6 +412,39 @@
           ]
         },
         {
+          "variantCode": "E7DKT02D57A478",
+          "from": "14:50",
+          "to": "18:50",
+          "availableUnits": 2,
+          "events": [
+            {
+              "code": "EXP_A_SNW",
+              "from": "14:50",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "14:50",
+              "to": "15:20"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "15:20",
+              "to": "15:50"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "15:50",
+              "to": "16:20"
+            },
+            {
+              "code": "EXP_FOH",
+              "from": "18:20",
+              "to": "18:50"
+            }
+          ]
+        },
+        {
           "variantCode": "E7DKT02D57A486",
           "from": "15:40",
           "to": "20:30",
@@ -511,7 +544,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-11-08T22:45:33.656Z"
+      "slotsFetchedAt": "2026-11-09T02:27:57.749Z"
     },
     {
       "date": "2026-12-12",
