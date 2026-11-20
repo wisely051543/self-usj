@@ -8,7 +8,7 @@
   "currency": "JPY",
   "people": 1,
   "deep": true,
-  "fetchedAt": "2026-11-20T03:57:38.452Z",
+  "fetchedAt": "2026-11-20T12:40:12.951Z",
   "calendarStart": "2026-11-20",
   "calendarEnd": "2027-05-20",
   "latestDate": "2026-11-29",
@@ -23,6 +23,39 @@
       "pricePerPerson": 31800,
       "formattedPrice": "¥31,800",
       "timeSlots": [
+        {
+          "variantCode": "E7DKT02D57A484",
+          "from": "09:40",
+          "to": "17:50",
+          "availableUnits": 1,
+          "events": [
+            {
+              "code": "EXP_FOH",
+              "from": "09:40",
+              "to": "10:10"
+            },
+            {
+              "code": "EXP_A_SNW",
+              "from": "16:20",
+              "to": "17:20"
+            },
+            {
+              "code": "EXP_MKC",
+              "from": "16:20",
+              "to": "16:50"
+            },
+            {
+              "code": "EXP_YSA",
+              "from": "16:50",
+              "to": "17:20"
+            },
+            {
+              "code": "EXP_DKT",
+              "from": "17:20",
+              "to": "17:50"
+            }
+          ]
+        },
         {
           "variantCode": "E7DKT02D57A475",
           "from": "09:50",
@@ -90,7 +123,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-11-20T03:57:39.530Z"
+      "slotsFetchedAt": "2026-11-20T12:40:14.592Z"
     },
     {
       "date": "2026-11-29",
@@ -136,7 +169,7 @@
           ]
         }
       ],
-      "slotsFetchedAt": "2026-11-19T23:02:42.273Z"
+      "slotsFetchedAt": "2026-11-20T12:40:14.592Z"
     }
   ],
   "attractionNames": {
